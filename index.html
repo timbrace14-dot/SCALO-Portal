@@ -812,7 +812,8 @@
             const socialLatest = socialWeeks.length > 0 ? socialWeeks[socialWeeks.length-1][1] : {};
             const socialPrev = socialWeeks.length > 1 ? socialWeeks[socialWeeks.length-2][1] : {};
             const socialDiff = (key) => { const d = (socialLatest[key]||0)-(socialPrev[key]||0); if(d===0) return ''; return `<span style="font-size:11px;font-weight:700;color:${d>0?'#4ADE80':'#FF4533'};margin-left:6px;">${d>0?'+':''}${formatNumber(d)}</span>`; };
-            const currentEntry = entries[weekKey] || {};
+            const currentEntryRaw = entries[weekKey] || {};
+            const currentEntry = getWeeklyTotals(currentEntryRaw);
             const allEntries = Object.values(entries);
 
             const last8Weeks = [];
@@ -821,38 +822,39 @@
                 const s = new Date(d.getFullYear(), 0, 1);
                 const week = Math.ceil(((d - s) / 86400000 + s.getDay() + 1) / 7);
                 const wk = `${d.getFullYear()}_W${String(week).padStart(2, '0')}`;
-                last8Weeks.push(entries[wk] || {});
+                last8Weeks.push(getWeeklyTotals(entries[wk]));
             }
 
             const calcMetric = (key) => last8Weeks.map(w => parseFloat(w[key]) || 0);
-            const revenue = parseFloat(currentEntry.revenue) || 0;
-            const expenses = parseFloat(currentEntry.expenses) || 0;
-            const noShows = parseFloat(currentEntry.noShows) || 0;
-            const avgTicket = parseFloat(currentEntry.avgTicketPrice) || 0;
+            const revenue = currentEntry.revenue || 0;
+            const expenses = currentEntry.expenses || 0;
+            const noShows = currentEntry.noShows || 0;
+            const avgTicket = currentEntry.avgTicketPrice || 0;
             const lossOfEarnings = noShows * avgTicket;
             const trueProfit = revenue - lossOfEarnings - expenses;
             const trueMargin = revenue > 0 ? (trueProfit / revenue * 100) : 0;
-            const occupancy = (parseFloat(currentEntry.appointmentsAvailable) || 0) > 0
-                ? (parseFloat(currentEntry.appointmentsFilled) || 0) / parseFloat(currentEntry.appointmentsAvailable) * 100 : 0;
-            const rebook = (parseFloat(currentEntry.appointmentsFilled) || 0) > 0
-                ? (parseFloat(currentEntry.rebookings) || 0) / parseFloat(currentEntry.appointmentsFilled) * 100 : 0;
+            const occupancy = currentEntry.appointmentsAvailable > 0
+                ? currentEntry.appointmentsFilled / currentEntry.appointmentsAvailable * 100 : 0;
+            const rebook = currentEntry.appointmentsFilled > 0
+                ? currentEntry.rebookings / currentEntry.appointmentsFilled * 100 : 0;
 
-            // All-time totals
-            const allRevenue = allEntries.reduce((s,e) => s+(parseFloat(e.revenue)||0), 0);
-            const allExpenses = allEntries.reduce((s,e) => s+(parseFloat(e.expenses)||0), 0);
-            const allClients = allEntries.reduce((s,e) => s+(parseFloat(e.newClients)||0), 0);
+            // All-time totals (using getWeeklyTotals for each entry)
+            const allTotals = allEntries.map(e => getWeeklyTotals(e));
+            const allRevenue = allTotals.reduce((s,e) => s+e.revenue, 0);
+            const allExpenses = allTotals.reduce((s,e) => s+e.expenses, 0);
+            const allClients = allTotals.reduce((s,e) => s+e.newClients, 0);
             const allViews = allEntries.reduce((s,e) => s+(parseFloat(e.instagramViews)||0)+(parseFloat(e.tiktokViews)||0), 0);
             const allFollowers = allEntries.reduce((s,e) => s+(parseFloat(e.instagramFollowers)||0)+(parseFloat(e.tiktokFollowers)||0), 0);
-            const allNoShows = allEntries.reduce((s,e) => s+(parseFloat(e.noShows)||0), 0);
-            const allRebookings = allEntries.reduce((s,e) => s+(parseFloat(e.rebookings)||0), 0);
+            const allNoShows = allTotals.reduce((s,e) => s+e.noShows, 0);
+            const allRebookings = allTotals.reduce((s,e) => s+e.rebookings, 0);
             const allTrueProfit = allRevenue - allExpenses;
             const allTrueProfitMargin = allRevenue > 0 ? (allTrueProfit / allRevenue * 100) : 0;
-            const allApptsAvailable = allEntries.reduce((s,e) => s+(parseFloat(e.appointmentsAvailable)||0), 0);
-            const allApptsFilled = allEntries.reduce((s,e) => s+(parseFloat(e.appointmentsFilled)||0), 0);
+            const allApptsAvailable = allTotals.reduce((s,e) => s+e.appointmentsAvailable, 0);
+            const allApptsFilled = allTotals.reduce((s,e) => s+e.appointmentsFilled, 0);
             const allOccupancy = allApptsAvailable > 0 ? (allApptsFilled / allApptsAvailable * 100) : 0;
             const allRebook = allApptsFilled > 0 ? (allRebookings / allApptsFilled * 100) : 0;
 
-            hubChartData = { trueMargin, occupancy, rebook, allTrueProfitMargin, allOccupancy, allRebook, revenue, expenses, lossOfEarnings, trueProfit, noShows, avgTicket, appointmentsAvailable: parseFloat(currentEntry.appointmentsAvailable)||0, appointmentsFilled: parseFloat(currentEntry.appointmentsFilled)||0, rebookings: parseFloat(currentEntry.rebookings)||0 };
+            hubChartData = { trueMargin, occupancy, rebook, allTrueProfitMargin, allOccupancy, allRebook, revenue, expenses, lossOfEarnings, trueProfit, noShows, avgTicket, appointmentsAvailable: currentEntry.appointmentsAvailable||0, appointmentsFilled: currentEntry.appointmentsFilled||0, rebookings: currentEntry.rebookings||0 };
 
             const incompleteTasks = Object.entries(tasks).filter(([, task]) => {
                 const checklist = task.checklist || {};
@@ -1185,6 +1187,81 @@
 
         // ── NUMBERS ──
         let selectedWeekKey = null;
+        let selectedDayIndex = null; // 0=Mon, 1=Tue, ..., 6=Sun
+
+        const FIELD_KEYS = ['appointmentsAvailable','appointmentsFilled','newClients','rebookings','noShows','avgTicketPrice','revenue','expenses'];
+        const FIELD_LABELS = ['Appts Available','Appts Filled','New Clients','Rebookings','No Shows','Avg Ticket Price','Revenue','Expenses'];
+        const CURRENCY_FIELDS = ['avgTicketPrice','revenue','expenses'];
+        const DAY_NAMES = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
+        // Helper: get Monday date of a week key like "2026_W13"
+        const getMondayOfWeek = (weekKey) => {
+            const [yr, wPart] = weekKey.split('_W');
+            const year = parseInt(yr);
+            const week = parseInt(wPart);
+            const jan1 = new Date(year, 0, 1);
+            const jan1Day = jan1.getDay() || 7; // Mon=1..Sun=7
+            const mondayOfW1 = new Date(year, 0, 1 + (1 - jan1Day));
+            // If Jan 1 is Mon-Thu, week 1 contains Jan 1. Otherwise adjust.
+            if (jan1Day > 4) mondayOfW1.setDate(mondayOfW1.getDate() + 7);
+            const monday = new Date(mondayOfW1);
+            monday.setDate(mondayOfW1.getDate() + (week - 1) * 7);
+            return monday;
+        };
+
+        // Helper: determine if today is in a given week key
+        const getTodayDayIndex = (weekKey) => {
+            const monday = getMondayOfWeek(weekKey);
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            monday.setHours(0,0,0,0);
+            const diff = Math.round((today - monday) / 86400000);
+            if (diff >= 0 && diff <= 6) return diff;
+            return -1; // today is not in this week
+        };
+
+        // Helper: normalize entry data — returns weekly totals from either old (flat) or new (days) format
+        const getWeeklyTotals = (entry) => {
+            if (!entry) return { appointmentsAvailable:0, appointmentsFilled:0, newClients:0, rebookings:0, noShows:0, avgTicketPrice:0, revenue:0, expenses:0 };
+            // New format: has a "days" property
+            if (entry.days) {
+                const totals = { appointmentsAvailable:0, appointmentsFilled:0, newClients:0, rebookings:0, noShows:0, avgTicketPrice:0, revenue:0, expenses:0 };
+                let avgTicketSum = 0, avgTicketCount = 0;
+                for (let i = 0; i < 7; i++) {
+                    const day = entry.days[i];
+                    if (!day) continue;
+                    FIELD_KEYS.forEach(key => {
+                        if (key === 'avgTicketPrice') {
+                            const val = parseFloat(day[key]);
+                            if (val) { avgTicketSum += val; avgTicketCount++; }
+                        } else {
+                            totals[key] += parseFloat(day[key]) || 0;
+                        }
+                    });
+                }
+                totals.avgTicketPrice = avgTicketCount > 0 ? avgTicketSum / avgTicketCount : 0;
+                return totals;
+            }
+            // Old format: flat weekly data
+            const result = {};
+            FIELD_KEYS.forEach(key => { result[key] = parseFloat(entry[key]) || 0; });
+            return result;
+        };
+
+        // Helper: check if entry uses new daily format
+        const isDailyFormat = (entry) => entry && entry.days !== undefined;
+
+        // Helper: count filled days in a daily-format entry
+        const getFilledDayCount = (entry) => {
+            if (!entry || !entry.days) return 0;
+            let count = 0;
+            for (let i = 0; i < 7; i++) {
+                const day = entry.days[i];
+                if (day && FIELD_KEYS.some(k => day[k] !== undefined && day[k] !== null && day[k] !== '')) count++;
+            }
+            return count;
+        };
+
         const getWeekOptions = () => {
             const options = [];
             for (let i = 0; i < 12; i++) {
@@ -1193,7 +1270,6 @@
                 const s = new Date(d.getFullYear(), 0, 1);
                 const week = Math.ceil(((d - s) / 86400000 + s.getDay() + 1) / 7);
                 const wk = `${d.getFullYear()}_W${String(week).padStart(2, '0')}`;
-                // Get the Monday of that week
                 const monday = new Date(d);
                 monday.setDate(d.getDate() - d.getDay() + 1);
                 const sunday = new Date(monday);
@@ -1206,11 +1282,9 @@
         };
 
         const weekKeyFromInput = (val) => {
-            // val is like "2026-W13" → "2026_W13"
             return val.replace('-W', '_W').replace('-', '_W');
         };
         const weekInputFromKey = (key) => {
-            // "2026_W13" → "2026-W13"
             return key.replace('_W', '-W');
         };
 
@@ -1225,40 +1299,106 @@
             const historyRows = Object.entries(allEntries)
                 .sort(([a], [b]) => b.localeCompare(a))
                 .slice(0, 20);
+
+            // Determine today's day index in this week (-1 if not current week)
+            const todayIdx = getTodayDayIndex(selectedWeekKey);
+            // Auto-select today if no day selected yet, or if switching weeks
+            if (selectedDayIndex === null || selectedDayIndex === undefined) {
+                selectedDayIndex = todayIdx >= 0 ? todayIdx : 0;
+            }
+
+            // Get the Monday date for this week
+            const monday = getMondayOfWeek(selectedWeekKey);
+
+            // Build day-by-day cards
+            const dayCards = DAY_NAMES.map((dayName, idx) => {
+                const dayDate = new Date(monday);
+                dayDate.setDate(monday.getDate() + idx);
+                const dateStr = dayDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                const dayData = (data.days && data.days[idx]) ? data.days[idx] : {};
+                const isFilled = FIELD_KEYS.some(k => dayData[k] !== undefined && dayData[k] !== null && dayData[k] !== '');
+                const isToday = todayIdx === idx;
+                const isSelected = selectedDayIndex === idx;
+
+                const fields = FIELD_KEYS.map((key, fi) => {
+                    const isCurrency = CURRENCY_FIELDS.includes(key);
+                    const val = dayData[key] !== undefined && dayData[key] !== null ? dayData[key] : '';
+                    return `<div>
+                        <div class="form-label">${FIELD_LABELS[fi]}</div>
+                        ${isCurrency ? `<div style="position:relative;"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.45);font-size:14px;">&#xA3;</span>
+                        <input type="number" class="num-field day-field-${idx}" data-key="${key}" data-day="${idx}" value="${val}" inputmode="numeric" style="padding-left:28px;" placeholder="0"></div>`
+                        : `<input type="number" class="num-field day-field-${idx}" data-key="${key}" data-day="${idx}" value="${val}" inputmode="numeric" placeholder="0">`}
+                    </div>`;
+                }).join('');
+
+                return `<div class="day-card" data-day-idx="${idx}" style="background:${isSelected ? '#1a1a1a' : '#111'};border:1.5px solid ${isToday ? '#FF4533' : isSelected ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.06)'};border-radius:14px;padding:0;margin-bottom:10px;overflow:hidden;transition:all 0.2s;">
+                    <div onclick="selectDay(${idx})" style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;cursor:pointer;user-select:none;background:${isSelected ? 'rgba(255,255,255,0.03)' : 'transparent'};">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <div style="width:8px;height:8px;border-radius:50%;background:${isFilled ? '#4ADE80' : 'rgba(255,255,255,0.15)'};flex-shrink:0;"></div>
+                            <div>
+                                <span style="font-size:14px;font-weight:700;color:#fff;">${dayName}</span>
+                                <span style="font-size:12px;color:rgba(255,255,255,0.45);margin-left:8px;">${dateStr}</span>
+                            </div>
+                            ${isToday ? '<span style="font-size:10px;font-weight:700;background:#FF4533;color:#fff;padding:2px 8px;border-radius:20px;margin-left:8px;">TODAY</span>' : ''}
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            ${isFilled ? '<span style="font-size:11px;color:#4ADE80;font-weight:600;">&#x2713; Logged</span>' : '<span style="font-size:11px;color:rgba(255,255,255,0.25);font-weight:500;">Not logged</span>'}
+                            <span style="font-size:16px;color:rgba(255,255,255,0.3);transform:rotate(${isSelected ? '90' : '0'}deg);transition:transform 0.2s;">&#x203A;</span>
+                        </div>
+                    </div>
+                    <div style="display:${isSelected ? 'block' : 'none'};padding:0 18px 18px;">
+                        <div class="input-grid" style="margin-top:4px;">
+                            ${fields}
+                        </div>
+                        <button class="btn-primary" onclick="handleSaveDayNumbers(${idx})" id="saveDayBtn_${idx}" style="margin-top:10px;font-size:13px;padding:10px;">Save ${dayName} &#x2192;</button>
+                    </div>
+                </div>`;
+            }).join('');
+
+            // Weekly totals (auto-calculated)
+            const totals = getWeeklyTotals(data);
+            const filledCount = getFilledDayCount(data);
+            const isOldFormat = !isDailyFormat(data) && Object.keys(data).length > 0 && (data.revenue || data.appointmentsFilled);
+
+            const totalsRow = `<div class="card" style="margin-top:8px;margin-bottom:16px;background:#0f0f0f;border:1.5px solid rgba(255,69,51,0.2);">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                    <div class="section-header" style="margin-bottom:0;">&#x1F4CA; Weekly Totals</div>
+                    <span style="font-size:11px;color:rgba(255,255,255,0.45);">${isOldFormat ? 'Logged as weekly total' : filledCount + '/7 days logged'}</span>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+                    ${FIELD_KEYS.map((key, fi) => {
+                        const val = totals[key] || 0;
+                        const isCurrency = CURRENCY_FIELDS.includes(key);
+                        const display = isCurrency ? '&#xA3;' + parseFloat(val).toLocaleString('en-GB', {minimumFractionDigits:0, maximumFractionDigits:2}) : Math.round(val).toLocaleString('en-GB');
+                        return `<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;text-align:center;">
+                            <div style="font-size:9px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">${FIELD_LABELS[fi]}${key === 'avgTicketPrice' ? ' (avg)' : ''}</div>
+                            <div style="font-size:16px;font-weight:700;color:${key === 'revenue' ? '#4ADE80' : key === 'expenses' ? '#FF4533' : '#fff'};">${display}</div>
+                        </div>`;
+                    }).join('')}
+                </div>
+            </div>`;
+
             return `
                 <div>
                     <h2 class="page-title">Log Your Numbers</h2>
-                    <p class="page-subtitle">Pick a week using the calendar, fill in your stats, then save</p>
+                    <p class="page-subtitle">Pick a week, then fill in each day's stats</p>
                     <div class="card" style="margin-bottom:16px;">
-                        <div class="form-label" style="margin-bottom:8px;">📅 Select Week</div>
+                        <div class="form-label" style="margin-bottom:8px;">&#x1F4C5; Select Week</div>
                         <input type="week" id="weekPicker" class="form-input" value="${weekInputFromKey(selectedWeekKey)}" style="cursor:pointer;font-weight:600;font-family:inherit;">
-                        <div style="font-size:12px;color:rgba(255,255,255,0.45);margin-top:6px;font-weight:400;">Currently editing: <strong style="color:#fff;">${selectedWeekKey}</strong>${data.revenue||data.appointmentsFilled ? ' — <span style="color:#4ADE80;">✓ has saved data</span>' : ' — no data yet'}</div>
+                        <div style="font-size:12px;color:rgba(255,255,255,0.45);margin-top:6px;font-weight:400;">Currently editing: <strong style="color:#fff;">${selectedWeekKey}</strong>${isDailyFormat(data) ? ` — <span style="color:#4ADE80;">${getFilledDayCount(data)}/7 days logged</span>` : isOldFormat ? ' — <span style="color:#FBBF24;">Logged as weekly total</span>' : ' — no data yet'}</div>
                     </div>
-                    <div class="card">
-                        <div class="section-header">Business</div>
-                        <div class="input-grid">
-                            <div><div class="form-label">Appts Available</div><input type="number" class="num-field" data-key="appointmentsAvailable" value="${data.appointmentsAvailable||''}" inputmode="numeric" placeholder="0"></div>
-                            <div><div class="form-label">Appts Filled</div><input type="number" class="num-field" data-key="appointmentsFilled" value="${data.appointmentsFilled||''}" inputmode="numeric" placeholder="0"></div>
-                            <div><div class="form-label">New Clients</div><input type="number" class="num-field" data-key="newClients" value="${data.newClients||''}" inputmode="numeric" placeholder="0"></div>
-                            <div><div class="form-label">Rebookings</div><input type="number" class="num-field" data-key="rebookings" value="${data.rebookings||''}" inputmode="numeric" placeholder="0"></div>
-                            <div><div class="form-label">No Shows</div><input type="number" class="num-field" data-key="noShows" value="${data.noShows||''}" inputmode="numeric" placeholder="0"></div>
-                            <div><div class="form-label">Avg Ticket Price</div>
-                                <div style="position:relative;"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.45);font-size:14px;">&#xA3;</span>
-                                <input type="number" class="num-field" data-key="avgTicketPrice" value="${data.avgTicketPrice||''}" inputmode="numeric" style="padding-left:28px;" placeholder="0"></div></div>
-                            <div><div class="form-label">Revenue</div>
-                                <div style="position:relative;"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.45);font-size:14px;">&#xA3;</span>
-                                <input type="number" class="num-field" data-key="revenue" value="${data.revenue||''}" inputmode="numeric" style="padding-left:28px;" placeholder="0"></div></div>
-                            <div><div class="form-label">Expenses</div>
-                                <div style="position:relative;"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.45);font-size:14px;">&#xA3;</span>
-                                <input type="number" class="num-field" data-key="expenses" value="${data.expenses||''}" inputmode="numeric" style="padding-left:28px;" placeholder="0"></div></div>
-                        </div>
-                    </div>
-                    <!-- Social & Content inputs removed — now tracked automatically via Social Tracker -->
-                    <button class="btn-primary" id="saveNumbersBtn" style="margin-top:8px;">Save Numbers &#x2192;</button>
+
+                    ${isOldFormat ? `<div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#FBBF24;">
+                        &#x26A0; This week was saved as a weekly total under the old system. The totals below reflect that entry. New entries going forward will use the day-by-day format.
+                    </div>` : ''}
+
+                    ${isOldFormat ? '' : dayCards}
+
+                    ${totalsRow}
 
                     ${historyRows.length > 0 ? `
-                    <div class="card" style="margin-top:24px;margin-bottom:40px;">
-                        <div class="section-header" style="margin-bottom:14px;">📋 Logged History</div>
+                    <div class="card" style="margin-top:8px;margin-bottom:40px;">
+                        <div class="section-header" style="margin-bottom:14px;">&#x1F4CB; Logged History</div>
                         <div style="overflow-x:auto;">
                             <table style="width:100%;border-collapse:collapse;font-size:12px;">
                                 <thead>
@@ -1267,21 +1407,27 @@
                                         <th style="text-align:right;padding:8px 10px;color:rgba(255,255,255,0.45);font-weight:700;">Revenue</th>
                                         <th style="text-align:right;padding:8px 10px;color:rgba(255,255,255,0.45);font-weight:700;">Filled</th>
                                         <th style="text-align:right;padding:8px 10px;color:rgba(255,255,255,0.45);font-weight:700;">No Shows</th>
+                                        <th style="text-align:left;padding:8px 10px;color:rgba(255,255,255,0.45);font-weight:700;">Format</th>
                                         <th style="text-align:center;padding:8px 10px;color:rgba(255,255,255,0.45);font-weight:700;">Edit</th>
                                         <th style="text-align:center;padding:8px 10px;color:rgba(255,255,255,0.45);font-weight:700;">Export</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${historyRows.map(([key, e]) => `
+                                    ${historyRows.map(([key, e]) => {
+                                        const t = getWeeklyTotals(e);
+                                        const isDaily = isDailyFormat(e);
+                                        const filled = getFilledDayCount(e);
+                                        return `
                                         <tr style="border-bottom:1px solid rgba(255,255,255,0.06);${key===selectedWeekKey?'background:rgba(255,255,255,0.04);':''}" >
-                                            <td style="padding:10px 10px;font-weight:700;white-space:nowrap;">${key}${key===selectedWeekKey?' <span style="font-size:10px;color:#FBBF24;">● editing</span>':''}</td>
-                                            <td style="text-align:right;padding:10px 10px;color:#4ADE80;font-weight:700;">${e.revenue?formatCurrency(e.revenue):'—'}</td>
-                                            <td style="text-align:right;padding:10px 10px;">${e.appointmentsFilled||'—'}</td>
-                                            <td style="text-align:right;padding:10px 10px;color:${e.noShows>0?'#FF4533':'#AAA'};">${e.noShows||'0'}</td>
+                                            <td style="padding:10px 10px;font-weight:700;white-space:nowrap;">${key}${key===selectedWeekKey?' <span style="font-size:10px;color:#FBBF24;">&#x25CF; editing</span>':''}</td>
+                                            <td style="text-align:right;padding:10px 10px;color:#4ADE80;font-weight:700;">${t.revenue?formatCurrency(t.revenue):'—'}</td>
+                                            <td style="text-align:right;padding:10px 10px;">${t.appointmentsFilled||'—'}</td>
+                                            <td style="text-align:right;padding:10px 10px;color:${t.noShows>0?'#FF4533':'#AAA'};">${t.noShows||'0'}</td>
+                                            <td style="padding:10px 10px;font-size:10px;color:${isDaily ? '#4ADE80' : 'rgba(255,255,255,0.35)'};">${isDaily ? filled+'/7 days' : 'Weekly total'}</td>
                                             <td style="text-align:center;padding:10px 10px;"><button onclick="loadWeekForEdit('${key}')" style="background:${key===selectedWeekKey?'#FBBF24':'#1C1C1C'};border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;color:${key===selectedWeekKey?'#000':'rgba(255,255,255,0.65)'};">${key===selectedWeekKey?'Editing':'Edit'}</button></td>
                                             <td style="text-align:center;padding:10px 10px;"><button onclick="exportWeekPDF('${key}')" style="background:#FF4533;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;color:#fff;">PDF</button></td>
-                                        </tr>
-                                    `).join('')}
+                                        </tr>`;
+                                    }).join('')}
                                 </tbody>
                             </table>
                         </div>
@@ -1290,33 +1436,57 @@
             `;
         };
 
-        const handleSaveNumbers = async () => {
+        window.selectDay = (idx) => {
+            selectedDayIndex = idx;
+            // Re-render to toggle day panel
+            setPage('numbers');
+        };
+
+        window.handleSaveDayNumbers = async (dayIdx) => {
             const weekKey = selectedWeekKey || getWeekKey();
-            const data = { week: parseInt(weekKey.split('_W')[1]), year: parseInt(weekKey.split('_')[0]) };
-            document.querySelectorAll('.num-field').forEach(input => {
+            const dayData = {};
+            document.querySelectorAll(`.day-field-${dayIdx}`).forEach(input => {
                 const key = input.dataset.key;
                 const value = input.value.trim();
-                data[key] = value ? parseFloat(value) : null;
+                dayData[key] = value ? parseFloat(value) : null;
             });
             try {
-                await db.ref(`portal/entries/${currentUser.uid}/${weekKey}`).set(data);
-                const btn = document.getElementById('saveNumbersBtn');
-                if (btn) { btn.textContent = '✓ Saved!'; btn.style.background = '#4ADE80'; setTimeout(() => { selectedWeekKey = getWeekKey(); setPage('numbers'); }, 1500); }
+                // Save this day's data under the days sub-key
+                await db.ref(`portal/entries/${currentUser.uid}/${weekKey}/days/${dayIdx}`).set(dayData);
+                // Also store week/year metadata
+                await db.ref(`portal/entries/${currentUser.uid}/${weekKey}/week`).set(parseInt(weekKey.split('_W')[1]));
+                await db.ref(`portal/entries/${currentUser.uid}/${weekKey}/year`).set(parseInt(weekKey.split('_')[0]));
+
+                const btn = document.getElementById(`saveDayBtn_${dayIdx}`);
+                if (btn) {
+                    btn.textContent = '✓ Saved!';
+                    btn.style.background = '#4ADE80';
+                    setTimeout(() => { setPage('numbers'); }, 1200);
+                }
             } catch (err) { alert('Error saving: ' + err.message); }
+        };
+
+        // Legacy save handler (no longer used for new entries, but kept for safety)
+        const handleSaveNumbers = async () => {
+            // This now redirects to day-based saving
+            if (selectedDayIndex !== null && selectedDayIndex !== undefined) {
+                await window.handleSaveDayNumbers(selectedDayIndex);
+            }
         };
 
         const exportWeekPDF = async (weekKey) => {
             if (!weekKey) { alert('Please select a week to export'); return; }
             try {
                 const snap = await db.ref(`portal/entries/${currentUser.uid}/${weekKey}`).once('value');
-                const d = snap.val();
-                if (!d) { alert('No data found for ' + weekKey); return; }
-                const revenue = parseFloat(d.revenue)||0;
-                const expenses = parseFloat(d.expenses)||0;
+                const rawEntry = snap.val();
+                if (!rawEntry) { alert('No data found for ' + weekKey); return; }
+                const d = getWeeklyTotals(rawEntry);
+                const revenue = d.revenue||0;
+                const expenses = d.expenses||0;
                 const profit = revenue - expenses;
                 const profitMargin = revenue > 0 ? ((profit/revenue)*100).toFixed(1) : '0.0';
-                const occupancy = (parseFloat(d.appointmentsAvailable)||0) > 0 ? ((parseFloat(d.appointmentsFilled)||0)/parseFloat(d.appointmentsAvailable)*100).toFixed(1) : '0.0';
-                const rebook = (parseFloat(d.appointmentsFilled)||0) > 0 ? ((parseFloat(d.rebookings)||0)/parseFloat(d.appointmentsFilled)*100).toFixed(1) : '0.0';
+                const occupancy = d.appointmentsAvailable > 0 ? (d.appointmentsFilled/d.appointmentsAvailable*100).toFixed(1) : '0.0';
+                const rebook = d.appointmentsFilled > 0 ? (d.rebookings/d.appointmentsFilled*100).toFixed(1) : '0.0';
                 // Social data removed from PDF — now tracked via Social Tracker
                 const w = window.open('', '_blank');
                 w.document.write(`<!DOCTYPE html><html><head><title>SCALO Report - ${weekKey}</title>
@@ -1603,7 +1773,7 @@
                     const monday = new Date(d); monday.setDate(d.getDate() - d.getDay() + 1);
                     const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
                     const fmt = dt => dt.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
-                    result.push({ label: `${fmt(monday)} - ${fmt(sunday)}`, ...(progressAllEntries[wk] || {}) });
+                    result.push({ label: `${fmt(monday)} - ${fmt(sunday)}`, ...getWeeklyTotals(progressAllEntries[wk]), ...(progressAllEntries[wk]||{}) });
                 }
                 return result;
             } else {
@@ -1617,12 +1787,13 @@
                     const monthKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
                     if (!months[monthKey]) months[monthKey] = { label: d.toLocaleDateString('en-GB',{month:'short',year:'2-digit'}), revenue:0,expenses:0,appointmentsAvailable:0,appointmentsFilled:0,rebookings:0,noShows:0,instagramViews:0,tiktokViews:0,instagramFollowers:0,tiktokFollowers:0 };
                     const m = months[monthKey];
-                    m.revenue += parseFloat(e.revenue)||0;
-                    m.expenses += parseFloat(e.expenses)||0;
-                    m.appointmentsAvailable += parseFloat(e.appointmentsAvailable)||0;
-                    m.appointmentsFilled += parseFloat(e.appointmentsFilled)||0;
-                    m.rebookings += parseFloat(e.rebookings)||0;
-                    m.noShows += parseFloat(e.noShows)||0;
+                    const t = getWeeklyTotals(e);
+                    m.revenue += t.revenue;
+                    m.expenses += t.expenses;
+                    m.appointmentsAvailable += t.appointmentsAvailable;
+                    m.appointmentsFilled += t.appointmentsFilled;
+                    m.rebookings += t.rebookings;
+                    m.noShows += t.noShows;
                     m.instagramViews += parseFloat(e.instagramViews)||0;
                     m.tiktokViews += parseFloat(e.tiktokViews)||0;
                     m.instagramFollowers += parseFloat(e.instagramFollowers)||0;
@@ -2602,20 +2773,24 @@ window.exportClientPDF = async (uid) => {
     const lastLogin = user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : 'Never';
     const exportDate = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
     const tableRow = (label, value, highlight = false) => `<tr style="border-bottom:1px solid rgba(255,255,255,0.06);"><td style="padding:8px 12px;font-size:13px;color:rgba(255,255,255,0.65);width:50%;">${label}</td><td style="padding:8px 12px;font-size:13px;font-weight:700;color:${highlight?'#FF4533':'#fff'};">${value}</td></tr>`;
-    const businessSection = selectedEntries.length === 0 ? '<p style="color:rgba(255,255,255,0.45);font-size:13px;">No business data recorded yet.</p>' : selectedEntries.map(([weekKey, e]) => `
+    const businessSection = selectedEntries.length === 0 ? '<p style="color:rgba(255,255,255,0.45);font-size:13px;">No business data recorded yet.</p>' : selectedEntries.map(([weekKey, e]) => {
+        const t = getWeeklyTotals(e);
+        const formatLabel = isDailyFormat(e) ? ' <span style="font-size:10px;color:rgba(255,255,255,0.35);">('+getFilledDayCount(e)+'/7 days)</span>' : '';
+        return `
         <div style="margin-bottom:24px;break-inside:avoid;">
-            <div style="font-size:12px;font-weight:700;color:#FF4533;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #FF4533;">${weekKey}</div>
+            <div style="font-size:12px;font-weight:700;color:#FF4533;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #FF4533;">${weekKey}${formatLabel}</div>
             <table style="width:100%;border-collapse:collapse;">
-                ${tableRow('Revenue', e.revenue ? '\u00A3'+parseFloat(e.revenue).toLocaleString('en-GB') : '\u2014', true)}
-                ${tableRow('Expenses', e.expenses ? '\u00A3'+parseFloat(e.expenses).toLocaleString('en-GB') : '\u2014')}
-                ${tableRow('Appointments Available', e.appointmentsAvailable || '\u2014')}
-                ${tableRow('Appointments Filled', e.appointmentsFilled || '\u2014')}
-                ${tableRow('New Clients', e.newClients || '\u2014')}
-                ${tableRow('Rebookings', e.rebookings || '\u2014')}
-                ${tableRow('No Shows', e.noShows || '\u2014')}
-                ${tableRow('Avg Ticket Price', e.avgTicketPrice ? '\u00A3'+parseFloat(e.avgTicketPrice).toLocaleString('en-GB') : '\u2014')}
+                ${tableRow('Revenue', t.revenue ? '\u00A3'+t.revenue.toLocaleString('en-GB') : '\u2014', true)}
+                ${tableRow('Expenses', t.expenses ? '\u00A3'+t.expenses.toLocaleString('en-GB') : '\u2014')}
+                ${tableRow('Appointments Available', t.appointmentsAvailable || '\u2014')}
+                ${tableRow('Appointments Filled', t.appointmentsFilled || '\u2014')}
+                ${tableRow('New Clients', t.newClients || '\u2014')}
+                ${tableRow('Rebookings', t.rebookings || '\u2014')}
+                ${tableRow('No Shows', t.noShows || '\u2014')}
+                ${tableRow('Avg Ticket Price', t.avgTicketPrice ? '\u00A3'+t.avgTicketPrice.toLocaleString('en-GB') : '\u2014')}
             </table>
-        </div>`).join('');
+        </div>`;
+    }).join('');
     const socialSection = selectedSocial.length === 0 ? '<p style="color:rgba(255,255,255,0.45);font-size:13px;">No social data recorded yet.</p>' : selectedSocial.map(([weekKey, s]) => `
         <div style="margin-bottom:24px;break-inside:avoid;">
             <div style="font-size:12px;font-weight:700;color:#FF4533;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #FF4533;">${weekKey}</div>
@@ -2662,17 +2837,18 @@ window.exportAdminWeekPDF = async (uid, weekKey) => {
             db.ref(`portal/entries/${uid}/${weekKey}`).once('value')
         ]);
         const user = userSnap.val() || {};
-        const d = entrySnap.val();
-        if (!d) { alert('No data found for this week'); return; }
-        const revenue = parseFloat(d.revenue)||0;
-        const expenses = parseFloat(d.expenses)||0;
-        const noShows = parseFloat(d.noShows)||0;
-        const avgTicket = parseFloat(d.avgTicketPrice)||0;
+        const rawEntry = entrySnap.val();
+        if (!rawEntry) { alert('No data found for this week'); return; }
+        const d = getWeeklyTotals(rawEntry);
+        const revenue = d.revenue||0;
+        const expenses = d.expenses||0;
+        const noShows = d.noShows||0;
+        const avgTicket = d.avgTicketPrice||0;
         const lossOfEarnings = noShows * avgTicket;
         const trueProfit = revenue - lossOfEarnings - expenses;
         const trueMargin = revenue > 0 ? (trueProfit / revenue * 100).toFixed(1) : '0.0';
-        const occupancy = (parseFloat(d.appointmentsAvailable)||0) > 0 ? ((parseFloat(d.appointmentsFilled)||0)/parseFloat(d.appointmentsAvailable)*100).toFixed(1) : '0.0';
-        const rebook = (parseFloat(d.appointmentsFilled)||0) > 0 ? ((parseFloat(d.rebookings)||0)/parseFloat(d.appointmentsFilled)*100).toFixed(1) : '0.0';
+        const occupancy = d.appointmentsAvailable > 0 ? (d.appointmentsFilled/d.appointmentsAvailable*100).toFixed(1) : '0.0';
+        const rebook = d.appointmentsFilled > 0 ? (d.rebookings/d.appointmentsFilled*100).toFixed(1) : '0.0';
         const dr = weekKeyToDateRange(weekKey);
         const w = window.open('', '_blank');
         w.document.write(`<!DOCTYPE html><html><head><title>SCALO Report \u2014 ${user.firstName} ${user.lastName} \u2014 ${dr.range}</title>
@@ -2761,24 +2937,26 @@ const renderAdminClientDetail = async (uid) => {
     if (window.adminDetailWeekOffset[uid] === undefined) window.adminDetailWeekOffset[uid] = 0;
     const adminWeekOffset = window.adminDetailWeekOffset[uid];
     const weekKey = getOffsetWeekKey(adminWeekOffset);
-    const currentEntry = entries[weekKey]||{};
+    const currentEntryRaw = entries[weekKey]||{};
+    const currentEntry = getWeeklyTotals(currentEntryRaw);
     const allEntries = Object.entries(entries).sort(([a],[b])=>b.localeCompare(a));
     const allEntriesValues = Object.values(entries);
+    const allTotalsAdmin = allEntriesValues.map(e => getWeeklyTotals(e));
     const socialWeeks = Object.entries(socialRaw).sort(([a],[b])=>b.localeCompare(a));
     const socialWeeksAsc = Object.entries(socialRaw).sort(([a],[b])=>a.localeCompare(b));
     const latestSocial = socialWeeks.length>0?socialWeeks[0][1]:{};
     const prevSocial = socialWeeks.length>1?socialWeeks[1][1]:{};
     const hasSocialHistory = socialWeeksAsc.length > 0;
     const hasTikTok = !!socialProfile.tiktokUrl;
-    const revenue = parseFloat(currentEntry.revenue)||0;
-    const expenses = parseFloat(currentEntry.expenses)||0;
-    const noShows = parseFloat(currentEntry.noShows)||0;
-    const avgTicket = parseFloat(currentEntry.avgTicketPrice)||0;
+    const revenue = currentEntry.revenue||0;
+    const expenses = currentEntry.expenses||0;
+    const noShows = currentEntry.noShows||0;
+    const avgTicket = currentEntry.avgTicketPrice||0;
     const lossOfEarnings = noShows * avgTicket;
     const trueProfit = revenue - lossOfEarnings - expenses;
     const trueMargin = revenue > 0 ? (trueProfit / revenue * 100) : 0;
-    const occupancy = (parseFloat(currentEntry.appointmentsAvailable)||0)>0?(parseFloat(currentEntry.appointmentsFilled)||0)/parseFloat(currentEntry.appointmentsAvailable)*100:0;
-    const rebook = (parseFloat(currentEntry.appointmentsFilled)||0)>0?(parseFloat(currentEntry.rebookings)||0)/parseFloat(currentEntry.appointmentsFilled)*100:0;
+    const occupancy = currentEntry.appointmentsAvailable>0?currentEntry.appointmentsFilled/currentEntry.appointmentsAvailable*100:0;
+    const rebook = currentEntry.appointmentsFilled>0?currentEntry.rebookings/currentEntry.appointmentsFilled*100:0;
     const initials = ((user.firstName||'?')[0]+((user.lastName||'?')[0])).toUpperCase();
     const taskList = Object.entries(tasks);
     const lastLogin = user.lastLogin?new Date(user.lastLogin).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'Never';
@@ -2793,16 +2971,16 @@ const renderAdminClientDetail = async (uid) => {
     const activeTab = window.adminDetailTab[uid]||'overview';
     const tabBtn = (id,label) => `<button onclick="window.adminDetailTab['${uid}']='${id}';setPage('clientDetail');" style="padding:8px 18px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.2s;background:${activeTab===id?'#FF4533':'#1C1C1C'};color:${activeTab===id?'#fff':'rgba(255,255,255,0.65)'};">${label}</button>`;
 
-    // All-time totals for overview hub
-    const allRevenue = allEntriesValues.reduce((s,e) => s+(parseFloat(e.revenue)||0), 0);
-    const allExpenses = allEntriesValues.reduce((s,e) => s+(parseFloat(e.expenses)||0), 0);
-    const allClients = allEntriesValues.reduce((s,e) => s+(parseFloat(e.newClients)||0), 0);
-    const allNoShows = allEntriesValues.reduce((s,e) => s+(parseFloat(e.noShows)||0), 0);
-    const allRebookings = allEntriesValues.reduce((s,e) => s+(parseFloat(e.rebookings)||0), 0);
+    // All-time totals for overview hub (using getWeeklyTotals)
+    const allRevenue = allTotalsAdmin.reduce((s,e) => s+e.revenue, 0);
+    const allExpenses = allTotalsAdmin.reduce((s,e) => s+e.expenses, 0);
+    const allClients = allTotalsAdmin.reduce((s,e) => s+e.newClients, 0);
+    const allNoShows = allTotalsAdmin.reduce((s,e) => s+e.noShows, 0);
+    const allRebookings = allTotalsAdmin.reduce((s,e) => s+e.rebookings, 0);
     const allTrueProfit = allRevenue - allExpenses;
     const allTrueProfitMargin = allRevenue > 0 ? (allTrueProfit / allRevenue * 100) : 0;
-    const allApptsAvailable = allEntriesValues.reduce((s,e) => s+(parseFloat(e.appointmentsAvailable)||0), 0);
-    const allApptsFilled = allEntriesValues.reduce((s,e) => s+(parseFloat(e.appointmentsFilled)||0), 0);
+    const allApptsAvailable = allTotalsAdmin.reduce((s,e) => s+e.appointmentsAvailable, 0);
+    const allApptsFilled = allTotalsAdmin.reduce((s,e) => s+e.appointmentsFilled, 0);
     const allOccupancy = allApptsAvailable > 0 ? (allApptsFilled / allApptsAvailable * 100) : 0;
     const allRebook = allApptsFilled > 0 ? (allRebookings / allApptsFilled * 100) : 0;
     const totalTasks = taskList.length;
@@ -2971,20 +3149,22 @@ const renderAdminClientDetail = async (uid) => {
                             let lastMonth = '';
                             return allEntries.map(([key,e]) => {
                                 const dr = weekKeyToDateRange(key);
+                                const t = getWeeklyTotals(e);
+                                const isDaily = isDailyFormat(e);
                                 let monthHeader = '';
                                 if (dr.month !== lastMonth) {
                                     lastMonth = dr.month;
-                                    monthHeader = `<tr><td colspan="9" style="padding:14px 10px 6px;font-size:11px;font-weight:700;color:#FF4533;text-transform:uppercase;letter-spacing:0.1em;border-bottom:2px solid #FF4533;">${dr.month}</td></tr>`;
+                                    monthHeader = `<tr><td colspan="10" style="padding:14px 10px 6px;font-size:11px;font-weight:700;color:#FF4533;text-transform:uppercase;letter-spacing:0.1em;border-bottom:2px solid #FF4533;">${dr.month}</td></tr>`;
                                 }
                                 return monthHeader + `<tr style="border-bottom:1px solid rgba(255,255,255,0.06);${key===weekKey?'background:rgba(255,255,255,0.04);':''}">
-                                <td style="padding:9px 10px;font-weight:700;white-space:nowrap;"><div style="font-size:12px;">${dr.range}</div>${key===weekKey?'<div style="font-size:9px;color:#FBBF24;font-weight:700;">\u25CF current week</div>':''}</td>
-                                <td style="text-align:right;padding:9px 10px;color:#4ADE80;font-weight:700;">${e.revenue?'\u00A3'+parseFloat(e.revenue).toLocaleString('en-GB'):'\u2014'}</td>
-                                <td style="text-align:right;padding:9px 10px;color:#FF4533;">${e.expenses?'\u00A3'+parseFloat(e.expenses).toLocaleString('en-GB'):'\u2014'}</td>
-                                <td style="text-align:right;padding:9px 10px;">${e.appointmentsFilled||'\u2014'}</td>
-                                <td style="text-align:right;padding:9px 10px;">${e.newClients||'\u2014'}</td>
-                                <td style="text-align:right;padding:9px 10px;">${e.rebookings||'\u2014'}</td>
-                                <td style="text-align:right;padding:9px 10px;color:${e.noShows>0?'#FF4533':'#AAA'};">${e.noShows||'0'}</td>
-                                <td style="text-align:right;padding:9px 10px;">${e.avgTicketPrice?'\u00A3'+parseFloat(e.avgTicketPrice).toLocaleString('en-GB'):'\u2014'}</td>
+                                <td style="padding:9px 10px;font-weight:700;white-space:nowrap;"><div style="font-size:12px;">${dr.range}</div>${key===weekKey?'<div style="font-size:9px;color:#FBBF24;font-weight:700;">\u25CF current week</div>':''}${isDaily?'<div style="font-size:9px;color:rgba(255,255,255,0.3);">'+getFilledDayCount(e)+'/7 days</div>':''}</td>
+                                <td style="text-align:right;padding:9px 10px;color:#4ADE80;font-weight:700;">${t.revenue?'\u00A3'+t.revenue.toLocaleString('en-GB'):'\u2014'}</td>
+                                <td style="text-align:right;padding:9px 10px;color:#FF4533;">${t.expenses?'\u00A3'+t.expenses.toLocaleString('en-GB'):'\u2014'}</td>
+                                <td style="text-align:right;padding:9px 10px;">${t.appointmentsFilled||'\u2014'}</td>
+                                <td style="text-align:right;padding:9px 10px;">${t.newClients||'\u2014'}</td>
+                                <td style="text-align:right;padding:9px 10px;">${t.rebookings||'\u2014'}</td>
+                                <td style="text-align:right;padding:9px 10px;color:${t.noShows>0?'#FF4533':'#AAA'};">${t.noShows||'0'}</td>
+                                <td style="text-align:right;padding:9px 10px;">${t.avgTicketPrice?'\u00A3'+t.avgTicketPrice.toLocaleString('en-GB'):'\u2014'}</td>
                                 <td style="text-align:center;padding:9px 6px;"><button onclick="exportAdminWeekPDF('${uid}','${key}')" style="background:#FF4533;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;color:#fff;font-family:inherit;">PDF</button></td>
                             </tr>`;
                             }).join('');
@@ -3229,9 +3409,8 @@ const renderAdminClientDetail = async (uid) => {
                 }
             } else {
                 if (currentPage === 'numbers') {
-                    document.getElementById('saveNumbersBtn').addEventListener('click', handleSaveNumbers);
                     const weekPicker = document.getElementById('weekPicker');
-                    if (weekPicker) weekPicker.addEventListener('change', (e) => { if (e.target.value) { selectedWeekKey = weekKeyFromInput(e.target.value); setPage('numbers'); } });
+                    if (weekPicker) weekPicker.addEventListener('change', (e) => { if (e.target.value) { selectedWeekKey = weekKeyFromInput(e.target.value); selectedDayIndex = null; setPage('numbers'); } });
                 } else if (currentPage === 'tasks') {
                     document.querySelectorAll('.checklist-checkbox').forEach(checkbox => {
                         checkbox.addEventListener('change', (e) => {
@@ -3280,7 +3459,7 @@ const renderAdminClientDetail = async (uid) => {
         window.setPage = (page) => { currentPage = page; render(); };
         window.signOut = async () => { await auth.signOut(); };
         window.openClientDetail = (uid) => { selectedClientDetail = uid; currentPage = 'clientDetail'; render(); };
-        window.loadWeekForEdit = (key) => { selectedWeekKey = key; setPage('numbers'); };
+        window.loadWeekForEdit = (key) => { selectedWeekKey = key; selectedDayIndex = null; setPage('numbers'); };
         window.deleteClient = async (uid) => {
             if (!confirm('Remove this client? They will lose access to the portal and see an "access revoked" message if they try to log in. You can re-enable them later from the admin panel.')) return;
             try {
