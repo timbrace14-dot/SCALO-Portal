@@ -3558,23 +3558,32 @@ const renderAdminClientDetail = async (uid) => {
             const btn = document.getElementById('refreshContentBtn');
             if (btn) { btn.textContent = 'Scraping...'; btn.disabled = true; }
             try {
-                await checkAndTriggerContentScrape(currentUser.uid);
-                // Force re-render after a short delay to allow scrape to complete
-                setTimeout(() => setPage('content'), 4000);
+                if (!sbClient) throw new Error('Supabase not connected');
+                const { data, error } = await sbClient.functions.invoke('scrape-reels', { body: {} });
+                if (error) throw new Error(error.message || JSON.stringify(error));
+                console.log('Scrape result:', data);
+                alert('Scrape complete! Refreshing page...');
+                setTimeout(() => setPage('content'), 1500);
             } catch(e) {
-                if (btn) { btn.textContent = '&#x21BB; Refresh'; btn.disabled = false; }
-                alert('Refresh failed: ' + e.message);
+                alert('Refresh failed: ' + (e.message || JSON.stringify(e)));
+                if (btn) { btn.innerHTML = '&#x21BB; Refresh'; btn.disabled = false; }
             }
         };
         window.handleRefreshInspo = async () => {
             const btn = document.getElementById('refreshInspoBtn');
             if (btn) { btn.textContent = 'Scraping...'; btn.disabled = true; }
             try {
-                await triggerScrapeInspo(currentUser.uid);
-                setTimeout(() => setPage('inspo'), 5000);
+                if (!sbClient) throw new Error('Supabase not connected');
+                const { data, error } = await sbClient.functions.invoke('scrape-inspo', {
+                    body: { uid: currentUser.uid }
+                });
+                if (error) throw new Error(error.message || JSON.stringify(error));
+                console.log('Inspo scrape result:', data);
+                alert('Inspo scrape complete! Refreshing page...');
+                setTimeout(() => setPage('inspo'), 1500);
             } catch(e) {
-                if (btn) { btn.textContent = '&#x21BB; Refresh'; btn.disabled = false; }
-                alert('Refresh failed: ' + e.message);
+                alert('Refresh failed: ' + (e.message || JSON.stringify(e)));
+                if (btn) { btn.innerHTML = '&#x21BB; Refresh Now'; btn.disabled = false; }
             }
         };
         window.signOut = async () => { await auth.signOut(); };
