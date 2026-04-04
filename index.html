@@ -38,7 +38,10 @@
         body::before {
             content: '';
             position: fixed;
-            inset: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             opacity: 0.03;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
             pointer-events: none;
@@ -612,7 +615,8 @@
             .metric-card { padding: 14px 10px; }
             .mobile-grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
             .donut-canvas { width: 64px !important; height: 64px !important; }
-            .form-input { font-size: 13px; padding: 10px 12px; }
+            .form-input { font-size: 13px; padding: 10px 12px; max-width: 100%; }
+            input[type="week"] { -webkit-appearance: none; max-width: 100%; width: 100% !important; }
         }
         /* ── IMPLEMENTATION CHECKLIST ── */
         .impl-level { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; margin-bottom: 10px; overflow: hidden; }
@@ -1360,7 +1364,7 @@
                     <div id="donutModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
                         <div style="background:rgba(20,20,20,0.85);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:28px;max-width:360px;width:90%;margin:auto;box-shadow:0 8px 40px rgba(0,0,0,0.3);">
                             <div id="donutModalContent"></div>
-                            <button onclick="document.getElementById('donutModal').style.display='none'" style="margin-top:20px;width:100%;padding:12px;background:${ACCENT};color:#fff;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;">Got it</button>
+                            <button onclick="document.getElementById('donutModal').style.display='none'" style="margin-top:20px;width:100%;padding:12px;background:${ACCENT};color:#000;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;">Got it</button>
                         </div>
                     </div>
                 </div>
@@ -1591,7 +1595,7 @@
                                 <span style="font-size:14px;font-weight:700;color:#fff;">${dayName}</span>
                                 <span style="font-size:12px;color:rgba(255,255,255,0.45);margin-left:8px;">${dateStr}</span>
                             </div>
-                            ${isToday ? `<span style="font-size:10px;font-weight:700;background:${ACCENT};color:#fff;padding:2px 8px;border-radius:20px;margin-left:8px;">TODAY</span>` : ''}
+                            ${isToday ? `<span style="font-size:10px;font-weight:700;background:${ACCENT};color:#000;padding:2px 8px;border-radius:20px;margin-left:8px;">TODAY</span>` : ''}
                         </div>
                         <div style="display:flex;align-items:center;gap:8px;">
                             ${isFilled ? '<span style="font-size:11px;color:#4ADE80;font-weight:600;">&#x2713; Logged</span>' : '<span style="font-size:11px;color:rgba(255,255,255,0.25);font-weight:500;">Not logged</span>'}
@@ -1677,7 +1681,7 @@
                                             <td style="text-align:right;padding:10px 10px;color:${t.noShows>0?'#FF4533':'#AAA'};">${t.noShows||'0'}</td>
                                             <td style="padding:10px 10px;font-size:10px;color:${isDaily ? '#4ADE80' : 'rgba(255,255,255,0.35)'};">${isDaily ? filled+'/7 days' : 'Weekly total'}</td>
                                             <td style="text-align:center;padding:10px 10px;"><button onclick="loadWeekForEdit('${key}')" style="background:${key===selectedWeekKey?'#FBBF24':'#1A1A1A'};border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;color:${key===selectedWeekKey?'#000':'rgba(255,255,255,0.65)'};">${key===selectedWeekKey?'Editing':'Edit'}</button></td>
-                                            <td style="text-align:center;padding:10px 10px;"><button onclick="exportWeekPDF('${key}')" style="background:${ACCENT};border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;color:#fff;">PDF</button></td>
+                                            <td style="text-align:center;padding:10px 10px;"><button onclick="exportWeekPDF('${key}')" style="background:${ACCENT};border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;color:#000;">PDF</button></td>
                                         </tr>`;
                                     }).join('')}
                                 </tbody>
@@ -2228,7 +2232,7 @@
                         <div style="font-size:40px;margin-bottom:12px;">📊</div>
                         <div style="font-size:16px;font-weight:700;color:rgba(255,255,255,0.65);">No data yet</div>
                         <div style="font-size:13px;margin-top:6px;">Log your numbers each week to see your trends here</div>
-                        <button onclick="setPage('numbers')" style="margin-top:20px;background:${ACCENT};color:#fff;border:none;padding:12px 24px;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;">Log This Week →</button>
+                        <button onclick="setPage('numbers')" style="margin-top:20px;background:${ACCENT};color:#000;border:none;padding:12px 24px;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;">Log This Week →</button>
                     </div>` : `
                     ${chartCard('chartRevenue','💰 Revenue (£)','revenue')}
                     ${chartCard('chartRates','📈 Occupancy vs Rebook Rate (%)','rates')}
@@ -2325,7 +2329,7 @@
                         </div>
                         <div style="display:flex;gap:10px;">
                             <input type="text" id="igHandleInput" class="form-input" placeholder="https://instagram.com/yourusername" style="flex:1;margin-bottom:0;">
-                            <button id="saveIgHandleBtn" style="background:${ACCENT};color:#fff;border:none;padding:10px 20px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap;">Connect</button>
+                            <button id="saveIgHandleBtn" style="background:${ACCENT};color:#000;border:none;padding:10px 20px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap;">Connect</button>
                         </div>
                     </div>`}
                     ${contentList.length === 0 ? `
@@ -2588,7 +2592,7 @@
                                                 <label style="font-size:10px;color:rgba(255,255,255,0.45);font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">End
                                                     <input type="date" id="crm-end-${c.uid}" value="${c.endRaw || ''}" style="display:block;margin-top:4px;background:#1A1A1A;border:1.5px solid rgba(255,255,255,0.12);color:#fff;border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;">
                                                 </label>
-                                                <button onclick="saveCrmDates('${c.uid}')" style="background:${ACCENT};color:#fff;border:none;padding:8px 16px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;margin-top:16px;">Save</button>
+                                                <button onclick="saveCrmDates('${c.uid}')" style="background:${ACCENT};color:#000;border:none;padding:8px 16px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;margin-top:16px;">Save</button>
                                                 <button onclick="document.getElementById('crm-edit-${c.uid}').style.display='none'" style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);border:none;padding:8px 12px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;margin-top:16px;">Cancel</button>
                                             </div>
                                         </td>
@@ -2660,7 +2664,7 @@
             newItem.style.marginBottom = '8px';
             newItem.innerHTML = `<div style="display:flex;gap:8px;align-items:flex-end;">
                 <input type="text" class="form-input" placeholder="Item ${itemCount + 1}" style="flex:1;">
-                <button style="background:${ACCENT};border:none;color:#fff;padding:12px 14px;border-radius:8px;cursor:pointer;font-weight:700;" onclick="this.parentElement.parentElement.remove();">&#x00D7;</button>
+                <button style="background:${ACCENT};border:none;color:#000;padding:12px 14px;border-radius:8px;cursor:pointer;font-weight:700;" onclick="this.parentElement.parentElement.remove();">&#x00D7;</button>
             </div>`;
             container.appendChild(newItem);
         };
@@ -2750,7 +2754,7 @@
                                 <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.45);font-size:14px;font-weight:700;">@</span>
                                 <input type="text" id="inspoHandleInput" class="form-input" placeholder="barberhandle" style="padding-left:30px;">
                             </div>
-                            <button onclick="handleAddInspoCreator()" style="background:${ACCENT};color:#fff;border:none;padding:12px 20px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;font-family:inherit;">+ Add</button>
+                            <button onclick="handleAddInspoCreator()" style="background:${ACCENT};color:#000;border:none;padding:12px 20px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;font-family:inherit;">+ Add</button>
                         </div>` : `<div style="font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:16px;font-weight:400;">Maximum 3 creators reached &#x2014; remove one to add another.</div>`}
                         ${creatorList.length === 0 ? `<div style="text-align:center;padding:16px;color:rgba(255,255,255,0.35);font-size:13px;font-weight:400;">No creators added yet</div>` : ''}
                         ${creatorList.map(([id, creator]) => `
