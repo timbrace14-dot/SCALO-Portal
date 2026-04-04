@@ -2148,8 +2148,21 @@
             const users = snap.val() || {};
             const activeClients = Object.entries(users).filter(([, u]) => u.role === 'client' && !u.disabled);
             const disabledClients = Object.entries(users).filter(([, u]) => u.role === 'client' && u.disabled);
+            const expiringCount = activeClients.filter(([, u]) => {
+                if (!u.programmeEnd) return false;
+                const days = Math.ceil((new Date(u.programmeEnd) - new Date()) / 86400000);
+                return days <= 30 && days >= 0;
+            }).length;
+            const expiringBanner = expiringCount > 0 ? `
+                <div onclick="setPage('crm')" style="margin-bottom:16px;padding:14px 18px;background:rgba(255,69,51,0.08);border:1px solid rgba(255,69,51,0.2);border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.2s;">
+                    <span style="font-size:18px;">&#x26A0;&#xFE0F;</span>
+                    <span style="font-size:13px;font-weight:700;color:#FF4533;">${expiringCount} student${expiringCount !== 1 ? 's' : ''} approaching end date</span>
+                    <span style="font-size:12px;color:rgba(255,255,255,0.4);margin-left:auto;">View in CRM &#x2192;</span>
+                </div>
+            ` : '';
             return `
                 <div>
+                    ${expiringBanner}
                     <h2 class="page-title">Your Clients</h2>
                     <p class="page-subtitle">${activeClients.length} active client${activeClients.length !== 1 ? 's' : ''}${disabledClients.length > 0 ? ' &#x2022; ' + disabledClients.length + ' removed' : ''}</p>
                     <input type="text" class="search-box" id="clientSearch" placeholder="Search clients...">
@@ -2226,6 +2239,125 @@
                     errorDiv.textContent = '';
                 }, 4000);
             } catch (err) { errorDiv.textContent = err.message || 'Error creating client'; }
+        };
+
+        // ── ADMIN: CRM ──
+        const renderAdminCRM = async () => {
+            const snap = await db.ref('portal/users').once('value');
+            const users = snap.val() || {};
+            const activeClients = Object.entries(users).filter(([, u]) => u.role === 'client' && !u.disabled);
+
+            const now = new Date();
+            const clientRows = activeClients.map(([uid, user]) => {
+                const name = `${user.firstName} ${user.lastName || ''}`.trim();
+                const email = user.email || '';
+                const startRaw = user.programmeStart || null;
+                const endRaw = user.programmeEnd || null;
+                const startDate = startRaw ? new Date(startRaw) : null;
+                const endDate = endRaw ? new Date(endRaw) : null;
+                const daysRemaining = endDate ? Math.ceil((endDate - now) / 86400000) : null;
+                let statusLabel, statusColor, statusBg;
+                if (daysRemaining === null) { statusLabel = 'No Dates Set'; statusColor = '#888'; statusBg = 'rgba(255,255,255,0.06)'; }
+                else if (daysRemaining > 30) { statusLabel = 'Active'; statusColor = '#4ADE80'; statusBg = 'rgba(74,222,128,0.1)'; }
+                else if (daysRemaining >= 14) { statusLabel = 'Ending Soon'; statusColor = '#FBBF24'; statusBg = 'rgba(251,191,36,0.1)'; }
+                else { statusLabel = 'Ending This Week'; statusColor = '#FF4533'; statusBg = 'rgba(255,69,51,0.1)'; }
+                return { uid, name, email, startRaw, endRaw, startDate, endDate, daysRemaining, statusLabel, statusColor, statusBg };
+            }).sort((a, b) => (a.daysRemaining === null ? 9999 : a.daysRemaining) - (b.daysRemaining === null ? 9999 : b.daysRemaining));
+
+            const urgentClients = clientRows.filter(c => c.daysRemaining !== null && c.daysRemaining <= 30);
+
+            const renewalBody = (name) => encodeURIComponent(`Hi ${name},\n\nI hope you're doing well and feeling the progress from everything we've been working on together.\n\nI wanted to reach out because your current programme is coming to an end soon, and I'd love to chat about what continuing to work together could look like.\n\nWe've built some great momentum, and I think there's a lot more we can achieve if we keep going. I offer ongoing coaching on a recurring monthly basis — same structure, same support, just without the end date.\n\nLet me know if you'd like to hop on a quick call to talk it through.\n\nSpeak soon,\nTim\nSCALO`);
+
+            const urgentBanner = urgentClients.length > 0 ? `
+                <div class="card" style="margin-bottom:24px;background:linear-gradient(135deg,rgba(255,69,51,0.08),rgba(251,191,36,0.06));border:1px solid rgba(255,69,51,0.2);">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+                        <span style="font-size:22px;">&#x26A0;&#xFE0F;</span>
+                        <div style="font-size:15px;font-weight:700;color:#FF4533;">${urgentClients.length} client${urgentClients.length !== 1 ? 's' : ''} approaching end date</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                        ${urgentClients.map(c => `
+                            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(0,0,0,0.3);border-radius:10px;">
+                                <div>
+                                    <span style="font-weight:700;font-size:13px;color:#fff;">${c.name}</span>
+                                    <span style="font-size:12px;color:${c.statusColor};font-weight:700;margin-left:10px;">${c.daysRemaining} day${c.daysRemaining !== 1 ? 's' : ''} left</span>
+                                </div>
+                                <a href="mailto:${c.email}?subject=${encodeURIComponent("Let's keep the momentum going — SCALO")}&body=${renewalBody(c.name.split(' ')[0])}" style="background:rgba(255,69,51,0.15);color:#FF4533;border:none;padding:6px 12px;border-radius:8px;font-weight:700;font-size:11px;cursor:pointer;font-family:inherit;text-decoration:none;">&#x2709; Send Renewal Email</a>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : '';
+
+            return `
+                <div>
+                    <h2 class="page-title">Client CRM</h2>
+                    <p class="page-subtitle">Programme dates, renewals &amp; retention</p>
+                    ${urgentBanner}
+                    <div class="card" style="overflow-x:auto;">
+                        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                            <thead>
+                                <tr style="border-bottom:1px solid rgba(255,255,255,0.1);text-align:left;">
+                                    <th style="padding:10px 12px;color:rgba(255,255,255,0.45);font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Name</th>
+                                    <th style="padding:10px 12px;color:rgba(255,255,255,0.45);font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Email</th>
+                                    <th style="padding:10px 12px;color:rgba(255,255,255,0.45);font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Start Date</th>
+                                    <th style="padding:10px 12px;color:rgba(255,255,255,0.45);font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">End Date</th>
+                                    <th style="padding:10px 12px;color:rgba(255,255,255,0.45);font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Days Left</th>
+                                    <th style="padding:10px 12px;color:rgba(255,255,255,0.45);font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Status</th>
+                                    <th style="padding:10px 12px;color:rgba(255,255,255,0.45);font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${clientRows.map(c => `
+                                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);" id="crm-row-${c.uid}">
+                                        <td style="padding:12px;font-weight:700;color:#fff;">${c.name}</td>
+                                        <td style="padding:12px;color:rgba(255,255,255,0.5);font-size:12px;">${c.email}</td>
+                                        <td style="padding:12px;color:rgba(255,255,255,0.6);">${c.startDate ? c.startDate.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '&#x2014;'}</td>
+                                        <td style="padding:12px;color:rgba(255,255,255,0.6);">${c.endDate ? c.endDate.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '&#x2014;'}</td>
+                                        <td style="padding:12px;font-weight:700;color:${c.statusColor};">${c.daysRemaining !== null ? c.daysRemaining : '&#x2014;'}</td>
+                                        <td style="padding:12px;"><span style="display:inline-block;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;color:${c.statusColor};background:${c.statusBg};">${c.statusLabel}</span></td>
+                                        <td style="padding:12px;white-space:nowrap;">
+                                            <button onclick="toggleCrmEditDates('${c.uid}','${c.startRaw || ''}','${c.endRaw || ''}')" style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.7);border:none;padding:6px 10px;border-radius:6px;font-weight:700;font-size:11px;cursor:pointer;font-family:inherit;margin-right:6px;">&#x270E; Edit Dates</button>
+                                            ${c.daysRemaining !== null && c.daysRemaining <= 30 ? `<a href="mailto:${c.email}?subject=${encodeURIComponent("Let's keep the momentum going — SCALO")}&body=${renewalBody(c.name.split(' ')[0])}" style="background:rgba(255,69,51,0.15);color:#FF4533;border:none;padding:6px 10px;border-radius:6px;font-weight:700;font-size:11px;cursor:pointer;font-family:inherit;text-decoration:none;">&#x2709; Renewal</a>` : ''}
+                                        </td>
+                                    </tr>
+                                    <tr id="crm-edit-${c.uid}" style="display:none;">
+                                        <td colspan="7" style="padding:12px;background:rgba(255,255,255,0.02);">
+                                            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                                                <label style="font-size:10px;color:rgba(255,255,255,0.45);font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Start
+                                                    <input type="date" id="crm-start-${c.uid}" value="${c.startRaw || ''}" style="display:block;margin-top:4px;background:#1C1C1C;border:1.5px solid rgba(255,255,255,0.12);color:#fff;border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;">
+                                                </label>
+                                                <label style="font-size:10px;color:rgba(255,255,255,0.45);font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">End
+                                                    <input type="date" id="crm-end-${c.uid}" value="${c.endRaw || ''}" style="display:block;margin-top:4px;background:#1C1C1C;border:1.5px solid rgba(255,255,255,0.12);color:#fff;border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;">
+                                                </label>
+                                                <button onclick="saveCrmDates('${c.uid}')" style="background:#FF4533;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;margin-top:16px;">Save</button>
+                                                <button onclick="document.getElementById('crm-edit-${c.uid}').style.display='none'" style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);border:none;padding:8px 12px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;margin-top:16px;">Cancel</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        };
+
+        window.toggleCrmEditDates = (uid, startVal, endVal) => {
+            const row = document.getElementById('crm-edit-' + uid);
+            if (!row) return;
+            row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+        };
+
+        window.saveCrmDates = async (uid) => {
+            const startVal = document.getElementById('crm-start-' + uid).value;
+            const endVal = document.getElementById('crm-end-' + uid).value;
+            const updates = {};
+            if (startVal) updates['programmeStart'] = startVal;
+            else updates['programmeStart'] = null;
+            if (endVal) updates['programmeEnd'] = endVal;
+            else updates['programmeEnd'] = null;
+            await db.ref('portal/users/' + uid).update(updates);
+            render();
         };
 
         // ── ADMIN: TASKS ──
@@ -3443,8 +3575,9 @@ const renderAdminClientDetail = async (uid) => {
 
             const adminNavItems = [
                 { page: 'clients', icon: '&#x25C9;', label: 'Clients' },
-                { page: 'addClient', icon: '&#x2295;', label: 'Add Client' },
                 { page: 'tasks', icon: '&#x2713;', label: 'Tasks' },
+                { page: 'crm', icon: '&#x1F4CA;', label: 'CRM' },
+                { page: 'addClient', icon: '&#x2295;', label: 'Add Client' },
             ];
 
             const navItems = isAdmin ? adminNavItems : clientNavItems;
@@ -3472,6 +3605,7 @@ const renderAdminClientDetail = async (uid) => {
                 if (currentPage === 'clients') pageContent = await renderAdminClients();
                 else if (currentPage === 'addClient') pageContent = await renderAdminAddClient();
                 else if (currentPage === 'tasks') pageContent = await renderAdminTasks();
+                else if (currentPage === 'crm') pageContent = await renderAdminCRM();
                 else if (currentPage === 'clientDetail' && selectedClientDetail) pageContent = await renderAdminClientDetail(selectedClientDetail);
                 else { currentPage = 'clients'; pageContent = await renderAdminClients(); }
             } else {
