@@ -34,20 +34,6 @@
 
         html { overflow-x: hidden; }
 
-        /* ── GRAIN OVERLAY ── */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            opacity: 0.03;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-            pointer-events: none;
-            z-index: 9999;
-        }
-
         body {
             font-family: 'Helvetica Neue', 'HelveticaNeue', Helvetica, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--bg);
@@ -596,6 +582,105 @@
         .platform-tiktok { background: #111; }
         .platform-youtube { background: #FF0000; }
 
+        /* ── PORTAL TOPBAR ── */
+        .portal-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .portal-topbar-title {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .portal-topbar-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 6px 10px 6px 6px;
+            border-radius: 50px;
+            transition: background 0.2s;
+        }
+
+        .portal-topbar-user:hover { background: rgba(255,255,255,0.06); }
+
+        .portal-topbar-user span {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .user-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: #000;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .avatar-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        .avatar-modal {
+            background: #111;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px;
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+        }
+
+        .avatar-modal-preview {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            overflow: hidden;
+            background: rgba(255,255,255,0.06);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--border);
+        }
+
+        .avatar-modal-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
         /* ── RESPONSIVE ── */
         @media (max-width: 900px) { .auth-left { width: 300px; } }
 
@@ -617,6 +702,11 @@
             .donut-canvas { width: 64px !important; height: 64px !important; }
             .form-input { font-size: 13px; padding: 10px 12px; max-width: 100%; }
             input[type="week"] { -webkit-appearance: none; max-width: 100%; width: 100% !important; }
+            .portal-topbar { margin-bottom: 16px; padding-bottom: 12px; }
+            .portal-topbar-title { font-size: 9px; }
+            .portal-topbar-user span { font-size: 11px; }
+            .user-avatar { width: 28px; height: 28px; font-size: 11px; }
+            .avatar-modal { margin: 0 16px; padding: 24px 20px; }
         }
         /* ── IMPLEMENTATION CHECKLIST ── */
         .impl-level { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; margin-bottom: 10px; overflow: hidden; }
@@ -2436,7 +2526,7 @@
                             const daysSince = user.lastLogin ? Math.floor((new Date() - new Date(user.lastLogin)) / 86400000) : null;
                             const loginColor = daysSince === null ? '#CCC' : daysSince <= 3 ? '#4ADE80' : daysSince <= 7 ? '#FBBF24' : '#FF4533';
                             return `<div class="client-card" onclick="openClientDetail('${uid}')">
-                                <div class="client-avatar">${initials}</div>
+                                ${user.profilePicture ? '<div class="client-avatar" style="overflow:hidden;"><img src="' + user.profilePicture + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>' : '<div class="client-avatar">' + initials + '</div>'}
                                 <div class="client-name">${user.firstName} ${user.lastName||''}</div>
                                 <div class="client-metric">Email <span class="client-metric-value" style="font-size:11px;">${user.email}</span></div>
                                 <div class="client-metric" style="margin-top:6px;">Last login <span style="font-size:11px;font-weight:700;color:${loginColor};">${daysSince === 0 ? 'Today' : daysSince === 1 ? 'Yesterday' : daysSince !== null ? `${daysSince}d ago` : 'Never'}</span></div>
@@ -2621,6 +2711,72 @@
             else updates['programmeEnd'] = null;
             await db.ref('portal/users/' + uid).update(updates);
             render();
+        };
+
+        // ── AVATAR UPLOAD ──
+        window.openAvatarModal = () => {
+            const container = document.getElementById('avatarModalContainer');
+            if (!container) return;
+            const initials = ((currentUser.firstName||'?')[0] + (currentUser.lastName||'?')[0]).toUpperCase();
+            const previewHtml = currentUser.profilePicture
+                ? '<img id="avatarPreviewImg" src="' + currentUser.profilePicture + '" alt="">'
+                : '<div id="avatarPreviewInitials" style="font-size:28px;font-weight:700;color:rgba(255,255,255,0.35);">' + initials + '</div>';
+            container.innerHTML = '<div class="avatar-modal-overlay" onclick="closeAvatarModal(event)">' +
+                '<div class="avatar-modal" onclick="event.stopPropagation()">' +
+                    '<div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px;">Profile Picture</div>' +
+                    '<div style="font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:20px;">Upload a photo to personalise your portal</div>' +
+                    '<div class="avatar-modal-preview" id="avatarModalPreview">' + previewHtml + '</div>' +
+                    '<label style="display:inline-block;background:' + ACCENT + ';color:#000;border:none;padding:10px 20px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;">' +
+                        'Choose Photo' +
+                        '<input type="file" accept="image/*" onchange="handleAvatarUpload(event)" style="display:none;">' +
+                    '</label>' +
+                    (currentUser.profilePicture ? '<button onclick="removeAvatar()" style="display:block;margin:12px auto 0;background:none;border:none;color:rgba(255,255,255,0.4);font-size:12px;cursor:pointer;font-family:inherit;font-weight:600;">Remove photo</button>' : '') +
+                    '<button onclick="closeAvatarModal()" style="display:block;margin:16px auto 0;background:rgba(255,255,255,0.06);border:none;color:rgba(255,255,255,0.6);padding:8px 20px;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600;">Close</button>' +
+                '</div>' +
+            '</div>';
+        };
+
+        window.closeAvatarModal = (e) => {
+            if (e && e.target !== e.currentTarget) return;
+            const container = document.getElementById('avatarModalContainer');
+            if (container) container.innerHTML = '';
+        };
+
+        window.handleAvatarUpload = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = async () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 128;
+                    canvas.height = 128;
+                    const ctx = canvas.getContext('2d');
+                    const size = Math.min(img.width, img.height);
+                    const sx = (img.width - size) / 2;
+                    const sy = (img.height - size) / 2;
+                    ctx.drawImage(img, sx, sy, size, size, 0, 0, 128, 128);
+                    const base64 = canvas.toDataURL('image/jpeg', 0.8);
+                    try {
+                        await db.ref('portal/users/' + currentUser.uid + '/profilePicture').set(base64);
+                        currentUser.profilePicture = base64;
+                        closeAvatarModal();
+                        render();
+                    } catch (err) { alert('Error saving photo: ' + err.message); }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.removeAvatar = async () => {
+            try {
+                await db.ref('portal/users/' + currentUser.uid + '/profilePicture').remove();
+                currentUser.profilePicture = null;
+                closeAvatarModal();
+                render();
+            } catch (err) { alert('Error removing photo: ' + err.message); }
         };
 
         // ── ADMIN: TASKS ──
@@ -3828,7 +3984,7 @@ const renderAdminClientDetail = async (uid) => {
                 </div>
             </div>
             <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
-                <div class="client-avatar" style="width:52px;height:52px;font-size:20px;flex-shrink:0;">${initials}</div>
+                ${user.profilePicture ? '<div style="width:52px;height:52px;border-radius:50%;overflow:hidden;flex-shrink:0;"><img src="' + user.profilePicture + '" style="width:100%;height:100%;object-fit:cover;"></div>' : '<div class="client-avatar" style="width:52px;height:52px;font-size:20px;flex-shrink:0;">' + initials + '</div>'}
                 <div style="flex:1;">
                     <div style="font-size:22px;font-weight:700;">${user.firstName||''} ${user.lastName||''}</div>
                     <div style="color:rgba(255,255,255,0.45);font-size:13px;font-weight:400;">${user.email||''}</div>
@@ -3926,13 +4082,31 @@ const renderAdminClientDetail = async (uid) => {
                 else if (currentPage === 'progress') pageContent = await renderClientProgress();
             }
 
+            const pageTitles = { hub:'Dashboard', implementation:'Implementation Checklist', numbers:'Log Your Numbers', tasks:'Your Tasks', content:'Content Library', inspo:'Inspo Feed', social:'Social Profiles', progress:'Analytics', clients:'Your Clients', addClient:'Add New Client', crm:'Client CRM', clientDetail:'Client Detail' };
+            const pageTitle = pageTitles[currentPage] || '';
+            const initials = ((currentUser.firstName||'?')[0] + (currentUser.lastName||'?')[0]).toUpperCase();
+            const avatarHtml = currentUser.profilePicture
+                ? '<div class="user-avatar"><img src="' + currentUser.profilePicture + '" alt=""></div>'
+                : '<div class="user-avatar">' + initials + '</div>';
+            const topbarHtml = `
+                <div class="portal-topbar">
+                    <div class="portal-topbar-title">${pageTitle}</div>
+                    <div class="portal-topbar-user" onclick="openAvatarModal()">
+                        ${avatarHtml}
+                        <span>${currentUser.firstName}</span>
+                    </div>
+                </div>
+            `;
+
             root.innerHTML = `
                 <div class="portal-layout">
                     ${sidebarHtml}
                     <div class="portal-content-area">
+                        ${topbarHtml}
                         ${pageContent}
                     </div>
                 </div>
+                <div id="avatarModalContainer"></div>
             `;
 
             if (currentPage === 'progress' && !isAdmin) setTimeout(renderProgressCharts, 50);
