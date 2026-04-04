@@ -2266,7 +2266,8 @@
 
             const urgentClients = clientRows.filter(c => c.daysRemaining !== null && c.daysRemaining <= 30);
 
-            const renewalBody = (name) => encodeURIComponent(`Hi ${name},\n\nI hope you're doing well and feeling the progress from everything we've been working on together.\n\nI wanted to reach out because your current programme is coming to an end soon, and I'd love to chat about what continuing to work together could look like.\n\nWe've built some great momentum, and I think there's a lot more we can achieve if we keep going. I offer ongoing coaching on a recurring monthly basis — same structure, same support, just without the end date.\n\nLet me know if you'd like to hop on a quick call to talk it through.\n\nSpeak soon,\nTim\nSCALO`);
+            const renewalSubject = encodeURIComponent("Lets keep the momentum going - SCALO");
+            const renewalBody = (name) => encodeURIComponent("Hi " + name + ",\n\nI hope you are doing well and feeling the progress from everything we have been working on together.\n\nI wanted to reach out because your current programme is coming to an end soon, and I would love to chat about what continuing to work together could look like.\n\nWe have built some great momentum, and I think there is a lot more we can achieve if we keep going. I offer ongoing coaching on a recurring monthly basis - same structure, same support, just without the end date.\n\nLet me know if you would like to hop on a quick call to talk it through.\n\nSpeak soon,\nTim\nSCALO");
 
             const urgentBanner = urgentClients.length > 0 ? `
                 <div class="card" style="margin-bottom:24px;background:linear-gradient(135deg,rgba(255,69,51,0.08),rgba(251,191,36,0.06));border:1px solid rgba(255,69,51,0.2);">
@@ -2281,7 +2282,7 @@
                                     <span style="font-weight:700;font-size:13px;color:#fff;">${c.name}</span>
                                     <span style="font-size:12px;color:${c.statusColor};font-weight:700;margin-left:10px;">${c.daysRemaining} day${c.daysRemaining !== 1 ? 's' : ''} left</span>
                                 </div>
-                                <a href="mailto:${c.email}?subject=${encodeURIComponent("Let's keep the momentum going — SCALO")}&body=${renewalBody(c.name.split(' ')[0])}" style="background:rgba(255,69,51,0.15);color:#FF4533;border:none;padding:6px 12px;border-radius:8px;font-weight:700;font-size:11px;cursor:pointer;font-family:inherit;text-decoration:none;">&#x2709; Send Renewal Email</a>
+                                <a href="mailto:${c.email}?subject=${renewalSubject}&body=${renewalBody(c.name.split(' ')[0])}" style="background:rgba(255,69,51,0.15);color:#FF4533;border:none;padding:6px 12px;border-radius:8px;font-weight:700;font-size:11px;cursor:pointer;font-family:inherit;text-decoration:none;">&#x2709; Send Renewal Email</a>
                             </div>
                         `).join('')}
                     </div>
@@ -2317,7 +2318,7 @@
                                         <td style="padding:12px;"><span style="display:inline-block;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;color:${c.statusColor};background:${c.statusBg};">${c.statusLabel}</span></td>
                                         <td style="padding:12px;white-space:nowrap;">
                                             <button onclick="toggleCrmEditDates('${c.uid}','${c.startRaw || ''}','${c.endRaw || ''}')" style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.7);border:none;padding:6px 10px;border-radius:6px;font-weight:700;font-size:11px;cursor:pointer;font-family:inherit;margin-right:6px;">&#x270E; Edit Dates</button>
-                                            ${c.daysRemaining !== null && c.daysRemaining <= 30 ? `<a href="mailto:${c.email}?subject=${encodeURIComponent("Let's keep the momentum going — SCALO")}&body=${renewalBody(c.name.split(' ')[0])}" style="background:rgba(255,69,51,0.15);color:#FF4533;border:none;padding:6px 10px;border-radius:6px;font-weight:700;font-size:11px;cursor:pointer;font-family:inherit;text-decoration:none;">&#x2709; Renewal</a>` : ''}
+                                            ${c.daysRemaining !== null && c.daysRemaining <= 30 ? `<a href="mailto:${c.email}?subject=${renewalSubject}&body=${renewalBody(c.name.split(' ')[0])}" style="background:rgba(255,69,51,0.15);color:#FF4533;border:none;padding:6px 10px;border-radius:6px;font-weight:700;font-size:11px;cursor:pointer;font-family:inherit;text-decoration:none;">&#x2709; Renewal</a>` : ''}
                                         </td>
                                     </tr>
                                     <tr id="crm-edit-${c.uid}" style="display:none;">
