@@ -571,13 +571,16 @@
             .sidebar-logo { margin-left: 0; margin-bottom: 24px; height: 18px; width: auto; }
             .sidebar-nav-item { justify-content: center; padding: 10px; gap: 0; }
             .sidebar-nav-item .nav-label { display: none; }
-            .sidebar-signout { justify-content: center; padding: 10px; gap: 0; }
-            .sidebar-signout .nav-label { display: none; }
+            .sidebar-signout { justify-content: center; padding: 10px; gap: 0; flex-direction: column; }
+            .sidebar-signout .nav-label { display: block !important; font-size: 8px; letter-spacing: 0.05em; text-transform: uppercase; margin-top: 2px; }
             .portal-content-area { padding: 20px 12px; }
-            .card-grid { grid-template-columns: repeat(2, 1fr); }
+            .card-grid { grid-template-columns: repeat(2, 1fr) !important; }
             .client-grid { grid-template-columns: 1fr; }
             .card { padding: 16px 14px; }
             .metric-card { padding: 14px 10px; }
+            .portal-content-area [style*="repeat(4,1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+            .portal-content-area [style*="repeat(3,1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+            .portal-content-area canvas[width="90"] { width: 70px !important; height: 70px !important; }
         }
     </style>
 </head>
