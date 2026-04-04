@@ -581,6 +581,37 @@
             .mobile-grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
             .donut-canvas { width: 64px !important; height: 64px !important; }
         }
+        /* ── IMPLEMENTATION CHECKLIST ── */
+        .impl-level { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; margin-bottom: 10px; overflow: hidden; }
+        .impl-level-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; cursor: pointer; user-select: none; transition: background 0.2s; }
+        .impl-level-header:hover { background: rgba(255,255,255,0.04); }
+        .impl-level-title { font-size: 14px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; }
+        .impl-level-chevron { font-size: 12px; color: rgba(255,255,255,0.35); transition: transform 0.3s ease; display: inline-block; }
+        .impl-level.open .impl-level-chevron { transform: rotate(90deg); }
+        .impl-level-progress { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .impl-level-count { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.45); }
+        .impl-level-bar { width: 80px; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
+        .impl-level-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+        .impl-level-body { max-height: 0; overflow: hidden; transition: max-height 0.35s ease; }
+        .impl-level.open .impl-level-body { max-height: 4000px; }
+        .impl-item { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-top: 1px solid rgba(255,255,255,0.05); transition: background 0.15s; }
+        .impl-item:hover { background: rgba(255,255,255,0.03); }
+        .impl-check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: all 0.2s; font-size: 11px; color: transparent; }
+        .impl-check:hover { border-color: rgba(255,255,255,0.4); }
+        .impl-check.done { background: #FF4533; border-color: #FF4533; color: #fff; }
+        .impl-item-title { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.75); flex: 1; }
+        .impl-item.done .impl-item-title { text-decoration: line-through; color: rgba(255,255,255,0.35); }
+        .impl-item-link { font-size: 11px; color: #FF4533; text-decoration: none; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+        .impl-item-link:hover { text-decoration: underline; }
+        .impl-section-label { padding: 10px 18px 4px; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.1em; border-top: 1px solid rgba(255,255,255,0.05); }
+        .impl-coming-soon { color: rgba(255,255,255,0.2); font-style: italic; font-size: 12px; padding: 10px 18px; }
+        .impl-level.coming .impl-level-header { cursor: default; opacity: 0.5; }
+
+        @media (max-width: 640px) {
+            .impl-level-bar { width: 50px; }
+            .impl-item { padding: 10px 14px; gap: 10px; }
+            .impl-level-header { padding: 14px 14px; }
+        }
     </style>
 </head>
 <body>
@@ -611,6 +642,74 @@
         let currentUser = null;
         let authLoading = true;
         let currentPage = 'hub';
+
+        const IMPLEMENTATION_MODULES = [
+            { level: 0, title: 'Level Zero: Brand Genesis', items: [
+                { id: 'l0_first_steps', title: 'First Steps into Brand Genesis', url: 'https://www.skool.com/scalo-6527/classroom/8e9a5112?md=b44610339b7d42759bd8b3af93d56f97' },
+                { id: 'l0_how_this_works', title: 'How this Works', url: 'https://www.skool.com/scalo-6527/classroom/8e9a5112?md=30b40920855947a8a1bcbcde6b7aa4ea' },
+                { id: 'l0_group_call', title: 'Group Call Protocol', url: 'https://www.skool.com/scalo-6527/classroom/8e9a5112?md=67a5942718de48fcac0e575f5c21b43c' },
+                { id: 'l0_roadmap', title: 'SCALO Roadmap', url: 'https://www.skool.com/scalo-6527/classroom/8e9a5112?md=864a756e4766425295888b9388314dee' },
+                { id: 'l0_coaching_hub', title: 'SCALO Coaching Hub', url: 'https://www.skool.com/scalo-6527/classroom/8e9a5112?md=7c1b7f9e04f7451bb90a4b56b86f1c21' },
+            ]},
+            { level: 1, title: 'Level One: Identity Infrastructure', items: [
+                { id: 'l1_brand_compass', title: 'Stage One: Brand Compass', url: 'https://www.skool.com/scalo-6527/classroom/dbb8ac1e?md=b2cf31d2b1734e81a470558cdfb53d1b' },
+                { id: 'l1_icp', title: 'Stage Two: Identifying Your ICP', url: 'https://www.skool.com/scalo-6527/classroom/dbb8ac1e?md=1e6a85f3a3144aaeb47b269c2e6fa05f' },
+                { id: 'l1_profile_opt', title: 'Stage Three: Profile Optimisation', url: 'https://www.skool.com/scalo-6527/classroom/dbb8ac1e?md=520c7a40db4d456e97c317b17b04a370' },
+                { id: 'l1_pinned_post', title: 'Pinned Post SOP', url: 'https://www.skool.com/scalo-6527/classroom/dbb8ac1e?md=ad89dc88ed04478e9f3f295ef02789ff' },
+            ]},
+            { level: 2, title: 'Level Two: Visual Architecture', items: [
+                { id: 'l2_intro', title: 'Introduction', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=597ce7f2235c42a390b86552d1e62304' },
+                { id: 'l2_creator_control', title: 'Creator Control', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=464148647ba24dbf8d94eb44a01a3f83' },
+                { id: 'l2_creator_stack', title: 'The Creator Stack', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=25015f41776344ab9aecbf29a623691f' },
+                { id: 'l2_lighting', title: 'Lighting Uncovered', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=380d3349e50b437793ae5ffb9daf3808' },
+                { id: 'l2_lighting_bd', title: 'Lighting Breakdown', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=4d25771a47614873886ee0a075315928' },
+                { id: 'l2_ctc_walkthrough', title: 'Concept To Camera Walkthrough', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=f84513919e964f3495e6458b513210af', section: 'Concept To Camera' },
+                { id: 'l2_ctc_styles', title: 'Content Styles SOP', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=7e7537798ba24d2fbc0453777bf73830', section: 'Concept To Camera' },
+                { id: 'l2_ctc_visual_id', title: 'Visual Identity SOP', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=b235d1842137487391141146ba292ae2', section: 'Concept To Camera' },
+                { id: 'l2_ctc_cover_bd', title: 'Converting Cover Photo Breakdown', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=b817ce0c2d684c3690f51969e31a9f1e', section: 'Concept To Camera' },
+                { id: 'l2_ctc_cover_create', title: 'Cover Photo Creation', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=0582b95d01b9457d9f7c2118d6cb9c40', section: 'Concept To Camera' },
+                { id: 'l2_ra_walkthrough', title: 'Retain Attention Walkthrough', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=c199a40e163b4de48028f00dc299f51d', section: 'Retain Attention' },
+                { id: 'l2_ra_editing_eff', title: 'Editing Efficiency Tutorial', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=327429820e7d4042b4a6229c19a4f2ee', section: 'Retain Attention' },
+                { id: 'l2_ra_editing_davinci', title: 'Editing Essentials (DaVinci Resolve)', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=4ec12c6db8984320ac3f5bd1b6539844', section: 'Retain Attention' },
+                { id: 'l2_ra_editing_capcut_pc', title: 'Editing Essentials (CapCut PC)', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=162c59778a61407f9ea467897e3d9c35', section: 'Retain Attention' },
+                { id: 'l2_ra_editing_capcut_ip', title: 'Editing Essentials (CapCut iPhone)', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=5574605d0480447baee6d1c9f8323dfe', section: 'Retain Attention' },
+                { id: 'l2_ra_content_planner', title: 'Content Planner', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=b173e64579224334aa6f4fd2a638d723', section: 'Retain Attention' },
+                { id: 'l2_ra_trending_audio', title: 'How To Find Trending Audio', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=5436e8811a424eb5bf91a750d9d27f9e', section: 'Retain Attention' },
+                { id: 'l2_ra_visual_hook', title: 'Visual Hook & Showcasing Examples', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=3a68ccc4e3e04b05958b844ac3c65154', section: 'Retain Attention' },
+                { id: 'l2_ra_viral_reels', title: 'Viral Reel Breakdowns', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=331c88c1bac04e7a8d8019d8c62f3a35', section: 'Retain Attention' },
+                { id: 'l2_ec_basic_grade', title: 'Basic Colour Grade Tutorial', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=9db82904ecb943deba175ad2d6d40207', section: 'Enhanced Colours' },
+                { id: 'l2_ec_lut_davinci', title: 'Add Colour Grade LUT DaVinci Resolve', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=1b9a1fcfa86f4c41a3d3d63a3b4bdf40', section: 'Enhanced Colours' },
+                { id: 'l2_ec_lut_capcut', title: 'Add Colour Grade LUT CapCut', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=46311298533043bd8c9db57f79313103', section: 'Enhanced Colours' },
+                { id: 'l2_next_steps', title: 'Your Next Steps', url: 'https://www.skool.com/scalo-6527/classroom/baa397e1?md=7c3d092c1eef4f05bcc2dff84b082a4f' },
+            ]},
+            { level: 3, title: 'Level Three: Business Mechanics', items: [
+                { id: 'l3_intro', title: 'Business Mechanics - Introduction', url: 'https://www.skool.com/scalo-6527/classroom/b01b48fa?md=dee0c40367fa4a26a72027e4f2f7fce7' },
+                { id: 'l3_first_aid', title: 'Business First Aid', url: 'https://www.skool.com/scalo-6527/classroom/b01b48fa?md=c4e50cad0660477c86af755b7091add5' },
+                { id: 'l3_biz_hub', title: 'The Business Hub', url: 'https://www.skool.com/scalo-6527/classroom/b01b48fa?md=99f42b4e36364cb6ad70f5f794aa44e5' },
+                { id: 'l3_online_seo', title: 'Online SEO', url: 'https://www.skool.com/scalo-6527/classroom/b01b48fa?md=87fe66b472964ceea2c8b2d5cf3f2dc2' },
+                { id: 'l3_systeme', title: 'Systeme Website Walkthrough', url: 'https://www.skool.com/scalo-6527/classroom/b01b48fa?md=eb6c2411a19342cbb1dc1e02895253ea' },
+                { id: 'l3_domain_seo', title: 'Domain SEO', url: 'https://www.skool.com/scalo-6527/classroom/b01b48fa?md=55d9c3d53b574b14b7e15938fe1b5ece' },
+                { id: 'l3_eo_explained', title: 'Efficient Outreach Explained', url: 'https://www.skool.com/scalo-6527/classroom/b01b48fa?md=0af4d080c4de48b1ba461b18bcc5f88b', section: 'Efficient Outreach' },
+                { id: 'l3_eo_consultation', title: 'The Power of a Proper Consultation', url: 'https://www.skool.com/scalo-6527/classroom/b01b48fa?md=1b573ea0d3a3442588084635abd5efe3', section: 'Efficient Outreach' },
+                { id: 'l3_eo_google_maps', title: 'Google + Google Map Business Profile', url: 'https://www.skool.com/scalo-6527/classroom/b01b48fa?md=3cbdfcc49edd4667a74c8a451daced28', section: 'Efficient Outreach' },
+                { id: 'l3_eo_apple_maps', title: 'Apple Maps Business Profile', url: 'https://www.skool.com/scalo-6527/classroom/b01b48fa?md=e900bd58fbe74608b368ab96bdb34319', section: 'Efficient Outreach' },
+                { id: 'l3_mc_90day', title: 'Staff 90 Day Appraisals Template', url: 'https://www.skool.com/scalo-6527/classroom/b01b48fa?md=ee36398c662f4d02a82161e78211e43d', section: 'Momentum Control' },
+                { id: 'l3_mc_kpi', title: 'Staff Weekly KPI Tracker', url: 'https://www.skool.com/scalo-6527/classroom/b01b48fa?md=05915c693f914546b35be479db76c4e0', section: 'Momentum Control' },
+                { id: 'l3_mc_progress', title: 'The Progress Engine', url: 'https://www.skool.com/scalo-6527/classroom/b01b48fa?md=456dbdb1f0c4492bbd69791bf8e16733', section: 'Momentum Control' },
+                { id: 'l3_mc_progress_walk', title: 'Full Walkthrough On The Progress Engine', url: 'https://www.skool.com/scalo-6527/classroom/b01b48fa?md=9d273d5c0f0d463685760226e5e7e964', section: 'Momentum Control' },
+                { id: 'l3_mc_traffic_light', title: 'The Traffic Light Diagnostic', url: 'https://www.skool.com/scalo-6527/classroom/b01b48fa?md=f60c1b04b75047b3b5311a8dddb44b1e', section: 'Momentum Control' },
+            ]},
+            { level: 4, title: 'Level Four: The Authority Flywheel', items: [
+                { id: 'l4_foundations', title: 'The Authority Flywheel (Foundations)', url: 'https://www.skool.com/scalo-6527/classroom/8edc27c1?md=afeb863a6231496cbe4ccb950e052383' },
+                { id: 'l4_implementation', title: 'The Authority Flywheel (Implementation)', url: 'https://www.skool.com/scalo-6527/classroom/8edc27c1?md=41817332e2c94ec285a616617c6d98cd' },
+                { id: 'l4_momentum', title: 'Authority Flywheel Momentum Engine', url: 'https://www.skool.com/scalo-6527/classroom/8edc27c1?md=cc468839c29344a4b9c76f0e30712ae5' },
+            ]},
+            { level: 5, title: 'Level Five: Story to Status', items: [] },
+            { level: 6, title: 'Level Six: Content to Cash', items: [] },
+            { level: 7, title: 'Level Seven: Price Ascension', items: [] },
+            { level: 8, title: 'Level Eight: Cash Surge', items: [] },
+            { level: 9, title: 'Level Nine: Monetisation Ignition', items: [] },
+        ];
         let selectedClientDetail = null;
         let progressChartData = null;
 
@@ -1863,6 +1962,114 @@
                     if (bannerSteps) bannerSteps.textContent = doneAll + '/' + totalAll + ' steps';
                 }
             } catch (err) { console.error('Error updating task:', err); }
+        };
+
+        // ── CLIENT: IMPLEMENTATION CHECKLIST ──
+        const renderClientImplementation = async () => {
+            const snap = await db.ref('portal/implementation/' + currentUser.uid).once('value');
+            const completions = snap.val() || {};
+            const allItems = IMPLEMENTATION_MODULES.flatMap(m => m.items);
+            const totalItems = allItems.length;
+            const doneItems = allItems.filter(i => completions[i.id] === true).length;
+            const overallPct = totalItems > 0 ? Math.round(doneItems / totalItems * 100) : 0;
+
+            const renderLevel = (mod, idx) => {
+                const isComing = mod.items.length === 0;
+                if (isComing) return '<div class="impl-level coming"><div class="impl-level-header"><div class="impl-level-title"><span>&#x25B8;</span> ' + mod.title + '</div><div class="impl-coming-soon">Coming Soon</div></div></div>';
+                const lvlDone = mod.items.filter(i => completions[i.id] === true).length;
+                const lvlTotal = mod.items.length;
+                const lvlPct = Math.round(lvlDone / lvlTotal * 100);
+                const lvlColor = lvlPct === 100 ? '#4ADE80' : lvlPct >= 50 ? '#FBBF24' : '#FF4533';
+                let lastSection = '';
+                const itemsHtml = mod.items.map(item => {
+                    const isDone = completions[item.id] === true;
+                    let sectionHtml = '';
+                    if (item.section && item.section !== lastSection) { sectionHtml = '<div class="impl-section-label">' + item.section + '</div>'; lastSection = item.section; }
+                    else if (!item.section && lastSection) { lastSection = ''; }
+                    return sectionHtml + '<div class="impl-item' + (isDone ? ' done' : '') + '" id="impl-item-' + item.id + '">' +
+                        '<div class="impl-check' + (isDone ? ' done' : '') + '" id="impl-check-' + item.id + '" onclick="handleImplToggle(\'' + item.id + '\',' + !isDone + ')">&#x2713;</div>' +
+                        '<div class="impl-item-title">' + item.title + '</div>' +
+                        (item.url ? '<a href="' + item.url + '" target="_blank" rel="noopener" class="impl-item-link" onclick="event.stopPropagation()">Open &#x2192;</a>' : '') +
+                    '</div>';
+                }).join('');
+
+                return '<div class="impl-level' + (idx === 0 ? ' open' : '') + '" id="impl-level-' + idx + '">' +
+                    '<div class="impl-level-header" onclick="toggleImplLevel(' + idx + ')">' +
+                        '<div class="impl-level-title"><span class="impl-level-chevron">&#x25B8;</span> ' + mod.title + '</div>' +
+                        '<div class="impl-level-progress">' +
+                            '<div class="impl-level-count" id="impl-count-' + idx + '">' + lvlDone + '/' + lvlTotal + '</div>' +
+                            '<div class="impl-level-bar"><div class="impl-level-bar-fill" id="impl-bar-' + idx + '" style="width:' + lvlPct + '%;background:' + lvlColor + ';"></div></div>' +
+                            '<div style="font-size:11px;font-weight:700;color:' + lvlColor + ';" id="impl-pct-' + idx + '">' + lvlPct + '%</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="impl-level-body">' + itemsHtml + '</div>' +
+                '</div>';
+            };
+
+            const bannerColor = overallPct === 100 ? '#4ADE80' : overallPct >= 50 ? '#FBBF24' : '#FF4533';
+
+            return '<div>' +
+                '<h2 class="page-title">Implementation Checklist</h2>' +
+                '<p class="page-subtitle">Work through each level and mark lessons as done</p>' +
+                '<div class="card" style="margin-bottom:20px;background:linear-gradient(135deg,#1a0a0a,#0a0a1a);border:none;">' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                        '<div><div style="font-size:13px;color:rgba(255,255,255,0.45);font-weight:400;">Overall Progress</div>' +
+                        '<div id="implBannerSteps" style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:2px;">' + doneItems + ' of ' + totalItems + ' tasks completed</div></div>' +
+                        '<div id="implBannerPct" style="font-size:28px;font-weight:700;color:' + bannerColor + ';">' + overallPct + '%</div>' +
+                    '</div>' +
+                    '<div style="margin-top:12px;height:8px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;">' +
+                        '<div id="implBannerFill" style="height:100%;width:' + overallPct + '%;background:' + bannerColor + ';border-radius:4px;transition:width 0.5s;"></div>' +
+                    '</div>' +
+                '</div>' +
+                IMPLEMENTATION_MODULES.map((m, i) => renderLevel(m, i)).join('') +
+            '</div>';
+        };
+
+        window.toggleImplLevel = (idx) => {
+            const el = document.getElementById('impl-level-' + idx);
+            if (el && !el.classList.contains('coming')) el.classList.toggle('open');
+        };
+
+        window.handleImplToggle = async (itemId, checked) => {
+            try {
+                await db.ref('portal/implementation/' + currentUser.uid + '/' + itemId).set(checked || null);
+                const itemEl = document.getElementById('impl-item-' + itemId);
+                const checkEl = document.getElementById('impl-check-' + itemId);
+                if (itemEl) { if (checked) itemEl.classList.add('done'); else itemEl.classList.remove('done'); }
+                if (checkEl) {
+                    if (checked) checkEl.classList.add('done'); else checkEl.classList.remove('done');
+                    checkEl.setAttribute('onclick', "handleImplToggle('" + itemId + "'," + !checked + ")");
+                }
+                // Update level progress
+                const allItems = IMPLEMENTATION_MODULES.flatMap(m => m.items);
+                IMPLEMENTATION_MODULES.forEach((mod, idx) => {
+                    if (mod.items.length === 0) return;
+                    const lvlDone = mod.items.filter(i => {
+                        const el = document.getElementById('impl-item-' + i.id);
+                        return el && el.classList.contains('done');
+                    }).length;
+                    const lvlTotal = mod.items.length;
+                    const lvlPct = Math.round(lvlDone / lvlTotal * 100);
+                    const lvlColor = lvlPct === 100 ? '#4ADE80' : lvlPct >= 50 ? '#FBBF24' : '#FF4533';
+                    const countEl = document.getElementById('impl-count-' + idx);
+                    const barEl = document.getElementById('impl-bar-' + idx);
+                    const pctEl = document.getElementById('impl-pct-' + idx);
+                    if (countEl) countEl.textContent = lvlDone + '/' + lvlTotal;
+                    if (barEl) { barEl.style.width = lvlPct + '%'; barEl.style.background = lvlColor; }
+                    if (pctEl) { pctEl.textContent = lvlPct + '%'; pctEl.style.color = lvlColor; }
+                });
+                // Update overall banner
+                const totalDone = allItems.filter(i => { const el = document.getElementById('impl-item-' + i.id); return el && el.classList.contains('done'); }).length;
+                const totalAll = allItems.length;
+                const overallPct = Math.round(totalDone / totalAll * 100);
+                const bannerColor = overallPct === 100 ? '#4ADE80' : overallPct >= 50 ? '#FBBF24' : '#FF4533';
+                const bannerPct = document.getElementById('implBannerPct');
+                const bannerFill = document.getElementById('implBannerFill');
+                const bannerSteps = document.getElementById('implBannerSteps');
+                if (bannerPct) { bannerPct.textContent = overallPct + '%'; bannerPct.style.color = bannerColor; }
+                if (bannerFill) { bannerFill.style.width = overallPct + '%'; bannerFill.style.background = bannerColor; }
+                if (bannerSteps) bannerSteps.textContent = totalDone + ' of ' + totalAll + ' tasks completed';
+            } catch (err) { console.error('Error updating implementation:', err); }
         };
 
         // ── PROGRESS ──
@@ -3155,7 +3362,7 @@ const weekKeyToDateRange = (key) => {
 };
 
 const renderAdminClientDetail = async (uid) => {
-    const [userSnap, entriesSnap, tasksSnap, socialSnap, socialProfileSnap, inspoCreatorsSnap, inspoVideosSnap, goalsSnap] = await Promise.all([
+    const [userSnap, entriesSnap, tasksSnap, socialSnap, socialProfileSnap, inspoCreatorsSnap, inspoVideosSnap, goalsSnap, implSnap] = await Promise.all([
         db.ref(`portal/users/${uid}`).once('value'),
         db.ref(`portal/entries/${uid}`).once('value'),
         db.ref(`portal/tasks/${uid}`).once('value'),
@@ -3163,7 +3370,8 @@ const renderAdminClientDetail = async (uid) => {
         db.ref(`portal/social_profiles/${uid}`).once('value'),
         db.ref(`portal/inspo_creators/${uid}`).once('value'),
         db.ref(`portal/inspo_videos/${uid}`).once('value'),
-        db.ref(`portal/goals/${uid}`).once('value')
+        db.ref(`portal/goals/${uid}`).once('value'),
+        db.ref(`portal/implementation/${uid}`).once('value')
     ]);
     const clientGoals = goalsSnap.val()||{};
     const user = userSnap.val()||{};
@@ -3523,7 +3731,41 @@ const renderAdminClientDetail = async (uid) => {
             ${clientGoals.goal90 || clientGoals.goal6m ? '<div style="border-top:0.5px solid #222;margin:20px 0;"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">' + (clientGoals.goal90 ? '<div style="background:#1a1a1a;border:0.5px solid #2a2a2a;border-radius:10px;padding:16px;"><div style="font-size:10px;color:#f5c842;text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:10px;">90-Day Goal</div><div style="font-size:14px;color:#e8e8e8;line-height:1.6;font-weight:400;white-space:pre-wrap;">' + clientGoals.goal90 + '</div></div>' : '<div></div>') + (clientGoals.goal6m ? '<div style="background:#1a1a1a;border:0.5px solid #2a2a2a;border-radius:10px;padding:16px;"><div style="font-size:10px;color:#f5c842;text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:10px;">6-Month Goal</div><div style="font-size:14px;color:#e8e8e8;line-height:1.6;font-weight:400;white-space:pre-wrap;">' + clientGoals.goal6m + '</div></div>' : '<div></div>') + '</div>' : ''}
         </div>
     `;
-    const tabContent = activeTab==='overview'?overviewTab:activeTab==='goals'?goalsTab:activeTab==='business'?businessTab:activeTab==='social'?socialTab:activeTab==='content'?contentTab:inspoTab;
+    const implCompletions = implSnap.val() || {};
+    const implAllItems = IMPLEMENTATION_MODULES.flatMap(m => m.items);
+    const implTotalDone = implAllItems.filter(i => implCompletions[i.id] === true).length;
+    const implTotalAll = implAllItems.length;
+    const implOverallPct = implTotalAll > 0 ? Math.round(implTotalDone / implTotalAll * 100) : 0;
+    const implBannerColor = implOverallPct === 100 ? '#4ADE80' : implOverallPct >= 50 ? '#FBBF24' : '#FF4533';
+    const checklistTab = `
+        <div class="card" style="margin-bottom:20px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <div style="font-size:14px;font-weight:700;color:#fff;">Implementation Progress</div>
+                    <div style="font-size:12px;color:rgba(255,255,255,0.45);margin-top:2px;">${implTotalDone} of ${implTotalAll} lessons completed</div>
+                </div>
+                <div style="font-size:28px;font-weight:700;color:${implBannerColor};">${implOverallPct}%</div>
+            </div>
+            <div style="margin-top:12px;" class="progress-bar"><div class="progress-fill" style="width:${implOverallPct}%;background:${implBannerColor};"></div></div>
+        </div>
+        ${IMPLEMENTATION_MODULES.filter(m => m.items.length > 0).map(mod => {
+            const lvlDone = mod.items.filter(i => implCompletions[i.id] === true).length;
+            const lvlTotal = mod.items.length;
+            const lvlPct = Math.round(lvlDone / lvlTotal * 100);
+            const lvlColor = lvlPct === 100 ? '#4ADE80' : lvlPct >= 50 ? '#FBBF24' : '#FF4533';
+            return '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.06);">' +
+                '<div style="flex:1;min-width:0;">' +
+                    '<div style="font-size:13px;font-weight:700;color:#fff;">' + mod.title + '</div>' +
+                    '<div style="margin-top:6px;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;max-width:300px;"><div style="height:100%;width:' + lvlPct + '%;background:' + lvlColor + ';border-radius:3px;"></div></div>' +
+                '</div>' +
+                '<div style="text-align:right;flex-shrink:0;margin-left:16px;">' +
+                    '<div style="font-size:13px;font-weight:700;color:' + lvlColor + ';">' + lvlDone + '/' + lvlTotal + '</div>' +
+                    '<div style="font-size:11px;color:rgba(255,255,255,0.35);">' + lvlPct + '%</div>' +
+                '</div>' +
+            '</div>';
+        }).join('')}
+    `;
+    const tabContent = activeTab==='overview'?overviewTab:activeTab==='goals'?goalsTab:activeTab==='business'?businessTab:activeTab==='social'?socialTab:activeTab==='content'?contentTab:activeTab==='checklist'?checklistTab:inspoTab;
     return `
         <div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
@@ -3548,6 +3790,7 @@ const renderAdminClientDetail = async (uid) => {
                 ${tabBtn('social','Social')}
                 ${tabBtn('content','Content')}
                 ${tabBtn('inspo','Inspo')}
+                ${tabBtn('checklist','Checklist')}
             </div>
             ${tabContent}
         </div>
@@ -3576,6 +3819,7 @@ const renderAdminClientDetail = async (uid) => {
 
             const clientNavItems = [
                 { page: 'hub', icon: '&#x25C9;', label: 'Hub' },
+                { page: 'implementation', icon: '&#x2611;', label: 'Checklist' },
                 { page: 'numbers', icon: '&#x25CA;', label: 'Business' },
                 { page: 'tasks', icon: '&#x2713;', label: 'Tasks' },
                 { page: 'content', icon: '&#x25B6;', label: 'Content' },
@@ -3621,6 +3865,7 @@ const renderAdminClientDetail = async (uid) => {
                 else { currentPage = 'clients'; pageContent = await renderAdminClients(); }
             } else {
                 if (currentPage === 'hub') pageContent = await renderClientHub();
+                else if (currentPage === 'implementation') pageContent = await renderClientImplementation();
                 else if (currentPage === 'numbers') pageContent = await renderClientNumbers();
                 else if (currentPage === 'tasks') pageContent = await renderClientTasks();
                 else if (currentPage === 'content') { pageContent = await renderClientContent(); checkAndTriggerContentScrape(currentUser.uid); }
