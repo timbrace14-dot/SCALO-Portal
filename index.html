@@ -568,11 +568,12 @@
         @media (max-width: 640px) {
             .auth-left { display: none; }
             .portal-sidebar { width: 58px; padding: 20px 8px; align-items: center; }
-            .sidebar-logo { margin-left: 0; margin-bottom: 24px; height: 18px; width: auto; }
+            .sidebar-logo { margin-left: 0; margin-bottom: 24px; height: 14px; width: auto; }
+            .sidebar-nav { flex: 0 !important; }
             .sidebar-nav-item { justify-content: center; padding: 10px; gap: 0; }
             .sidebar-nav-item .nav-label { display: none; }
-            .sidebar-signout { justify-content: center; padding: 10px; gap: 0; flex-direction: column; }
-            .sidebar-signout .nav-label { display: block !important; font-size: 8px; letter-spacing: 0.05em; text-transform: uppercase; margin-top: 2px; }
+            .sidebar-signout { justify-content: center; padding: 10px; gap: 0; flex-direction: column; margin-top: 24px; }
+            .sidebar-signout .nav-label { display: block !important; font-size: 7px; letter-spacing: 0.05em; text-transform: uppercase; margin-top: 2px; }
             .portal-content-area { padding: 20px 12px; }
             .card-grid { grid-template-columns: repeat(2, 1fr) !important; }
             .client-grid { grid-template-columns: 1fr; }
@@ -580,6 +581,7 @@
             .metric-card { padding: 14px 10px; }
             .mobile-grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
             .donut-canvas { width: 64px !important; height: 64px !important; }
+            .form-input { font-size: 13px; padding: 10px 12px; }
         }
         /* ── IMPLEMENTATION CHECKLIST ── */
         .impl-level { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; margin-bottom: 10px; overflow: hidden; }
