@@ -578,9 +578,8 @@
             .client-grid { grid-template-columns: 1fr; }
             .card { padding: 16px 14px; }
             .metric-card { padding: 14px 10px; }
-            .portal-content-area [style*="repeat(4,1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
-            .portal-content-area [style*="repeat(3,1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
-            .portal-content-area canvas[width="90"] { width: 70px !important; height: 70px !important; }
+            .mobile-grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
+            .donut-canvas { width: 64px !important; height: 64px !important; }
         }
     </style>
 </head>
@@ -1026,7 +1025,7 @@
                     </div>
 
                     <div style="font-size:14px;color:#fff;letter-spacing:0.02em;margin-bottom:10px;font-weight:700;">&#x1F4CA; All Time Totals</div>
-                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;">
+                    <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;">
                         <div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:14px;padding:14px 16px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 4px 24px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.06);">
                             <div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Revenue</div>
                             <div style="font-size:18px;font-weight:700;color:#fff;">${formatCurrency(allRevenue)}</div>
@@ -1061,7 +1060,7 @@
                         </div>
                     </div>
 
-                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
+                    <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
                         <div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:14px;padding:16px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 4px 24px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.06);text-align:center;">
                             <div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Profit Margin</div>
                             <canvas id="chartAllTimeProfitMargin" width="100" height="100" style="margin:0 auto;display:block;"></canvas>
@@ -1101,20 +1100,20 @@
                             last8Weeks.map(w => (parseFloat(w.instagramFollowers)||0)+(parseFloat(w.tiktokFollowers)||0)))}
                     </div>
 
-                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
+                    <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
                         <div class="metric-card" style="text-align:center;cursor:pointer;" onclick="showDonutBreakdown('profit')">
                             <div class="metric-label">True Profit Margin <span style="font-size:9px;color:rgba(255,255,255,0.35);">tap for details</span></div>
-                            <canvas id="chartProfitMargin" width="90" height="90" style="margin:10px auto;display:block;"></canvas>
+                            <canvas id="chartProfitMargin" width="90" height="90" class="donut-canvas" style="margin:10px auto;display:block;"></canvas>
                             <div style="font-size:22px;font-weight:700;color:${trueMargin>=75?'#4ADE80':trueMargin>=50?'#FBBF24':'#FF4533'};">${trueMargin.toFixed(1)}%</div>
                         </div>
                         <div class="metric-card" style="text-align:center;cursor:pointer;" onclick="showDonutBreakdown('occupancy')">
                             <div class="metric-label">Occupancy Rate <span style="font-size:9px;color:rgba(255,255,255,0.35);">tap for details</span></div>
-                            <canvas id="chartOccupancy" width="90" height="90" style="margin:10px auto;display:block;"></canvas>
+                            <canvas id="chartOccupancy" width="90" height="90" class="donut-canvas" style="margin:10px auto;display:block;"></canvas>
                             <div style="font-size:22px;font-weight:700;color:${occupancy>=75?'#4ADE80':occupancy>=50?'#FBBF24':'#FF4533'};">${occupancy.toFixed(1)}%</div>
                         </div>
                         <div class="metric-card" style="text-align:center;cursor:pointer;" onclick="showDonutBreakdown('rebook')">
                             <div class="metric-label">Rebook Rate <span style="font-size:9px;color:rgba(255,255,255,0.35);">tap for details</span></div>
-                            <canvas id="chartRebook" width="90" height="90" style="margin:10px auto;display:block;"></canvas>
+                            <canvas id="chartRebook" width="90" height="90" class="donut-canvas" style="margin:10px auto;display:block;"></canvas>
                             <div style="font-size:22px;font-weight:700;color:${rebook>=75?'#4ADE80':rebook>=50?'#FBBF24':'#FF4533'};">${rebook.toFixed(1)}%</div>
                         </div>
                     </div>
@@ -1145,7 +1144,7 @@
                     ${hasSocialHistory ? `
                     <!-- Social Analytics -->
                     <div class="section-header">&#x1F4F1; Social Analytics</div>
-                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:${hasTikTok?'10':'20'}px;">
+                    <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:${hasTikTok?'10':'20'}px;">
                         <div class="metric-card">
                             <div class="metric-label">IG Followers</div>
                             <div class="metric-value">${formatNumber(socialLatest.igFollowers||0)}${socialDiff('igFollowers')}</div>
@@ -1160,7 +1159,7 @@
                         </div>
                     </div>
                     ${hasTikTok ? `
-                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
+                    <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
                         <div class="metric-card">
                             <div class="metric-label">TikTok Followers</div>
                             <div class="metric-value">${formatNumber(socialLatest.ttFollowers||0)}${socialDiff('ttFollowers')}</div>
@@ -1478,7 +1477,7 @@
                     <div class="section-header" style="margin-bottom:0;">&#x1F4CA; Weekly Totals</div>
                     <span style="font-size:11px;color:rgba(255,255,255,0.45);">${isOldFormat ? 'Logged as weekly total' : filledCount + '/7 days logged'}</span>
                 </div>
-                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+                <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
                     ${FIELD_KEYS.map((key, fi) => {
                         const val = totals[key] || 0;
                         const isCurrency = CURRENCY_FIELDS.includes(key);
@@ -2828,7 +2827,7 @@
 
                     <!-- Latest snapshot cards -->
                     <div style="font-size:14px;color:#fff;letter-spacing:0.02em;margin-bottom:10px;font-weight:700;">&#x1F4CA; Latest Snapshot</div>
-                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;">
+                    <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;">
                         <div class="metric-card">
                             <div class="metric-label">IG Followers</div>
                             <div class="metric-value">${formatNumber(latest.igFollowers||0)}${diff(latest,prev,'igFollowers')}</div>
@@ -3231,7 +3230,7 @@ const renderAdminClientDetail = async (uid) => {
     // Overview tab — mirrors client hub
     const overviewTab = `
         <div style="font-size:14px;color:#fff;letter-spacing:0.02em;margin-bottom:10px;font-weight:700;">\uD83D\uDCCA All Time Totals</div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;">
+        <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;">
             <div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:14px;padding:14px 16px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 4px 24px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.06);">
                 <div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Revenue</div>
                 <div style="font-size:18px;font-weight:700;color:#fff;">${formatCurrency(allRevenue)}</div>
@@ -3266,7 +3265,7 @@ const renderAdminClientDetail = async (uid) => {
             </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
+        <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
             <div class="metric-card" style="text-align:center;">
                 <div class="metric-label">Profit Margin</div>
                 <div style="font-size:28px;font-weight:700;color:${allTrueProfitMargin>=75?'#4ADE80':allTrueProfitMargin>=50?'#FBBF24':'#FF4533'};margin:12px 0 4px;">${allTrueProfitMargin.toFixed(1)}%</div>
@@ -3324,13 +3323,13 @@ const renderAdminClientDetail = async (uid) => {
 
         ${hasSocialHistory ? `
         <div class="section-header">\uD83D\uDCF1 Social Analytics</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:${hasTikTok?'10':'20'}px;">
+        <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:${hasTikTok?'10':'20'}px;">
             <div class="metric-card"><div class="metric-label">IG Followers</div><div class="metric-value">${formatNumber(latestSocial.igFollowers||0)}${sdiff(latestSocial,prevSocial,'igFollowers')}</div></div>
             <div class="metric-card"><div class="metric-label">IG Views</div><div class="metric-value">${formatNumber(latestSocial.igViews||0)}${sdiff(latestSocial,prevSocial,'igViews')}</div></div>
             <div class="metric-card"><div class="metric-label">IG Posts</div><div class="metric-value">${formatNumber(latestSocial.igPosts||0)}${sdiff(latestSocial,prevSocial,'igPosts')}</div></div>
         </div>
         ${hasTikTok ? `
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
+        <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
             <div class="metric-card"><div class="metric-label">TikTok Followers</div><div class="metric-value">${formatNumber(latestSocial.ttFollowers||0)}${sdiff(latestSocial,prevSocial,'ttFollowers')}</div></div>
             <div class="metric-card"><div class="metric-label">TikTok Views</div><div class="metric-value">${formatNumber(latestSocial.ttViews||0)}${sdiff(latestSocial,prevSocial,'ttViews')}</div></div>
             <div class="metric-card"><div class="metric-label">TikTok Posts</div><div class="metric-value">${formatNumber(latestSocial.ttPosts||0)}${sdiff(latestSocial,prevSocial,'ttPosts')}</div></div>
@@ -3422,7 +3421,7 @@ const renderAdminClientDetail = async (uid) => {
                 ${socialProfile.tiktokUrl?` \u00B7 TikTok: <a href="${socialProfile.tiktokUrl}" target="_blank" style="color:#FF4533;font-weight:700;">${socialProfile.tiktokUrl}</a>`:''}
             </div>
             ${socialWeeks.length===0?`<div class="empty-state"><div class="empty-state-icon">\uD83D\uDCC8</div><p>No social data yet</p></div>`:`
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
+            <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
                 <div class="metric-card"><div class="metric-label">IG Followers</div><div class="metric-value">${formatNumber(latestSocial.igFollowers||0)}${sdiff(latestSocial,prevSocial,'igFollowers')}</div></div>
                 <div class="metric-card"><div class="metric-label">IG Views</div><div class="metric-value">${formatNumber(latestSocial.igViews||0)}${sdiff(latestSocial,prevSocial,'igViews')}</div></div>
                 <div class="metric-card"><div class="metric-label">IG Posts</div><div class="metric-value">${formatNumber(latestSocial.igPosts||0)}${sdiff(latestSocial,prevSocial,'igPosts')}</div></div>
