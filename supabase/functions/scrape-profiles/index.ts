@@ -72,11 +72,45 @@ serve(async (req) => {
       })
     }
 
+    // Build mapping: Supabase student ID -> Firebase UID
+    // Match by supabaseStudentId field or by email
+    const fbUsersRes = await fetch(`${FIREBASE_DB_URL}/portal/users.json`)
+    const fbUsers = fbUsersRes.ok ? await fbUsersRes.json() : {}
+    const supaToFirebase: Record<string, string> = {}
+
+    // Get emails from Supabase students table for matching
+    const { data: studentsWithEmail } = await supabase.from('students').select('id, email')
+    const supaIdToEmail: Record<string, string> = {}
+    if (studentsWithEmail) {
+      for (const s of studentsWithEmail) {
+        if (s.email) supaIdToEmail[s.id] = s.email.toLowerCase()
+      }
+    }
+
+    if (fbUsers) {
+      for (const [fbUid, userData] of Object.entries(fbUsers as Record<string, any>)) {
+        // Match by supabaseStudentId
+        if (userData?.supabaseStudentId) {
+          supaToFirebase[userData.supabaseStudentId] = fbUid
+        }
+        // Match by email
+        if (userData?.email) {
+          const fbEmail = userData.email.toLowerCase()
+          for (const [supaId, supaEmail] of Object.entries(supaIdToEmail)) {
+            if (supaEmail === fbEmail) {
+              supaToFirebase[supaId] = fbUid
+            }
+          }
+        }
+      }
+    }
+
     const weekKey = getWeekKey()
     const results: any[] = []
 
     for (const student of students) {
-      const uid = student.id
+      // Use Firebase UID if we have a mapping, otherwise fall back to student.id
+      const uid = supaToFirebase[student.id] || student.id
       const snapshot: any = { scrapedAt: new Date().toISOString() }
 
       // Get previous data to calculate new followers
