@@ -4379,7 +4379,7 @@ const renderAdminClientDetail = async (uid) => {
                                 </div>
                             </div>`).join('')}
                         </div>
-                        <button type="button" onclick="submitScaleSignal()" class="btn-primary" style="width:100%;padding:16px;font-size:15px;">See My Scale Signal &#x2192;</button>
+                        <button type="button" onclick="submitScaleSignal()" class="btn-primary" style="width:100%;padding:16px;font-size:15px;">Submit My Scale Signal &#x2192;</button>
                     </form>
                 </div>`;
             }
@@ -4388,22 +4388,32 @@ const renderAdminClientDetail = async (uid) => {
                 const form = document.getElementById('scaleSignalForm');
                 if (!form) return;
                 const scores = {};
+                let totalSelected = 0;
+                let totalItems = 0;
                 SCALE_SIGNAL_SECTIONS.forEach(sec => {
                     let sectionTotal = 0;
                     const groups = form.querySelectorAll('[data-section="' + sec.key + '"]');
                     groups.forEach(group => {
-                        const selected = Array.from(group.querySelectorAll('.ss-color-btn')).find(b => b.style.opacity === '1');
-                        if (selected) sectionTotal += parseInt(selected.getAttribute('data-value')) || 0;
+                        totalItems++;
+                        const selected = Array.from(group.querySelectorAll('.ss-color-btn')).find(b => parseFloat(b.style.opacity) === 1);
+                        if (selected) {
+                            sectionTotal += parseInt(selected.getAttribute('data-value')) || 0;
+                            totalSelected++;
+                        }
                     });
                     scores[sec.key] = sectionTotal;
                 });
+                if (totalSelected < totalItems) {
+                    alert('Please rate every statement before submitting. You have ' + (totalItems - totalSelected) + ' remaining.');
+                    return;
+                }
                 await firebase.database().ref('portal/scale_signal/' + currentUser.uid).set({
                     scores,
                     submittedAt: new Date().toISOString(),
                     firstName: currentUser.firstName || '',
                     lastName: currentUser.lastName || ''
                 });
-                navigateTo('scaleSignal');
+                setPage('scaleSignal');
             }
 
             async function renderAdminScaleSignal() {
