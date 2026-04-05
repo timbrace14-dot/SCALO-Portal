@@ -4665,34 +4665,34 @@ const renderAdminClientDetail = async (uid) => {
         window.setPage = (page) => { currentPage = page; render(); };
         window.handleRefreshContent = async () => {
             const btn = document.getElementById('refreshContentBtn');
-            if (btn) { btn.textContent = 'Scraping...'; btn.disabled = true; }
+            const origHtml = btn ? btn.innerHTML : '';
+            if (btn) { btn.innerHTML = IC.refresh + ' Scraping reels... (30-60s)'; btn.disabled = true; btn.style.opacity = '0.6'; }
             try {
                 if (!sbClient) throw new Error('Supabase not connected');
                 const { data, error } = await sbClient.functions.invoke('scrape-reels', { body: {} });
                 if (error) throw new Error(error.message || JSON.stringify(error));
-                console.log('Scrape result:', data);
-                alert('Scrape complete! Refreshing page...');
+                if (btn) btn.innerHTML = IC.refresh + ' Updating...';
                 setTimeout(() => setPage('content'), 1500);
             } catch(e) {
                 alert('Refresh failed: ' + (e.message || JSON.stringify(e)));
-                if (btn) { btn.innerHTML = '${IC.refresh} Refresh'; btn.disabled = false; }
+                if (btn) { btn.innerHTML = origHtml; btn.disabled = false; btn.style.opacity = '1'; }
             }
         };
         window.handleRefreshInspo = async () => {
             const btn = document.getElementById('refreshInspoBtn');
-            if (btn) { btn.textContent = 'Scraping...'; btn.disabled = true; }
+            const origHtml = btn ? btn.innerHTML : '';
+            if (btn) { btn.innerHTML = IC.refresh + ' Scraping inspo... (30-60s)'; btn.disabled = true; btn.style.opacity = '0.6'; }
             try {
                 if (!sbClient) throw new Error('Supabase not connected');
                 const { data, error } = await sbClient.functions.invoke('scrape-inspo', {
                     body: { uid: currentUser.uid }
                 });
                 if (error) throw new Error(error.message || JSON.stringify(error));
-                console.log('Inspo scrape result:', data);
-                alert('Inspo scrape complete! Refreshing page...');
+                if (btn) btn.innerHTML = IC.refresh + ' Updating...';
                 setTimeout(() => setPage('inspo'), 1500);
             } catch(e) {
                 alert('Refresh failed: ' + (e.message || JSON.stringify(e)));
-                if (btn) { btn.innerHTML = '${IC.refresh} Refresh Now'; btn.disabled = false; }
+                if (btn) { btn.innerHTML = origHtml; btn.disabled = false; btn.style.opacity = '1'; }
             }
         };
         window.signOut = async () => { await auth.signOut(); };
