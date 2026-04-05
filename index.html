@@ -766,6 +766,31 @@
         };
 
         const SCALO_LOGO = 'data:image/png;base64,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';
+        const IC = {
+            chart: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="9" width="3" height="5" rx="0.5" fill="currentColor" opacity="0.4"/><rect x="6.5" y="5" width="3" height="9" rx="0.5" fill="currentColor" opacity="0.6"/><rect x="11.5" y="2" width="3" height="12" rx="0.5" fill="currentColor" opacity="0.9"/></svg>',
+            calendar: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12"/><path d="M5 1.5v3"/><path d="M11 1.5v3"/></svg>',
+            phone: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="1" width="8" height="14" rx="2"/><path d="M7 12.5h2"/></svg>',
+            trendUp: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12L6 6L10 9L14 3"/><path d="M10 3h4v4"/></svg>',
+            upload: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 10V2"/><path d="M5 4l3-3 3 3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>',
+            camera: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5.5a1 1 0 011-1h2l1-2h4l1 2h2a1 1 0 011 1v7a1 1 0 01-1 1H3a1 1 0 01-1-1z"/><circle cx="8" cy="9" r="2.5"/></svg>',
+            music: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 13V4l8-2v9"/><circle cx="4" cy="13" r="2"/><circle cx="12" cy="11" r="2"/></svg>',
+            eye: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>',
+            doc: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 1.5h5l4 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1v-12a1 1 0 011-1z"/><path d="M9 1.5v4h4"/></svg>',
+            heart: '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" stroke="none"><path d="M8 14s-5.5-3.5-5.5-7.5C2.5 4 4.5 2.5 6.5 3.5 7.2 3.9 7.7 4.5 8 5.2c.3-.7.8-1.3 1.5-1.7 2-1 4 .5 4 2.5C13.5 10.5 8 14 8 14z"/></svg>',
+            chat: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H5l-3 3V3z"/></svg>',
+            bulb: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 14h4"/><path d="M6 12h4"/><path d="M5.5 10c-1.5-1-2.5-2.5-2.5-4.5a5 5 0 0110 0c0 2-1 3.5-2.5 4.5"/></svg>',
+            film: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M6.5 5v6l5-3z" fill="currentColor"/></svg>',
+            star: '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" stroke="none"><path d="M8 1l2.2 4.5 5 .7-3.6 3.5.8 5L8 12.4 3.6 14.7l.8-5L.8 6.2l5-.7z"/></svg>',
+            lock: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>',
+            trash: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4h12"/><path d="M5 4V2.5a.5.5 0 01.5-.5h5a.5.5 0 01.5.5V4"/><path d="M4 4l.8 9.5a1 1 0 001 .5h4.4a1 1 0 001-.5L12 4"/></svg>',
+            target: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="3"/><circle cx="8" cy="8" r="0.5" fill="currentColor"/></svg>',
+            alert: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 1L1 14h14z"/><path d="M8 6v4"/><circle cx="8" cy="12" r="0.5" fill="currentColor"/></svg>',
+            clipboard: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="2" width="10" height="12" rx="1.5"/><path d="M6 1.5h4"/><path d="M5.5 6h5"/><path d="M5.5 8.5h5"/><path d="M5.5 11h3"/></svg>',
+            pencil: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M11.5 1.5l3 3L5 14H2v-3z"/></svg>',
+            mail: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1.5"/><path d="M1 4l7 5 7-5"/></svg>',
+            refresh: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 8a6 6 0 0 1 10.3-4.2"/><path d="M14 8a6 6 0 0 1-10.3 4.2"/><path d="M12.3 1v3h-3"/><path d="M3.7 15v-3h3"/></svg>',
+        };
+
 
         firebase.initializeApp(FIREBASE_CONFIG);
         const db = firebase.database();
@@ -1001,7 +1026,7 @@
                 <div style="max-width:420px;text-align:center;">
                     <img src="${SCALO_LOGO}" alt="SCALO" style="height:36px;width:auto;margin-bottom:32px;">
                     <div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:40px 32px;box-shadow:0 4px 24px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.06);">
-                        <div style="width:56px;height:56px;background:${ACCENT_DIM};border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:24px;">&#x1F512;</div>
+                        <div style="width:56px;height:56px;background:${ACCENT_DIM};border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:24px;">${IC.lock}</div>
                         <div style="font-size:20px;font-weight:700;color:#fff;margin-bottom:10px;">Access Revoked</div>
                         <div style="font-size:14px;color:rgba(255,255,255,0.55);font-weight:400;line-height:1.6;margin-bottom:28px;">Unfortunately you have lost access to your SCALO Portal. If you believe this is a mistake, please reach out to your coach.</div>
                         <button onclick="accessRevoked=false;render();" style="background:#1A1A1A;color:rgba(255,255,255,0.65);border:1px solid rgba(255,255,255,0.1);padding:12px 24px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;">&#x2190; Back to Sign In</button>
@@ -1261,7 +1286,7 @@
                         </div>
                     </div>
 
-                    <div style="font-size:14px;color:#fff;letter-spacing:0.02em;margin-bottom:10px;font-weight:700;">&#x1F4CA; All Time Totals</div>
+                    <div style="font-size:14px;color:#fff;letter-spacing:0.02em;margin-bottom:10px;font-weight:700;">${IC.chart} All Time Totals</div>
                     <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;">
                         <div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:14px;padding:14px 16px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 4px 24px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.06);">
                             <div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Revenue</div>
@@ -1325,7 +1350,7 @@
                     <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px 18px;margin-bottom:12px;box-shadow:0 4px 24px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.06);">
                         <button onclick="hubWeekOffset--;setPage('hub')" style="width:36px;height:36px;border-radius:50%;border:2px solid ${ACCENT};background:#141414;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;color:${ACCENT};font-weight:700;">&#x2039;</button>
                         <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
-                            <div style="font-size:14px;color:#fff;letter-spacing:0.02em;font-weight:700;">&#x1F4C5; Weekly Numbers</div>
+                            <div style="font-size:14px;color:#fff;letter-spacing:0.02em;font-weight:700;">${IC.calendar} Weekly Numbers</div>
                             <div style="font-size:16px;font-weight:700;color:#fff;">${weekKey}</div>
                             ${hubWeekOffset !== 0 ? `<button onclick="hubWeekOffset=0;setPage('hub')" style="font-size:11px;color:#fff;background:${ACCENT};border:none;cursor:pointer;font-weight:700;font-family:inherit;padding:3px 12px;border-radius:20px;">Back to Now</button>` : `<div style="font-size:11px;color:#4ADE80;font-weight:600;">Current Week</div>`}
                         </div>
@@ -1384,7 +1409,7 @@
 
                     ${hasSocialHistory ? `
                     <!-- Social Analytics -->
-                    <div class="section-header">&#x1F4F1; Social Analytics</div>
+                    <div class="section-header">${IC.phone} Social Analytics</div>
                     <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:${hasTikTok?'10':'20'}px;">
                         <div class="metric-card">
                             <div class="metric-label">IG Followers</div>
@@ -1715,7 +1740,7 @@
 
             const totalsRow = `<div class="card" style="margin-top:8px;margin-bottom:16px;background:#0f0f0f;border:1.5px solid ${ACCENT_RGBA}0.2);">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-                    <div class="section-header" style="margin-bottom:0;">&#x1F4CA; Weekly Totals</div>
+                    <div class="section-header" style="margin-bottom:0;">${IC.chart} Weekly Totals</div>
                     <span style="font-size:11px;color:rgba(255,255,255,0.45);">${isOldFormat ? 'Logged as weekly total' : filledCount + '/7 days logged'}</span>
                 </div>
                 <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
@@ -1736,13 +1761,13 @@
                     <h2 class="page-title">Log Your Numbers</h2>
                     <p class="page-subtitle">Pick a week, then fill in each day's stats</p>
                     <div class="card" style="margin-bottom:16px;">
-                        <div class="form-label" style="margin-bottom:8px;">&#x1F4C5; Select Week</div>
+                        <div class="form-label" style="margin-bottom:8px;">${IC.calendar} Select Week</div>
                         <input type="week" id="weekPicker" class="form-input" value="${weekInputFromKey(selectedWeekKey)}" style="cursor:pointer;font-weight:600;font-family:inherit;">
                         <div style="font-size:12px;color:rgba(255,255,255,0.45);margin-top:6px;font-weight:400;">Currently editing: <strong style="color:#fff;">${selectedWeekKey}</strong>${isDailyFormat(data) ? ` — <span style="color:#4ADE80;">${getFilledDayCount(data)}/7 days logged</span>` : isOldFormat ? ' — <span style="color:#FBBF24;">Logged as weekly total</span>' : ' — no data yet'}</div>
                     </div>
 
                     ${isOldFormat ? `<div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#FBBF24;">
-                        &#x26A0; This week was saved as a weekly total under the old system. The totals below reflect that entry. New entries going forward will use the day-by-day format.
+                        ${IC.alert} This week was saved as a weekly total under the old system. The totals below reflect that entry. New entries going forward will use the day-by-day format.
                     </div>` : ''}
 
                     ${isOldFormat ? '' : dayCards}
@@ -1751,7 +1776,7 @@
 
                     ${historyRows.length > 0 ? `
                     <div class="card" style="margin-top:8px;margin-bottom:40px;">
-                        <div class="section-header" style="margin-bottom:14px;">&#x1F4CB; Logged History</div>
+                        <div class="section-header" style="margin-bottom:14px;">${IC.clipboard} Logged History</div>
                         <div style="overflow-x:auto;">
                             <table style="width:100%;border-collapse:collapse;font-size:12px;">
                                 <thead>
@@ -2437,7 +2462,7 @@
                             <div style="font-size:14px;font-weight:700;color:#fff;">@${instagramHandle}</div>
                             <div style="font-size:11px;color:rgba(255,255,255,0.45);font-weight:400;margin-top:2px;">${scraped ? `Last scraped: ${scraped}` : 'First scrape pending &#x2014; check back tomorrow'}</div>
                         </div>
-                        <button onclick="handleRefreshContent()" id="refreshContentBtn" style="background:#1A1A1A;color:rgba(255,255,255,0.65);border:1px solid rgba(255,255,255,0.12);padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;margin-right:8px;">&#x21BB; Refresh</button>
+                        <button onclick="handleRefreshContent()" id="refreshContentBtn" style="background:#1A1A1A;color:rgba(255,255,255,0.65);border:1px solid rgba(255,255,255,0.12);padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;margin-right:8px;">${IC.refresh} Refresh</button>
                         <a href="https://instagram.com/${instagramHandle}" target="_blank" rel="noopener" style="color:${ACCENT};font-size:12px;font-weight:700;text-decoration:none;">View Profile &#x2192;</a>
                     </div>` : `
                     <div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;box-shadow:0 4px 24px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.06);margin-bottom:20px;">
@@ -2472,8 +2497,8 @@
                                         ${item.link ? `<a href="${item.link}" target="_blank" rel="noopener" style="color:${ACCENT};font-size:11px;font-weight:700;text-decoration:none;">View &#x2192;</a>` : ''}
                                     </div>
                                     <div class="content-metrics">
-                                        ${item.likes ? `<span class="content-metric">&#x2764;&#xFE0F; <strong>${formatNumber(item.likes)}</strong> likes</span>` : ''}
-                                        ${item.comments ? `<span class="content-metric">&#x1F4AC; <strong>${formatNumber(item.comments)}</strong> comments</span>` : ''}
+                                        ${item.likes ? `<span class="content-metric">${IC.heart} <strong>${formatNumber(item.likes)}</strong> likes</span>` : ''}
+                                        ${item.comments ? `<span class="content-metric">${IC.chat} <strong>${formatNumber(item.comments)}</strong> comments</span>` : ''}
                                     </div>
                                 </div>
                                 <div class="content-views">
@@ -2538,7 +2563,7 @@
             }).length;
             const expiringBanner = expiringCount > 0 ? `
                 <div onclick="setPage('crm')" style="margin-bottom:16px;padding:14px 18px;background:rgba(255,69,51,0.08);border:1px solid rgba(255,69,51,0.2);border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.2s;">
-                    <span style="font-size:18px;">&#x26A0;&#xFE0F;</span>
+                    <span style="font-size:18px;">${IC.alert}</span>
                     <span style="font-size:13px;font-weight:700;color:#FF4533;">${expiringCount} student${expiringCount !== 1 ? 's' : ''} approaching end date</span>
                     <span style="font-size:12px;color:rgba(255,255,255,0.4);margin-left:auto;">View in CRM &#x2192;</span>
                 </div>
@@ -2567,7 +2592,7 @@
                     </div>
                     ${disabledClients.length > 0 ? `
                     <div style="margin-top:32px;">
-                        <div class="section-header" style="margin-bottom:12px;color:rgba(255,255,255,0.45);">&#x1F512; Removed Clients</div>
+                        <div class="section-header" style="margin-bottom:12px;color:rgba(255,255,255,0.45);">${IC.lock} Removed Clients</div>
                         ${disabledClients.map(([uid, user]) => {
                             const initials = ((user.firstName||'?')[0] + ((user.lastName||'?')[0])).toUpperCase();
                             const removedDate = user.disabledAt ? new Date(user.disabledAt).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '';
@@ -2655,7 +2680,7 @@
             const urgentBanner = urgentClients.length > 0 ? `
                 <div class="card" style="margin-bottom:24px;background:linear-gradient(135deg,rgba(255,69,51,0.08),rgba(251,191,36,0.06));border:1px solid rgba(255,69,51,0.2);">
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-                        <span style="font-size:22px;">&#x26A0;&#xFE0F;</span>
+                        <span style="font-size:22px;">${IC.alert}</span>
                         <div style="font-size:15px;font-weight:700;color:#FF4533;">${urgentClients.length} client${urgentClients.length !== 1 ? 's' : ''} approaching end date</div>
                     </div>
                     <div style="display:flex;flex-direction:column;gap:8px;">
@@ -2665,7 +2690,7 @@
                                     <span style="font-weight:700;font-size:13px;color:#fff;">${c.name}</span>
                                     <span style="font-size:12px;color:${c.statusColor};font-weight:700;margin-left:10px;">${c.daysRemaining} day${c.daysRemaining !== 1 ? 's' : ''} left</span>
                                 </div>
-                                <a href="mailto:${c.email}?subject=${renewalSubject}&body=${renewalBody(c.name.split(' ')[0])}" style="background:rgba(255,69,51,0.15);color:#FF4533;border:none;padding:6px 12px;border-radius:8px;font-weight:700;font-size:11px;cursor:pointer;font-family:inherit;text-decoration:none;">&#x2709; Send Renewal Email</a>
+                                <a href="mailto:${c.email}?subject=${renewalSubject}&body=${renewalBody(c.name.split(' ')[0])}" style="background:rgba(255,69,51,0.15);color:#FF4533;border:none;padding:6px 12px;border-radius:8px;font-weight:700;font-size:11px;cursor:pointer;font-family:inherit;text-decoration:none;">${IC.mail} Send Renewal Email</a>
                             </div>
                         `).join('')}
                     </div>
@@ -2700,8 +2725,8 @@
                                         <td style="padding:12px;font-weight:700;color:${c.statusColor};">${c.daysRemaining !== null ? c.daysRemaining : '&#x2014;'}</td>
                                         <td style="padding:12px;"><span style="display:inline-block;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;color:${c.statusColor};background:${c.statusBg};">${c.statusLabel}</span></td>
                                         <td style="padding:12px;white-space:nowrap;">
-                                            <button onclick="toggleCrmEditDates('${c.uid}','${c.startRaw || ''}','${c.endRaw || ''}')" style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.7);border:none;padding:6px 10px;border-radius:6px;font-weight:700;font-size:11px;cursor:pointer;font-family:inherit;margin-right:6px;">&#x270E; Edit Dates</button>
-                                            ${c.daysRemaining !== null && c.daysRemaining <= 30 ? `<a href="mailto:${c.email}?subject=${renewalSubject}&body=${renewalBody(c.name.split(' ')[0])}" style="background:rgba(255,69,51,0.15);color:#FF4533;border:none;padding:6px 10px;border-radius:6px;font-weight:700;font-size:11px;cursor:pointer;font-family:inherit;text-decoration:none;">&#x2709; Renewal</a>` : ''}
+                                            <button onclick="toggleCrmEditDates('${c.uid}','${c.startRaw || ''}','${c.endRaw || ''}')" style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.7);border:none;padding:6px 10px;border-radius:6px;font-weight:700;font-size:11px;cursor:pointer;font-family:inherit;margin-right:6px;">${IC.pencil} Edit Dates</button>
+                                            ${c.daysRemaining !== null && c.daysRemaining <= 30 ? `<a href="mailto:${c.email}?subject=${renewalSubject}&body=${renewalBody(c.name.split(' ')[0])}" style="background:rgba(255,69,51,0.15);color:#FF4533;border:none;padding:6px 10px;border-radius:6px;font-weight:700;font-size:11px;cursor:pointer;font-family:inherit;text-decoration:none;">${IC.mail} Renewal</a>` : ''}
                                         </td>
                                     </tr>
                                     <tr id="crm-edit-${c.uid}" style="display:none;">
@@ -2928,7 +2953,7 @@
                 <div>
                     <h2 class="page-title">Content Inspo</h2>
                     <p class="page-subtitle">Top 4 performing reels from your favourite creators &#x2014; refreshed every Monday
-                        <button onclick="handleRefreshInspo()" id="refreshInspoBtn" style="background:#1A1A1A;color:rgba(255,255,255,0.65);border:1px solid rgba(255,255,255,0.12);padding:4px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;margin-left:12px;">&#x21BB; Refresh Now</button>
+                        <button onclick="handleRefreshInspo()" id="refreshInspoBtn" style="background:#1A1A1A;color:rgba(255,255,255,0.65);border:1px solid rgba(255,255,255,0.12);padding:4px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;margin-left:12px;">${IC.refresh} Refresh Now</button>
                     </p>
 
                     <!-- Creators setup -->
@@ -2976,7 +3001,7 @@
 
                     ${creatorList.length === 0 ? '' : Object.keys(videosByCreator).length === 0 ? `
                     <div class="empty-state">
-                        <div class="empty-state-icon">&#x2728;</div>
+                        <div class="empty-state-icon">${IC.star}</div>
                         <p style="margin-bottom:6px;">Videos loading soon</p>
                         <p style="font-size:13px;font-weight:400;color:rgba(255,255,255,0.45);">Your inspo videos will appear here after the next Monday scrape. You'll also get an email every Monday morning.</p>
                     </div>` : ''}
@@ -2995,21 +3020,21 @@
                             <div class="content-card" style="flex-direction:column;margin-bottom:12px;align-items:stretch;width:100%;">
                                 <div style="display:flex;align-items:flex-start;gap:14px;width:100%;">
                                     <div style="width:64px;height:64px;border-radius:10px;flex-shrink:0;overflow:hidden;background:#1A1A1A;">
-                                        ${v.thumbnail ? `<img src="${v.thumbnail}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='&#x1F3AC;'">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px;">&#x1F3AC;</div>`}
+                                        ${v.thumbnail ? `<img src="${v.thumbnail}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='${IC.film}'">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px;">${IC.film}</div>`}
                                     </div>
                                     <div style="flex:1;min-width:0;text-align:left;">
                                         <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:6px;line-height:1.4;">${v.caption ? v.caption.slice(0,80)+(v.caption.length>80?'&#x2026;':'') : 'Instagram Reel'}</div>
                                         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
-                                            <span style="font-size:11px;color:rgba(255,255,255,0.56);">&#x1F441; <strong style="color:#fff;">${formatNumber(v.views||0)}</strong> views</span>
-                                            ${v.likes?`<span style="font-size:11px;color:rgba(255,255,255,0.56);">&#x2764;&#xFE0F; <strong style="color:#fff;">${formatNumber(v.likes)}</strong></span>`:''}
-                                            ${v.comments?`<span style="font-size:11px;color:rgba(255,255,255,0.56);">&#x1F4AC; <strong style="color:#fff;">${formatNumber(v.comments)}</strong></span>`:''}
+                                            <span style="font-size:11px;color:rgba(255,255,255,0.56);">${IC.eye} <strong style="color:#fff;">${formatNumber(v.views||0)}</strong> views</span>
+                                            ${v.likes?`<span style="font-size:11px;color:rgba(255,255,255,0.56);">${IC.heart} <strong style="color:#fff;">${formatNumber(v.likes)}</strong></span>`:''}
+                                            ${v.comments?`<span style="font-size:11px;color:rgba(255,255,255,0.56);">${IC.chat} <strong style="color:#fff;">${formatNumber(v.comments)}</strong></span>`:''}
                                         </div>
                                         <a href="${v.link || 'https://www.instagram.com/' + creator.handle + '/reels/'}" target="_blank" rel="noopener" style="font-size:12px;color:${ACCENT};font-weight:700;text-decoration:none;">View Reel &#x2192;</a>
                                     </div>
                                 </div>
                                 ${v.analysis ? `
                                 <div style="margin-top:12px;padding:12px 14px;background:rgba(255,255,255,0.04);border-left:3px solid ${ACCENT};border-radius:0 8px 8px 0;width:100%;text-align:left;">
-                                    <div style="font-size:10px;font-weight:700;color:${ACCENT};text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">&#x1F4A1; Why this performed well</div>
+                                    <div style="font-size:10px;font-weight:700;color:${ACCENT};text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">${IC.bulb} Why this performed well</div>
                                     <div style="font-size:12px;color:rgba(255,255,255,0.65);font-weight:400;line-height:1.7;">${v.analysis}</div>
                                 </div>` : ''}
                             </div>
@@ -3267,13 +3292,13 @@
 
                     ${!hasHistory ? `
                     <div class="empty-state">
-                        <div class="empty-state-icon">&#x1F4C8;</div>
+                        <div class="empty-state-icon">${IC.trendUp}</div>
                         <p style="margin-bottom:6px;">No data yet</p>
                         <p style="font-size:13px;font-weight:400;color:rgba(255,255,255,0.45);">Paste your profile links above and save &#x2014; your stats will be tracked automatically every day</p>
                     </div>` : `
 
                     <!-- Latest snapshot cards -->
-                    <div style="font-size:14px;color:#fff;letter-spacing:0.02em;margin-bottom:10px;font-weight:700;">&#x1F4CA; Instagram</div>
+                    <div style="font-size:14px;color:#fff;letter-spacing:0.02em;margin-bottom:10px;font-weight:700;">${IC.chart} Instagram</div>
                     <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:${hasTT?'16':'24'}px;">
                         <div class="metric-card">
                             <div class="metric-label">Total Followers</div>
@@ -3293,7 +3318,7 @@
                         </div>
                     </div>
                     ${hasTT ? `
-                    <div style="font-size:14px;color:#fff;letter-spacing:0.02em;margin-bottom:10px;font-weight:700;">&#x1F3B5; TikTok</div>
+                    <div style="font-size:14px;color:#fff;letter-spacing:0.02em;margin-bottom:10px;font-weight:700;">${IC.music} TikTok</div>
                     <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;">
                         <div class="metric-card">
                             <div class="metric-label">Total Followers</div>
@@ -3315,7 +3340,7 @@
 
                     <!-- Export Social Report -->
                     <div class="card" style="margin-bottom:24px;">
-                        <div class="section-header" style="margin-bottom:12px;">&#x1F4E4; Export Social Report</div>
+                        <div class="section-header" style="margin-bottom:12px;">${IC.upload} Export Social Report</div>
                         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
                             <select id="socialExportMonth" style="flex:1;min-width:160px;padding:10px 14px;border:1.5px solid #E0E0E0;border-radius:10px;font-size:14px;font-weight:600;font-family:inherit;background:#141414;color:#fff;">
                                 ${(() => {
@@ -3336,29 +3361,29 @@
 
                     <!-- Instagram charts -->
                     <div class="chart-card">
-                        <div class="chart-title">&#x1F4F8; Instagram Followers Over Time</div>
+                        <div class="chart-title">${IC.camera} Instagram Followers Over Time</div>
                         <canvas id="chartIGFollowers" height="80"></canvas>
                     </div>
                     <div class="chart-card">
-                        <div class="chart-title">&#x1F441; Instagram Views Over Time</div>
+                        <div class="chart-title">${IC.eye} Instagram Views Over Time</div>
                         <canvas id="chartIGViews" height="80"></canvas>
                     </div>
                     <div class="chart-card">
-                        <div class="chart-title">&#x1F4DD; Instagram Posts Over Time</div>
+                        <div class="chart-title">${IC.doc} Instagram Posts Over Time</div>
                         <canvas id="chartIGPosts" height="80"></canvas>
                     </div>
 
                     ${hasTT ? `
                     <div class="chart-card">
-                        <div class="chart-title">&#x1F3B5; TikTok Followers Over Time</div>
+                        <div class="chart-title">${IC.music} TikTok Followers Over Time</div>
                         <canvas id="chartTTFollowers" height="80"></canvas>
                     </div>
                     <div class="chart-card">
-                        <div class="chart-title">&#x1F441; TikTok Views Over Time</div>
+                        <div class="chart-title">${IC.eye} TikTok Views Over Time</div>
                         <canvas id="chartTTViews" height="80"></canvas>
                     </div>
                     <div class="chart-card">
-                        <div class="chart-title">&#x1F4DD; TikTok Posts Over Time</div>
+                        <div class="chart-title">${IC.doc} TikTok Posts Over Time</div>
                         <canvas id="chartTTPosts" height="80"></canvas>
                     </div>` : ''}
                     `}
@@ -3984,7 +4009,7 @@ const renderAdminClientDetail = async (uid) => {
                 <div style="font-family:'Instrument Serif',serif;font-style:italic;font-size:42px;color:#f5c842;letter-spacing:-2px;line-height:1.1;">${user.firstName}'s Goals</div>
             </div>
             ${goalsUpdated ? '<div style="font-size:11px;color:#555;margin-bottom:20px;">Last updated: ' + goalsUpdated + '</div>' : ''}
-            ${!hasGoals ? '<div style="text-align:center;padding:40px 20px;"><div style="font-size:32px;margin-bottom:12px;">&#x1F3AF;</div><div style="font-size:15px;color:rgba(255,255,255,0.45);font-weight:400;">' + user.firstName + ' hasn&#x27;t set any goals yet</div></div>' : ''}
+            ${!hasGoals ? '<div style="text-align:center;padding:40px 20px;"><div style="font-size:32px;margin-bottom:12px;">${IC.target}</div><div style="font-size:15px;color:rgba(255,255,255,0.45);font-weight:400;">' + user.firstName + ' hasn&#x27;t set any goals yet</div></div>' : ''}
             ${clientGoals.why ? '<div style="margin-bottom:20px;"><div style="font-size:11px;color:#f5c842;text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:6px;">Their Why</div><div style="background:#1a1a1a;border:0.5px solid #2a2a2a;border-radius:10px;padding:14px 16px;font-size:14px;color:#e8e8e8;line-height:1.6;font-weight:400;white-space:pre-wrap;">' + clientGoals.why + '</div></div>' : ''}
             ${clientGoals.how ? '<div style="margin-bottom:20px;"><div style="font-size:11px;color:#f5c842;text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:6px;">Their How</div><div style="background:#1a1a1a;border:0.5px solid #2a2a2a;border-radius:10px;padding:14px 16px;font-size:14px;color:#e8e8e8;line-height:1.6;font-weight:400;white-space:pre-wrap;">' + clientGoals.how + '</div></div>' : ''}
             ${clientGoals.goal90 || clientGoals.goal6m ? '<div style="border-top:0.5px solid #222;margin:20px 0;"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">' + (clientGoals.goal90 ? '<div style="background:#1a1a1a;border:0.5px solid #2a2a2a;border-radius:10px;padding:16px;"><div style="font-size:10px;color:#f5c842;text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:10px;">90-Day Goal</div><div style="font-size:14px;color:#e8e8e8;line-height:1.6;font-weight:400;white-space:pre-wrap;">' + clientGoals.goal90 + '</div></div>' : '<div></div>') + (clientGoals.goal6m ? '<div style="background:#1a1a1a;border:0.5px solid #2a2a2a;border-radius:10px;padding:16px;"><div style="font-size:10px;color:#f5c842;text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:10px;">6-Month Goal</div><div style="font-size:14px;color:#e8e8e8;line-height:1.6;font-weight:400;white-space:pre-wrap;">' + clientGoals.goal6m + '</div></div>' : '<div></div>') + '</div>' : ''}
@@ -4030,8 +4055,8 @@ const renderAdminClientDetail = async (uid) => {
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
                 <button class="btn-back" style="margin-bottom:0;" onclick="setPage('clients')">&#x2190; Back</button>
                 <div style="display:flex;gap:8px;">
-                    <button onclick="exportClientPDF('${uid}')" style="background:#1A1A1A;color:#fff;border:1px solid rgba(255,255,255,0.12);padding:8px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;">&#x2913; Export PDF</button>
-                    <button onclick="deleteClient('${uid}')" style="background:rgba(255,69,51,0.12);color:#FF4533;border:none;padding:8px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;">&#x1F5D1; Remove</button>
+                    <button onclick="exportClientPDF('${uid}')" style="background:#1A1A1A;color:#fff;border:1px solid rgba(255,255,255,0.12);padding:8px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;">${IC.upload} Export PDF</button>
+                    <button onclick="deleteClient('${uid}')" style="background:rgba(255,69,51,0.12);color:#FF4533;border:none;padding:8px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;">${IC.trash} Remove</button>
                 </div>
             </div>
             <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
@@ -4164,7 +4189,7 @@ const renderAdminClientDetail = async (uid) => {
 
             function getOverallRating(scores) {
                 const total = Object.values(scores).reduce((a,b) => a+b, 0);
-                const max = SCALE_SIGNAL_SECTIONS.reduce((a,s) => a + s.items.length, 0);
+                const max = SCALE_SIGNAL_SECTIONS.reduce((a,s) => a + s.items.length * 4, 0);
                 const pct = max > 0 ? (total / max) * 100 : 0;
                 if (pct >= 85) return 'brightGreen';
                 if (pct >= 65) return 'green';
@@ -4177,6 +4202,92 @@ const renderAdminClientDetail = async (uid) => {
                 const snap = await firebase.database().ref('portal/scale_signal/' + uid).once('value');
                 const saved = snap.val();
 
+                // 6-week timer lock logic
+                const programmeStart = currentUser.programmeStart || null;
+                let isLocked = false;
+                let daysUntilUnlock = 0;
+                let currentBlock = 0;
+
+                if (programmeStart) {
+                    const startDate = new Date(programmeStart);
+                    const now = Date.now();
+                    const weeksSinceStart = Math.floor((now - startDate.getTime()) / (7 * 86400000));
+                    currentBlock = Math.floor(weeksSinceStart / 6);
+
+                    // Scale Signal unlocks at week 6, 12, 18, 24, 30, 36 (every 6 weeks)
+                    if (weeksSinceStart < 6) {
+                        // Before first unlock window
+                        isLocked = true;
+                        const firstUnlockDate = new Date(startDate.getTime() + 6 * 7 * 86400000);
+                        daysUntilUnlock = Math.ceil((firstUnlockDate.getTime() - now) / 86400000);
+                    } else if (saved && saved.submittedAt) {
+                        // Check if already submitted for current block
+                        const blockStartDate = new Date(startDate.getTime() + currentBlock * 6 * 7 * 86400000);
+                        const submittedDate = new Date(saved.submittedAt);
+                        if (submittedDate >= blockStartDate) {
+                            // Already submitted for this block
+                            isLocked = true;
+                            const nextBlockStart = new Date(startDate.getTime() + (currentBlock + 1) * 6 * 7 * 86400000);
+                            daysUntilUnlock = Math.ceil((nextBlockStart.getTime() - now) / 86400000);
+                        }
+                    }
+                }
+
+                // If locked, show last results + countdown
+                if (isLocked && saved && saved.scores) {
+                    const scores = saved.scores;
+                    const overall = getOverallRating(scores);
+                    const color = SIGNAL_COLORS[overall];
+                    const total = Object.values(scores).reduce((a,b) => a+b, 0);
+                    const max = SCALE_SIGNAL_SECTIONS.reduce((a,s) => a + s.items.length * 4, 0);
+
+                    return `<div>
+                        <h2 class="page-title">Your Scale Signal</h2>
+                        <p class="page-subtitle">Here are your latest results</p>
+
+                        <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:24px;margin-bottom:24px;text-align:center;">
+                            <div style="margin-bottom:12px;">${IC.lock}</div>
+                            <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:6px;">Your next Scale Signal opens in ${daysUntilUnlock} day${daysUntilUnlock !== 1 ? 's' : ''}</div>
+                            <div style="font-size:12px;color:rgba(255,255,255,0.45);">Scale Signals unlock every 6 weeks to track meaningful progress</div>
+                        </div>
+
+                        <div style="background:${color.bg};border:2px solid ${color.border};border-radius:16px;padding:24px;margin-bottom:24px;text-align:center;">
+                            <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Last Result</div>
+                            <div style="font-size:48px;font-weight:800;color:${color.text};margin-bottom:4px;">${color.label}</div>
+                            <div style="font-size:14px;color:rgba(255,255,255,0.5);">${total} / ${max} points</div>
+                        </div>
+
+                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;">
+                            ${SCALE_SIGNAL_SECTIONS.map(sec => {
+                                const s = scores[sec.key] || 0;
+                                const m = sec.items.length;
+                                const p = m > 0 ? (s/(m*4))*100 : 0;
+                                const c = p >= 85 ? SIGNAL_COLORS.brightGreen : p >= 65 ? SIGNAL_COLORS.green : p >= 40 ? SIGNAL_COLORS.orange : SIGNAL_COLORS.red;
+                                return '<div style="background:#111;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">' +
+                                    '<div style="background:#1a1a1a;padding:12px 14px;display:flex;align-items:center;gap:8px;">' +
+                                    '<span style="color:' + c.text + ';">' + sec.icon + '</span>' +
+                                    '<span style="font-size:12px;font-weight:700;color:#fff;">' + sec.title + '</span></div>' +
+                                    '<div style="padding:12px 14px;text-align:center;">' +
+                                    '<div style="font-size:24px;font-weight:800;color:' + c.text + ';">' + s + '/' + (m*4) + '</div>' +
+                                    '<div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;">' + sec.subtitle + '</div></div></div>';
+                            }).join('')}
+                        </div>
+                    </div>`;
+                }
+
+                // If locked but no previous results, show lock screen only
+                if (isLocked) {
+                    return `<div>
+                        <h2 class="page-title">The Scale Signal</h2>
+                        <p class="page-subtitle">Your personalised growth diagnostic</p>
+                        <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:40px 24px;text-align:center;">
+                            <div style="font-size:32px;margin-bottom:16px;">${IC.lock}</div>
+                            <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:8px;">Opens in ${daysUntilUnlock} day${daysUntilUnlock !== 1 ? 's' : ''}</div>
+                            <div style="font-size:13px;color:rgba(255,255,255,0.45);max-width:320px;margin:0 auto;">Scale Signals unlock every 6 weeks so you can track meaningful progress over time.</div>
+                        </div>
+                    </div>`;
+                }
+
                 if (saved && saved.scores) {
                     // Show results
                     const scores = saved.scores;
@@ -4187,12 +4298,12 @@ const renderAdminClientDetail = async (uid) => {
                     let weakest = SCALE_SIGNAL_SECTIONS[0];
                     let weakestPct = 100;
                     SCALE_SIGNAL_SECTIONS.forEach(sec => {
-                        const pct = sec.items.length > 0 ? ((scores[sec.key]||0) / sec.items.length) * 100 : 100;
+                        const pct = sec.items.length > 0 ? ((scores[sec.key]||0) / (sec.items.length * 4)) * 100 : 100;
                         if (pct < weakestPct) { weakestPct = pct; weakest = sec; }
                     });
 
                     const total = Object.values(scores).reduce((a,b) => a+b, 0);
-                    const max = SCALE_SIGNAL_SECTIONS.reduce((a,s) => a + s.items.length, 0);
+                    const max = SCALE_SIGNAL_SECTIONS.reduce((a,s) => a + s.items.length * 4, 0);
 
                     return `<div>
                         <h2 class="page-title">Your Scale Signal</h2>
@@ -4214,14 +4325,14 @@ const renderAdminClientDetail = async (uid) => {
                             ${SCALE_SIGNAL_SECTIONS.map(sec => {
                                 const s = scores[sec.key] || 0;
                                 const m = sec.items.length;
-                                const p = m > 0 ? (s/m)*100 : 0;
+                                const p = m > 0 ? (s/(m*4))*100 : 0;
                                 const c = p >= 85 ? SIGNAL_COLORS.brightGreen : p >= 65 ? SIGNAL_COLORS.green : p >= 40 ? SIGNAL_COLORS.orange : SIGNAL_COLORS.red;
                                 return '<div style="background:#111;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">' +
                                     '<div style="background:#1a1a1a;padding:12px 14px;display:flex;align-items:center;gap:8px;">' +
                                     '<span style="color:' + c.text + ';">' + sec.icon + '</span>' +
                                     '<span style="font-size:12px;font-weight:700;color:#fff;">' + sec.title + '</span></div>' +
                                     '<div style="padding:12px 14px;text-align:center;">' +
-                                    '<div style="font-size:24px;font-weight:800;color:' + c.text + ';">' + s + '/' + m + '</div>' +
+                                    '<div style="font-size:24px;font-weight:800;color:' + c.text + ';">' + s + '/' + (m*4) + '</div>' +
                                     '<div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;">' + sec.subtitle + '</div></div></div>';
                             }).join('')}
                         </div>
@@ -4241,7 +4352,7 @@ const renderAdminClientDetail = async (uid) => {
                 // Show form
                 return `<div>
                     <h2 class="page-title">The Scale Signal</h2>
-                    <p class="page-subtitle">Rate yourself honestly on each statement. Tap to toggle.</p>
+                    <p class="page-subtitle">Rate yourself honestly on each statement. Select a colour for each.</p>
 
                     <form id="scaleSignalForm">
                         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
@@ -4255,11 +4366,16 @@ const renderAdminClientDetail = async (uid) => {
                                     </div>
                                 </div>
                                 <div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px;">
-                                    ${sec.items.map((item, idx) => `
-                                    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);transition:all 0.15s ease;" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='transparent'">
-                                        <input type="checkbox" name="${sec.key}" value="1" style="margin-top:2px;accent-color:var(--accent);width:16px;height:16px;flex-shrink:0;">
-                                        <span style="font-size:12px;color:rgba(255,255,255,0.7);line-height:1.4;">${item}</span>
-                                    </label>`).join('')}
+                                    ${sec.items.map((item, ii) => `
+                                    <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);">
+                                        <span style="font-size:12px;color:rgba(255,255,255,0.7);line-height:1.4;flex:1;">${item}</span>
+                                        <div style="display:flex;gap:0.4rem;flex-shrink:0;" data-section="${sec.key}" data-idx="${ii}">
+                                            <button type="button" class="ss-color-btn" data-value="4" onclick="this.parentElement.querySelectorAll('.ss-color-btn').forEach(b=>{b.style.opacity='0.3';b.style.transform='scale(1)';b.style.boxShadow='none'});this.style.opacity='1';this.style.transform='scale(1.15)';this.style.boxShadow='0 0 8px #4ADE80'" style="width:26px;height:26px;border-radius:50%;background:#4ADE80;border:2px solid transparent;cursor:pointer;opacity:0.3;transition:all 0.2s ease;" title="Bright Green"></button>
+                                            <button type="button" class="ss-color-btn" data-value="3" onclick="this.parentElement.querySelectorAll('.ss-color-btn').forEach(b=>{b.style.opacity='0.3';b.style.transform='scale(1)';b.style.boxShadow='none'});this.style.opacity='1';this.style.transform='scale(1.15)';this.style.boxShadow='0 0 8px #22C55E'" style="width:26px;height:26px;border-radius:50%;background:#22C55E;border:2px solid transparent;cursor:pointer;opacity:0.3;transition:all 0.2s ease;" title="Green"></button>
+                                            <button type="button" class="ss-color-btn" data-value="2" onclick="this.parentElement.querySelectorAll('.ss-color-btn').forEach(b=>{b.style.opacity='0.3';b.style.transform='scale(1)';b.style.boxShadow='none'});this.style.opacity='1';this.style.transform='scale(1.15)';this.style.boxShadow='0 0 8px #FBBF24'" style="width:26px;height:26px;border-radius:50%;background:#FBBF24;border:2px solid transparent;cursor:pointer;opacity:0.3;transition:all 0.2s ease;" title="Orange"></button>
+                                            <button type="button" class="ss-color-btn" data-value="1" onclick="this.parentElement.querySelectorAll('.ss-color-btn').forEach(b=>{b.style.opacity='0.3';b.style.transform='scale(1)';b.style.boxShadow='none'});this.style.opacity='1';this.style.transform='scale(1.15)';this.style.boxShadow='0 0 8px #FF4533'" style="width:26px;height:26px;border-radius:50%;background:#FF4533;border:2px solid transparent;cursor:pointer;opacity:0.3;transition:all 0.2s ease;" title="Red"></button>
+                                        </div>
+                                    </div>`).join('')}
                                 </div>
                             </div>`).join('')}
                         </div>
@@ -4273,8 +4389,13 @@ const renderAdminClientDetail = async (uid) => {
                 if (!form) return;
                 const scores = {};
                 SCALE_SIGNAL_SECTIONS.forEach(sec => {
-                    const checks = form.querySelectorAll('input[name="' + sec.key + '"]:checked');
-                    scores[sec.key] = checks.length;
+                    let sectionTotal = 0;
+                    const groups = form.querySelectorAll('[data-section="' + sec.key + '"]');
+                    groups.forEach(group => {
+                        const selected = Array.from(group.querySelectorAll('.ss-color-btn')).find(b => b.style.opacity === '1');
+                        if (selected) sectionTotal += parseInt(selected.getAttribute('data-value')) || 0;
+                    });
+                    scores[sec.key] = sectionTotal;
                 });
                 await firebase.database().ref('portal/scale_signal/' + currentUser.uid).set({
                     scores,
@@ -4295,7 +4416,7 @@ const renderAdminClientDetail = async (uid) => {
                     if (!data || !data.scores) return;
                     const rating = getOverallRating(data.scores);
                     const total = Object.values(data.scores).reduce((a,b) => a+b, 0);
-                    const max = SCALE_SIGNAL_SECTIONS.reduce((a,s) => a + s.items.length, 0);
+                    const max = SCALE_SIGNAL_SECTIONS.reduce((a,s) => a + s.items.length * 4, 0);
                     const name = ((data.firstName || '') + ' ' + (data.lastName || '')).trim() || uid.slice(0,8);
                     cards[rating].push({ uid, name, total, max, scores: data.scores, submittedAt: data.submittedAt });
                 });
@@ -4312,7 +4433,7 @@ const renderAdminClientDetail = async (uid) => {
                         SCALE_SIGNAL_SECTIONS.map(sec => {
                             const s = item.scores[sec.key] || 0;
                             const m = sec.items.length;
-                            const p = m > 0 ? (s/m)*100 : 0;
+                            const p = m > 0 ? (s/(m*4))*100 : 0;
                             const c = p >= 85 ? '#4ADE80' : p >= 65 ? '#22C55E' : p >= 40 ? '#FBBF24' : '#FF4533';
                             return '<div style="flex:1;height:4px;border-radius:2px;background:' + c + '33;"><div style="width:' + p + '%;height:100%;border-radius:2px;background:' + c + ';"></div></div>';
                         }).join('') +
@@ -4550,7 +4671,7 @@ const renderAdminClientDetail = async (uid) => {
                 setTimeout(() => setPage('content'), 1500);
             } catch(e) {
                 alert('Refresh failed: ' + (e.message || JSON.stringify(e)));
-                if (btn) { btn.innerHTML = '&#x21BB; Refresh'; btn.disabled = false; }
+                if (btn) { btn.innerHTML = '${IC.refresh} Refresh'; btn.disabled = false; }
             }
         };
         window.handleRefreshInspo = async () => {
@@ -4567,7 +4688,7 @@ const renderAdminClientDetail = async (uid) => {
                 setTimeout(() => setPage('inspo'), 1500);
             } catch(e) {
                 alert('Refresh failed: ' + (e.message || JSON.stringify(e)));
-                if (btn) { btn.innerHTML = '&#x21BB; Refresh Now'; btn.disabled = false; }
+                if (btn) { btn.innerHTML = '${IC.refresh} Refresh Now'; btn.disabled = false; }
             }
         };
         window.signOut = async () => { await auth.signOut(); };
