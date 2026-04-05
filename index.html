@@ -2744,8 +2744,12 @@
                                                 <label style="font-size:10px;color:rgba(255,255,255,0.45);font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Start
                                                     <input type="date" id="crm-start-${c.uid}" value="${c.startRaw || ''}" style="display:block;margin-top:4px;background:#1A1A1A;border:1.5px solid rgba(255,255,255,0.12);color:#fff;border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;">
                                                 </label>
-                                                <label style="font-size:10px;color:rgba(255,255,255,0.45);font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">End
-                                                    <input type="date" id="crm-end-${c.uid}" value="${c.endRaw || ''}" style="display:block;margin-top:4px;background:#1A1A1A;border:1.5px solid rgba(255,255,255,0.12);color:#fff;border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;">
+                                                <label style="font-size:10px;color:rgba(255,255,255,0.45);font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Duration
+                                                    <select id="crm-duration-${c.uid}" style="display:block;margin-top:4px;background:#1A1A1A;border:1.5px solid rgba(255,255,255,0.12);color:#fff;border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;cursor:pointer;">
+                                                        <option value="3" ${c.startRaw && c.endRaw && Math.round((new Date(c.endRaw)-new Date(c.startRaw))/2592000000)===3 ? 'selected' : ''}>3 Months</option>
+                                                        <option value="6" ${c.startRaw && c.endRaw && Math.round((new Date(c.endRaw)-new Date(c.startRaw))/2592000000)===6 ? 'selected' : ''}>6 Months</option>
+                                                        <option value="12" ${c.startRaw && c.endRaw && Math.round((new Date(c.endRaw)-new Date(c.startRaw))/2592000000)>=11 ? 'selected' : ''}>12 Months</option>
+                                                    </select>
                                                 </label>
                                                 <button onclick="saveCrmDates('${c.uid}')" style="background:${ACCENT};color:#000;border:none;padding:8px 16px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;margin-top:16px;">Save</button>
                                                 <button onclick="document.getElementById('crm-edit-${c.uid}').style.display='none'" style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);border:none;padding:8px 12px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;margin-top:16px;">Cancel</button>
@@ -2768,12 +2772,17 @@
 
         window.saveCrmDates = async (uid) => {
             const startVal = document.getElementById('crm-start-' + uid).value;
-            const endVal = document.getElementById('crm-end-' + uid).value;
+            const durationMonths = parseInt(document.getElementById('crm-duration-' + uid).value);
             const updates = {};
-            if (startVal) updates['programmeStart'] = startVal;
-            else updates['programmeStart'] = null;
-            if (endVal) updates['programmeEnd'] = endVal;
-            else updates['programmeEnd'] = null;
+            if (startVal) {
+                updates['programmeStart'] = startVal;
+                const start = new Date(startVal);
+                start.setMonth(start.getMonth() + durationMonths);
+                updates['programmeEnd'] = start.toISOString().split('T')[0];
+            } else {
+                updates['programmeStart'] = null;
+                updates['programmeEnd'] = null;
+            }
             await db.ref('portal/users/' + uid).update(updates);
             render();
         };
