@@ -146,7 +146,8 @@
             border-left-color: var(--accent);
         }
 
-        .sidebar-nav-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+        .sidebar-nav-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+        .sidebar-nav-icon svg { width: 16px; height: 16px; }
 
         .sidebar-signout {
             margin-top: 16px;
@@ -739,6 +740,7 @@
             .impl-item { padding: 10px 14px; gap: 10px; }
             .impl-level-header { padding: 14px 14px; }
         }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -980,7 +982,8 @@
                 const y = height - ((val - min) / range) * (height * 0.8) - (height * 0.1);
                 path += (i === 0 ? 'M' : 'L') + x + ',' + y;
             });
-            return `<svg class="sparkline-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><path d="${path}" fill="none" stroke="${ACCENT}" stroke-width="2"/></svg>`;
+            const fillPath = path + `L${(data.length-1)*pointWidth},${height}L0,${height}Z`;
+            return `<svg class="sparkline-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><defs><linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${ACCENT}" stop-opacity="0.35"/><stop offset="100%" stop-color="${ACCENT}" stop-opacity="0"/></linearGradient></defs><path d="${fillPath}" fill="url(#sparkGrad)"/><path d="${path}" fill="none" stroke="${ACCENT}" stroke-width="2"/></svg>`;
         };
 
         const daysUntilDate = (dateStr) => {
@@ -1282,7 +1285,11 @@
                         </div>
                         <div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:14px;padding:14px 16px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 4px 24px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.06);">
                             <div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Followers</div>
-                            <div style="font-size:18px;font-weight:700;color:#fff;">${formatNumber(allFollowers)}</div>
+                            <div style="font-size:18px;font-weight:700;color:#fff;">${formatNumber((socialLatest.igFollowers||0)+(socialLatest.ttFollowers||0))}</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:14px;padding:14px 16px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 4px 24px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.06);">
+                            <div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">New Followers</div>
+                            <div style="font-size:18px;font-weight:700;color:${((socialLatest.igNewFollowers||0)+(socialLatest.ttNewFollowers||0)) >= 0 ? '#4ADE80' : '#FF4533'};">${((socialLatest.igNewFollowers||0)+(socialLatest.ttNewFollowers||0)) >= 0 ? '+' : ''}${formatNumber((socialLatest.igNewFollowers||0)+(socialLatest.ttNewFollowers||0))}</div>
                         </div>
                         <div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:14px;padding:14px 16px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 4px 24px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.06);">
                             <div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Rebookings</div>
@@ -2270,7 +2277,31 @@
                     y: { grid: { color: 'rgba(255,255,255,0.04)', lineWidth: 1 }, border: { display: false }, ticks: { font: { size: 10, family: "'Helvetica Neue'" }, color: 'rgba(255,255,255,0.35)' }, beginAtZero: true }
                 }
             };
-            const barDs = (d, color) => [{ data:d, backgroundColor: d.map((v,i)=>i===d.length-1?color:color+'66'), borderRadius:6, borderSkipped:false, borderWidth: 0, hoverBackgroundColor: color }];
+            // Gradient plugin for ALL bar charts
+            const gradientBarPlugin = {
+                id: 'gradientBar',
+                beforeDatasetsDraw(chart) {
+                    if (chart.config.type !== 'bar') return;
+                    const { ctx, chartArea } = chart;
+                    if (!chartArea) return;
+                    const { top, bottom } = chartArea;
+                    chart.data.datasets.forEach((ds, dsi) => {
+                        const meta = chart.getDatasetMeta(dsi);
+                        meta.data.forEach((bar, i) => {
+                            const baseColor = ds._gradientColors ? (ds._gradientColors[i] || ds._gradientColors[0]) : (Array.isArray(ds.backgroundColor) ? ds.backgroundColor[i] : ds.backgroundColor);
+                            if (!baseColor || typeof baseColor !== 'string') return;
+                            const grad = ctx.createLinearGradient(0, top, 0, bottom);
+                            const fadeColor = baseColor.length === 9 ? baseColor.slice(0,7) + '08' : baseColor.length === 7 ? baseColor + '08' : 'rgba(0,0,0,0.02)';
+                            grad.addColorStop(0, baseColor);
+                            grad.addColorStop(0.7, baseColor.length >= 7 ? baseColor.slice(0,7) + '40' : baseColor);
+                            grad.addColorStop(1, fadeColor);
+                            bar.options.backgroundColor = grad;
+                        });
+                    });
+                }
+            };
+            Chart.register(gradientBarPlugin);
+            const barDs = (d, color) => [{ data:d, backgroundColor: d.map((v,i)=>i===d.length-1?color:color+'66'), _gradientColors: d.map((v,i)=>i===d.length-1?color:color+'66'), borderRadius:6, borderSkipped:false, borderWidth: 0, hoverBackgroundColor: color }];
             if (chartId === 'revenue') {
                 new Chart(canvas, { type:'bar', data:{ labels, datasets: barDs(data.map(w=>w.revenue||0),ACCENT) }, options:{ ...baseOpts, plugins:{ ...baseOpts.plugins, tooltip:{ callbacks:{ label: ctx=>' £'+ctx.raw.toLocaleString('en-GB') } } } } });
             } else if (chartId === 'rates') {
@@ -3208,8 +3239,16 @@
 
             return `
                 <div>
-                    <h2 class="page-title">Social Tracker</h2>
-                    <p class="page-subtitle">Paste your profile links once &#x2014; we track your growth every Monday automatically</p>
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <div>
+                            <h2 class="page-title">Social Tracker</h2>
+                            <p class="page-subtitle">Paste your profile links once &#x2014; we track your growth every day automatically</p>
+                        </div>
+                        <button onclick="refreshSocialData()" id="socialRefreshBtn" style="background:#1a1a1a;border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);padding:0.5rem 1rem;border-radius:8px;font-size:0.75rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:0.4rem;transition:all 0.2s ease;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.12)';this.style.color='rgba(255,255,255,0.7)'">
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 8a6 6 0 0 1 10.3-4.2"/><path d="M14 8a6 6 0 0 1-10.3 4.2"/><path d="M12.3 1v3h-3"/><path d="M3.7 15v-3h3"/></svg>
+                            Refresh
+                        </button>
+                    </div>
 
                     <!-- Profile links setup -->
                     <div class="card" style="margin-bottom:24px;">
@@ -3230,38 +3269,49 @@
                     <div class="empty-state">
                         <div class="empty-state-icon">&#x1F4C8;</div>
                         <p style="margin-bottom:6px;">No data yet</p>
-                        <p style="font-size:13px;font-weight:400;color:rgba(255,255,255,0.45);">Paste your profile links above and save &#x2014; your stats will be tracked automatically every Monday</p>
+                        <p style="font-size:13px;font-weight:400;color:rgba(255,255,255,0.45);">Paste your profile links above and save &#x2014; your stats will be tracked automatically every day</p>
                     </div>` : `
 
                     <!-- Latest snapshot cards -->
-                    <div style="font-size:14px;color:#fff;letter-spacing:0.02em;margin-bottom:10px;font-weight:700;">&#x1F4CA; Latest Snapshot</div>
-                    <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;">
+                    <div style="font-size:14px;color:#fff;letter-spacing:0.02em;margin-bottom:10px;font-weight:700;">&#x1F4CA; Instagram</div>
+                    <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:${hasTT?'16':'24'}px;">
                         <div class="metric-card">
-                            <div class="metric-label">IG Followers</div>
+                            <div class="metric-label">Total Followers</div>
                             <div class="metric-value">${formatNumber(latest.igFollowers||0)}${diff(latest,prev,'igFollowers')}</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-label">IG Views</div>
+                            <div class="metric-label">New Followers</div>
+                            <div class="metric-value" style="color:${(latest.igNewFollowers||0)>=0?'#4ADE80':'#FF4533'}">${(latest.igNewFollowers||0)>=0?'+':''}${formatNumber(latest.igNewFollowers||0)}</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Views</div>
                             <div class="metric-value">${formatNumber(latest.igViews||0)}${diff(latest,prev,'igViews')}</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-label">IG Posts</div>
+                            <div class="metric-label">Posts</div>
                             <div class="metric-value">${formatNumber(latest.igPosts||0)}${diff(latest,prev,'igPosts')}</div>
                         </div>
-                        ${hasTT ? `
+                    </div>
+                    ${hasTT ? `
+                    <div style="font-size:14px;color:#fff;letter-spacing:0.02em;margin-bottom:10px;font-weight:700;">&#x1F3B5; TikTok</div>
+                    <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;">
                         <div class="metric-card">
-                            <div class="metric-label">TikTok Followers</div>
+                            <div class="metric-label">Total Followers</div>
                             <div class="metric-value">${formatNumber(latest.ttFollowers||0)}${diff(latest,prev,'ttFollowers')}</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-label">TikTok Views</div>
+                            <div class="metric-label">New Followers</div>
+                            <div class="metric-value" style="color:${(latest.ttNewFollowers||0)>=0?'#4ADE80':'#FF4533'}">${(latest.ttNewFollowers||0)>=0?'+':''}${formatNumber(latest.ttNewFollowers||0)}</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Views</div>
                             <div class="metric-value">${formatNumber(latest.ttViews||0)}${diff(latest,prev,'ttViews')}</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-label">TikTok Posts</div>
+                            <div class="metric-label">Posts</div>
                             <div class="metric-value">${formatNumber(latest.ttPosts||0)}${diff(latest,prev,'ttPosts')}</div>
-                        </div>` : ''}
-                    </div>
+                        </div>
+                    </div>` : ''}
 
                     <!-- Export Social Report -->
                     <div class="card" style="margin-bottom:24px;">
@@ -3335,7 +3385,8 @@
                     if (!canvas) return;
                     const ctx2d = canvas.getContext('2d');
                     const grad = ctx2d.createLinearGradient(0, 0, 0, canvas.height || 200);
-                    grad.addColorStop(0, color + '30');
+                    grad.addColorStop(0, color + '60');
+                    grad.addColorStop(0.5, color + '20');
                     grad.addColorStop(1, color + '02');
                     new Chart(canvas, {
                         type: 'line',
@@ -3404,7 +3455,7 @@
                         tiktok_url: ttUrl || null
                     }, { onConflict: 'id' }).then(({ error }) => { if (error) console.warn('Supabase:', error.message); });
                 }
-                if (msg) { msg.style.color = '#4ADE80'; msg.textContent = '&#x2713; Profiles saved &#x2014; we&#x27;ll start tracking from next Monday'; setTimeout(()=>{ msg.textContent=''; }, 4000); }
+                if (msg) { msg.style.color = '#4ADE80'; msg.textContent = '&#x2713; Profiles saved &#x2014; we&#x27;ll start tracking from tomorrow'; setTimeout(()=>{ msg.textContent=''; }, 4000); }
             } catch(err) {
                 if (msg) { msg.style.color = '#FF4533'; msg.textContent = 'Error saving: ' + err.message; }
             }
@@ -4005,6 +4056,319 @@ const renderAdminClientDetail = async (uid) => {
     `;
 };
 
+        // ── SCALE SIGNAL ──
+            const SCALE_SIGNAL_SECTIONS = [
+                {
+                    key: 'identity',
+                    title: 'Identity Infrastructure',
+                    subtitle: 'Direction',
+                    icon: '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2.5 14c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/></svg>',
+                    items: [
+                        'My profile clearly communicates who I help, where I am, and what I do',
+                        'My content speaks directly to a specific type of client (not everyone)',
+                        'I have a clear niche or positioning (not just "barber")',
+                        'My pinned content tells my story and builds authority',
+                        'My page looks premium and aligned with higher-paying clients',
+                        'I know exactly what type of client I want more of'
+                    ],
+                    lowMsg: "Your positioning is unclear \u2014 you're attracting low-quality clients and seeing inconsistent growth.",
+                    action: 'Go complete: Identity & Positioning Module \u2014 clarify who you help and how you stand out.'
+                },
+                {
+                    key: 'visual',
+                    title: 'Visual Architecture',
+                    subtitle: 'Content Quality',
+                    icon: '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>',
+                    items: [
+                        'I consistently post content (minimum 3\u20135 times per week)',
+                        'My videos have strong visual hooks in the first 3 seconds',
+                        'I use multiple angles, zooms, or movement in my edits',
+                        'My content is edited to music and feels engaging',
+                        'My videos are clean, sharp, and visually appealing',
+                        'I batch content instead of filming randomly'
+                    ],
+                    lowMsg: "Your content isn't grabbing attention \u2014 no attention means no growth.",
+                    action: 'Go complete: Content Quality Module \u2014 fix your hooks, editing, and visual standards.'
+                },
+                {
+                    key: 'authority',
+                    title: 'Authority Flywheel',
+                    subtitle: 'Content Strategy',
+                    icon: '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12L6 4L10 9L14 2"/><circle cx="6" cy="4" r="1.2" fill="currentColor"/><circle cx="10" cy="9" r="1.2" fill="currentColor"/></svg>',
+                    items: [
+                        'I create content that attracts attention (viral/top of funnel)',
+                        'I create content that builds trust (education/authority)',
+                        'I create content that shows transformation/results',
+                        'I speak directly to client pain points in my content',
+                        'My content leads people toward booking (not just views)',
+                        'I understand what content is actually converting vs just performing'
+                    ],
+                    lowMsg: "Your content isn't converting into clients. You're getting views but no money.",
+                    action: 'Go complete: Content Strategy Module + LTTP Framework.'
+                },
+                {
+                    key: 'business',
+                    title: 'Business Mechanics',
+                    subtitle: 'Systems',
+                    icon: '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><text x="3" y="12.5" font-size="13" font-weight="700" fill="currentColor" stroke="none" font-family="sans-serif">$</text></svg>',
+                    items: [
+                        'I track my numbers (revenue, clients, rebooking, etc.) weekly',
+                        'I know my rebooking rate',
+                        'I aim for at least 70\u201380% occupancy',
+                        'I have systems for bringing in new clients',
+                        'I actively push rebooking during appointments',
+                        'I have some form of outreach (content, DMs, referrals, email)'
+                    ],
+                    lowMsg: "You're stuck trading time for money \u2014 no systems means no scale.",
+                    action: 'Go complete: Business Systems Module \u2014 set up tracking, rebooking, and outreach.'
+                },
+                {
+                    key: 'conversion',
+                    title: 'Conversion',
+                    subtitle: 'Turning Attention into Cash',
+                    icon: '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="9" width="3" height="5" rx="0.5" fill="currentColor" opacity="0.4"/><rect x="6.5" y="5" width="3" height="9" rx="0.5" fill="currentColor" opacity="0.6"/><rect x="11.5" y="2" width="3" height="12" rx="0.5" fill="currentColor" opacity="0.9"/></svg>',
+                    items: [
+                        'My booking link is easy to use and converts well',
+                        'My pricing reflects the level of service I provide',
+                        'I confidently recommend services during consultations',
+                        'I position myself as the expert, not just "another barber"',
+                        'I use clear CTAs in my content (book now, link in bio, etc.)',
+                        "I don't rely on walk-ins or random bookings"
+                    ],
+                    lowMsg: "You're busy but broke \u2014 attention without conversion is wasted.",
+                    action: 'Go complete: Conversion & Pricing Module \u2014 fix your booking flow, pricing, and CTAs.'
+                },
+                {
+                    key: 'execution',
+                    title: 'Execution & Discipline',
+                    subtitle: 'Consistency',
+                    icon: '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5L6.5 12L13 4"/></svg>',
+                    items: [
+                        'I follow a structured weekly plan for content and business',
+                        "I don't rely on motivation, I rely on systems",
+                        'I complete what I say I\'m going to do each week',
+                        'I review what\'s working and adjust accordingly',
+                        'I stay consistent even when results are slow'
+                    ],
+                    lowMsg: "Inconsistency is killing your compounding \u2014 without discipline, nothing stacks.",
+                    action: 'Go complete: Weekly Planning Framework \u2014 build a system you follow every week.'
+                }
+            ];
+
+            const SIGNAL_COLORS = {
+                brightGreen: { bg: '#064E3B', border: '#4ADE80', text: '#4ADE80', label: 'Bright Green' },
+                green: { bg: '#14532D', border: '#22C55E', text: '#22C55E', label: 'Green' },
+                orange: { bg: '#431407', border: '#FBBF24', text: '#FBBF24', label: 'Orange' },
+                red: { bg: '#450A0A', border: '#FF4533', text: '#FF4533', label: 'Red' }
+            };
+
+            function getOverallRating(scores) {
+                const total = Object.values(scores).reduce((a,b) => a+b, 0);
+                const max = SCALE_SIGNAL_SECTIONS.reduce((a,s) => a + s.items.length, 0);
+                const pct = max > 0 ? (total / max) * 100 : 0;
+                if (pct >= 85) return 'brightGreen';
+                if (pct >= 65) return 'green';
+                if (pct >= 40) return 'orange';
+                return 'red';
+            }
+
+            async function renderClientScaleSignal() {
+                const uid = currentUser.uid;
+                const snap = await firebase.database().ref('portal/scale_signal/' + uid).once('value');
+                const saved = snap.val();
+
+                if (saved && saved.scores) {
+                    // Show results
+                    const scores = saved.scores;
+                    const overall = getOverallRating(scores);
+                    const color = SIGNAL_COLORS[overall];
+
+                    // Find weakest section
+                    let weakest = SCALE_SIGNAL_SECTIONS[0];
+                    let weakestPct = 100;
+                    SCALE_SIGNAL_SECTIONS.forEach(sec => {
+                        const pct = sec.items.length > 0 ? ((scores[sec.key]||0) / sec.items.length) * 100 : 100;
+                        if (pct < weakestPct) { weakestPct = pct; weakest = sec; }
+                    });
+
+                    const total = Object.values(scores).reduce((a,b) => a+b, 0);
+                    const max = SCALE_SIGNAL_SECTIONS.reduce((a,s) => a + s.items.length, 0);
+
+                    return `<div>
+                        <h2 class="page-title">Your Scale Signal</h2>
+                        <p class="page-subtitle">Here's where you stand right now</p>
+
+                        <div style="background:${color.bg};border:2px solid ${color.border};border-radius:16px;padding:24px;margin-bottom:24px;text-align:center;">
+                            <div style="font-size:48px;font-weight:800;color:${color.text};margin-bottom:4px;">${color.label}</div>
+                            <div style="font-size:14px;color:rgba(255,255,255,0.5);">${total} / ${max} points</div>
+                        </div>
+
+                        <div class="card" style="margin-bottom:24px;border-left:3px solid ${SIGNAL_COLORS[weakestPct < 40 ? 'red' : 'orange'].border};">
+                            <div style="font-size:13px;font-weight:700;color:${SIGNAL_COLORS[weakestPct < 40 ? 'red' : 'orange'].text};text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Weakest Area: ${weakest.title}</div>
+                            <p style="font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:8px;">${weakest.lowMsg}</p>
+                            <p style="font-size:13px;font-weight:600;color:var(--accent);">${weakest.action}</p>
+                        </div>
+
+                        <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:12px;">Section Breakdown</div>
+                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;">
+                            ${SCALE_SIGNAL_SECTIONS.map(sec => {
+                                const s = scores[sec.key] || 0;
+                                const m = sec.items.length;
+                                const p = m > 0 ? (s/m)*100 : 0;
+                                const c = p >= 85 ? SIGNAL_COLORS.brightGreen : p >= 65 ? SIGNAL_COLORS.green : p >= 40 ? SIGNAL_COLORS.orange : SIGNAL_COLORS.red;
+                                return '<div style="background:#111;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">' +
+                                    '<div style="background:#1a1a1a;padding:12px 14px;display:flex;align-items:center;gap:8px;">' +
+                                    '<span style="color:' + c.text + ';">' + sec.icon + '</span>' +
+                                    '<span style="font-size:12px;font-weight:700;color:#fff;">' + sec.title + '</span></div>' +
+                                    '<div style="padding:12px 14px;text-align:center;">' +
+                                    '<div style="font-size:24px;font-weight:800;color:' + c.text + ';">' + s + '/' + m + '</div>' +
+                                    '<div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;">' + sec.subtitle + '</div></div></div>';
+                            }).join('')}
+                        </div>
+
+                        <div style="display:flex;gap:10px;">
+                            <a href="https://wa.me/447736312475?text=Hey%20Tim%20I%20just%20saw%20your%20content%20and%20want%20help%20scaling%20my%20barber%20business" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;background:#25D366;color:#fff;border-radius:12px;font-size:14px;font-weight:700;text-decoration:none;cursor:pointer;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.47 3.53a9.96 9.96 0 0 0-7.06-2.93C5.56.6 1.34 4.8 1.32 9.65c0 1.58.42 3.13 1.2 4.5L1.2 19.2l5.16-1.35a9.6 9.6 0 0 0 4.04.91h.01c4.85 0 9.07-4.2 9.09-9.06a9.94 9.94 0 0 0-2.03-5.17zM10.41 17.2a7.56 7.56 0 0 1-3.87-1.06l-.28-.16-2.88.76.77-2.82-.18-.29a7.54 7.54 0 0 1-1.16-4.01c0-4.06 3.3-7.37 7.37-7.37a7.3 7.3 0 0 1 5.21 2.17 7.35 7.35 0 0 1 2.15 5.22c-.01 4.06-3.31 7.37-7.37 7.37zm4.04-5.52c-.22-.11-1.3-.64-1.5-.72-.21-.07-.36-.11-.51.11-.15.22-.58.72-.72.87-.13.15-.26.17-.49.06-.22-.11-.93-.34-1.78-1.1-.66-.58-1.1-1.3-1.23-1.52-.13-.22-.01-.34.1-.45.1-.1.22-.26.33-.39.11-.13.15-.22.22-.37.07-.15.04-.28-.02-.39-.06-.11-.51-1.24-.7-1.69-.18-.45-.37-.38-.51-.39h-.44c-.15 0-.39.06-.6.28-.2.22-.78.76-.78 1.86s.8 2.16.91 2.31c.11.15 1.58 2.41 3.83 3.38.54.23.95.37 1.28.47.54.17 1.03.15 1.42.09.43-.07 1.3-.53 1.49-1.05.18-.51.18-.95.13-1.05-.06-.09-.21-.15-.44-.26z"/></svg>
+                                Book a Call
+                            </a>
+                            <button onclick="firebase.database().ref('portal/scale_signal/' + currentUser.uid).remove().then(() => navigateTo('scaleSignal'))" style="flex:1;padding:14px;background:var(--bg-input);border:1px solid var(--border);color:rgba(255,255,255,0.6);border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;">
+                                Retake Assessment
+                            </button>
+                        </div>
+                    </div>`;
+                }
+
+                // Show form
+                return `<div>
+                    <h2 class="page-title">The Scale Signal</h2>
+                    <p class="page-subtitle">Rate yourself honestly on each statement. Tap to toggle.</p>
+
+                    <form id="scaleSignalForm">
+                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
+                            ${SCALE_SIGNAL_SECTIONS.map(sec => `
+                            <div style="background:#111;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
+                                <div style="background:#1a1a1a;padding:14px 16px;display:flex;align-items:center;gap:10px;">
+                                    <span style="color:var(--accent);">${sec.icon}</span>
+                                    <div>
+                                        <div style="font-size:13px;font-weight:700;color:#fff;">${sec.title}</div>
+                                        <div style="font-size:11px;color:rgba(255,255,255,0.4);">${sec.subtitle}</div>
+                                    </div>
+                                </div>
+                                <div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px;">
+                                    ${sec.items.map((item, idx) => `
+                                    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);transition:all 0.15s ease;" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='transparent'">
+                                        <input type="checkbox" name="${sec.key}" value="1" style="margin-top:2px;accent-color:var(--accent);width:16px;height:16px;flex-shrink:0;">
+                                        <span style="font-size:12px;color:rgba(255,255,255,0.7);line-height:1.4;">${item}</span>
+                                    </label>`).join('')}
+                                </div>
+                            </div>`).join('')}
+                        </div>
+                        <button type="button" onclick="submitScaleSignal()" class="btn-primary" style="width:100%;padding:16px;font-size:15px;">See My Scale Signal &#x2192;</button>
+                    </form>
+                </div>`;
+            }
+
+            async function submitScaleSignal() {
+                const form = document.getElementById('scaleSignalForm');
+                if (!form) return;
+                const scores = {};
+                SCALE_SIGNAL_SECTIONS.forEach(sec => {
+                    const checks = form.querySelectorAll('input[name="' + sec.key + '"]:checked');
+                    scores[sec.key] = checks.length;
+                });
+                await firebase.database().ref('portal/scale_signal/' + currentUser.uid).set({
+                    scores,
+                    submittedAt: new Date().toISOString(),
+                    firstName: currentUser.firstName || '',
+                    lastName: currentUser.lastName || ''
+                });
+                navigateTo('scaleSignal');
+            }
+
+            async function renderAdminScaleSignal() {
+                const snap = await firebase.database().ref('portal/scale_signal').once('value');
+                const allSignals = snap.val() || {};
+
+                const cards = { brightGreen: [], green: [], orange: [], red: [] };
+
+                Object.entries(allSignals).forEach(([uid, data]) => {
+                    if (!data || !data.scores) return;
+                    const rating = getOverallRating(data.scores);
+                    const total = Object.values(data.scores).reduce((a,b) => a+b, 0);
+                    const max = SCALE_SIGNAL_SECTIONS.reduce((a,s) => a + s.items.length, 0);
+                    const name = ((data.firstName || '') + ' ' + (data.lastName || '')).trim() || uid.slice(0,8);
+                    cards[rating].push({ uid, name, total, max, scores: data.scores, submittedAt: data.submittedAt });
+                });
+
+                // Sort each bucket by total score descending
+                Object.values(cards).forEach(arr => arr.sort((a,b) => b.total - a.total));
+
+                const renderCard = (item, color) => {
+                    return '<div style="background:#111;border:1px solid ' + color.border + '33;border-radius:10px;padding:12px;margin-bottom:8px;" class="ss-card" data-name="' + item.name.toLowerCase() + '">' +
+                        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+                        '<div style="font-size:13px;font-weight:700;color:#fff;">' + item.name + '</div>' +
+                        '<div style="font-size:12px;font-weight:700;color:' + color.text + ';">' + item.total + '/' + item.max + '</div></div>' +
+                        '<div style="display:flex;gap:4px;">' +
+                        SCALE_SIGNAL_SECTIONS.map(sec => {
+                            const s = item.scores[sec.key] || 0;
+                            const m = sec.items.length;
+                            const p = m > 0 ? (s/m)*100 : 0;
+                            const c = p >= 85 ? '#4ADE80' : p >= 65 ? '#22C55E' : p >= 40 ? '#FBBF24' : '#FF4533';
+                            return '<div style="flex:1;height:4px;border-radius:2px;background:' + c + '33;"><div style="width:' + p + '%;height:100%;border-radius:2px;background:' + c + ';"></div></div>';
+                        }).join('') +
+                        '</div></div>';
+                };
+
+                const renderColumn = (key) => {
+                    const color = SIGNAL_COLORS[key];
+                    const items = cards[key];
+                    return '<div>' +
+                        '<div style="text-align:center;margin-bottom:12px;">' +
+                        '<div style="display:inline-block;width:14px;height:14px;border-radius:50%;background:' + color.text + ';margin-bottom:4px;"></div>' +
+                        '<div style="font-size:12px;font-weight:700;color:' + color.text + ';">' + color.label + '</div>' +
+                        '<div style="font-size:11px;color:rgba(255,255,255,0.35);">' + items.length + ' member' + (items.length !== 1 ? 's' : '') + '</div></div>' +
+                        items.map(item => renderCard(item, color)).join('') +
+                        '</div>';
+                };
+
+                return `<div>
+                    <h2 class="page-title">Traffic Lights</h2>
+                    <p class="page-subtitle">Scale Signal overview for all members</p>
+                    <div style="margin-bottom:16px;">
+                        <input type="text" placeholder="Search members..." oninput="filterSSCards(this.value)" style="width:100%;max-width:300px;padding:10px 14px;background:var(--bg-input);border:1px solid var(--border);border-radius:10px;color:#fff;font-size:13px;font-family:inherit;">
+                    </div>
+                    <div id="ssColumns" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+                        ${renderColumn('brightGreen')}
+                        ${renderColumn('green')}
+                        ${renderColumn('orange')}
+                        ${renderColumn('red')}
+                    </div>
+                </div>`;
+            }
+
+            function filterSSCards(query) {
+                const q = query.toLowerCase().trim();
+                document.querySelectorAll('.ss-card').forEach(card => {
+                    const name = card.getAttribute('data-name') || '';
+                    card.style.display = !q || name.includes(q) ? '' : 'none';
+                });
+            }
+
+            async function refreshSocialData() {
+                const btn = document.getElementById('socialRefreshBtn');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="animation:spin 1s linear infinite;"><path d="M2 8a6 6 0 0 1 10.3-4.2"/><path d="M14 8a6 6 0 0 1-10.3 4.2"/><path d="M12.3 1v3h-3"/><path d="M3.7 15v-3h3"/></svg> Refreshing...';
+                }
+                try {
+                    await sbClient.functions.invoke('scrape-profiles', { body: {} });
+                    setTimeout(() => { navigateTo('social'); }, 2000);
+                } catch (e) {
+                    console.error('Refresh failed:', e);
+                    if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 8a6 6 0 0 1 10.3-4.2"/><path d="M14 8a6 6 0 0 1-10.3 4.2"/><path d="M12.3 1v3h-3"/><path d="M3.7 15v-3h3"/></svg> Refresh'; }
+                }
+            }
+
         // ── MAIN RENDER ──
         const render = async () => {
             const root = document.getElementById('root');
@@ -4026,21 +4390,23 @@ const renderAdminClientDetail = async (uid) => {
             const activeCheck = (isAdmin && currentPage === 'clientDetail') ? 'clients' : currentPage;
 
             const clientNavItems = [
-                { page: 'hub', icon: '&#x25C9;', label: 'Hub' },
-                { page: 'implementation', icon: '&#x2611;', label: 'Checklist' },
-                { page: 'numbers', icon: '&#x25CA;', label: 'Business' },
-                { page: 'tasks', icon: '&#x2713;', label: 'Tasks' },
-                { page: 'content', icon: '&#x25B6;', label: 'Content' },
-                { page: 'inspo', icon: '&#x2605;', label: 'Inspo' },
-                { page: 'social', icon: '&#x25A1;', label: 'Social' },
-                { page: 'progress', icon: '&#x25CE;', label: 'Analytics' },
+                { page: 'hub', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="5.5" height="5.5" rx="1.2"/><rect x="9.5" y="1" width="5.5" height="5.5" rx="1.2"/><rect x="1" y="9.5" width="5.5" height="5.5" rx="1.2"/><rect x="9.5" y="9.5" width="5.5" height="5.5" rx="1.2"/></svg>', label: 'Overview' },
+                { page: 'implementation', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12L6 4L10 9L14 2"/><circle cx="6" cy="4" r="1.2" fill="currentColor"/><circle cx="10" cy="9" r="1.2" fill="currentColor"/></svg>', label: 'The Roadmap' },
+                { page: 'numbers', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><text x="3" y="12.5" font-size="13" font-weight="700" fill="currentColor" stroke="none" font-family="sans-serif">$</text></svg>', label: 'Business' },
+                { page: 'tasks', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5L6.5 12L13 4"/></svg>', label: 'Tasks' },
+                { page: 'content', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>', label: 'Content' },
+                { page: 'inspo', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 11C2 11 3 6 8 6C13 6 14 11 14 11"/><path d="M8 6V3"/><path d="M5.5 3.5C5.5 2 8 1 8 3"/><path d="M10.5 3.5C10.5 2 8 1 8 3"/></svg>', label: 'Inspo' },
+                { page: 'social', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2a6 6 0 0 1 0 12"/><path d="M8 2a6 6 0 0 0 0 12"/><path d="M8 14V8"/><path d="M5 5L8 8L11 5"/></svg>', label: 'Social' },
+                { page: 'progress', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="9" width="3" height="5" rx="0.5" fill="currentColor" opacity="0.4"/><rect x="6.5" y="5" width="3" height="9" rx="0.5" fill="currentColor" opacity="0.6"/><rect x="11.5" y="2" width="3" height="12" rx="0.5" fill="currentColor" opacity="0.9"/></svg>', label: 'Analytics' },
+                { page: 'scaleSignal', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="4" y="1" width="8" height="14" rx="2"/><circle cx="8" cy="4.2" r="1.5" fill="#4ADE80"/><circle cx="8" cy="8" r="1.5" fill="#FBBF24"/><circle cx="8" cy="11.8" r="1.5" fill="#FF4533"/></svg>', label: 'The Scale Signal' },
             ];
 
             const adminNavItems = [
-                { page: 'clients', icon: '&#x25C9;', label: 'Clients' },
-                { page: 'tasks', icon: '&#x2713;', label: 'Tasks' },
-                { page: 'crm', icon: '&#x1F4CA;', label: 'CRM' },
-                { page: 'addClient', icon: '&#x2295;', label: 'Add Client' },
+                { page: 'clients', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2.5 14c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/></svg>', label: 'Clients' },
+                { page: 'tasks', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5L6.5 12L13 4"/></svg>', label: 'Tasks' },
+                { page: 'crm', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="9" width="3" height="5" rx="0.5" fill="currentColor" opacity="0.4"/><rect x="6.5" y="5" width="3" height="9" rx="0.5" fill="currentColor" opacity="0.6"/><rect x="11.5" y="2" width="3" height="12" rx="0.5" fill="currentColor" opacity="0.9"/></svg>', label: 'CRM' },
+                { page: 'addClient', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v6M5 8h6"/></svg>', label: 'Add Client' },
+                { page: 'scaleSignal', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="4" y="1" width="8" height="14" rx="2"/><circle cx="8" cy="4.2" r="1.5" fill="#4ADE80"/><circle cx="8" cy="8" r="1.5" fill="#FBBF24"/><circle cx="8" cy="11.8" r="1.5" fill="#FF4533"/></svg>', label: 'Scale Signal' },
             ];
 
             const navItems = isAdmin ? adminNavItems : clientNavItems;
@@ -4070,6 +4436,7 @@ const renderAdminClientDetail = async (uid) => {
                 else if (currentPage === 'tasks') pageContent = await renderAdminTasks();
                 else if (currentPage === 'crm') pageContent = await renderAdminCRM();
                 else if (currentPage === 'clientDetail' && selectedClientDetail) pageContent = await renderAdminClientDetail(selectedClientDetail);
+                else if (currentPage === 'scaleSignal') pageContent = await renderAdminScaleSignal();
                 else { currentPage = 'clients'; pageContent = await renderAdminClients(); }
             } else {
                 if (currentPage === 'hub') pageContent = await renderClientHub();
@@ -4080,9 +4447,10 @@ const renderAdminClientDetail = async (uid) => {
                 else if (currentPage === 'inspo') { pageContent = await renderClientInspo(); checkAndTriggerInspoScrape(currentUser.uid); }
                 else if (currentPage === 'social') pageContent = await renderClientSocial();
                 else if (currentPage === 'progress') pageContent = await renderClientProgress();
+                else if (currentPage === 'scaleSignal') pageContent = await renderClientScaleSignal();
             }
 
-            const pageTitles = { hub:'Dashboard', implementation:'Implementation Checklist', numbers:'Log Your Numbers', tasks:'Your Tasks', content:'Content Library', inspo:'Inspo Feed', social:'Social Profiles', progress:'Analytics', clients:'Your Clients', addClient:'Add New Client', crm:'Client CRM', clientDetail:'Client Detail' };
+            const pageTitles = { hub:'Overview', implementation:'The Roadmap', numbers:'Log Your Numbers', tasks:'Your Tasks', content:'Content Library', inspo:'Inspo Feed', social:'Social Profiles', progress:'Analytics', scaleSignal:'The Scale Signal', clients:'Your Clients', addClient:'Add New Client', crm:'Client CRM', clientDetail:'Client Detail' };
             const pageTitle = pageTitles[currentPage] || '';
             const initials = ((currentUser.firstName||'?')[0] + (currentUser.lastName||'?')[0]).toUpperCase();
             const avatarHtml = currentUser.profilePicture
