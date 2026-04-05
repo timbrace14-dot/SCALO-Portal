@@ -137,8 +137,11 @@ serve(async (req) => {
               const p = profiles[0]
               snapshot.igFollowers = p.followersCount || p.followedByCount || 0
               snapshot.igPosts = p.postsCount || p.mediaCount || 0
-              // Instagram doesn't expose total views publicly — sum from recent media if available
-              snapshot.igViews = p.profileViewsCount || 0
+
+              // Get total views by summing views from scraped reels in Supabase videos table
+              const { data: videos } = await supabase.from('videos').select('views').eq('student_id', student.id)
+              const totalViews = videos ? videos.reduce((sum: number, v: any) => sum + (v.views || 0), 0) : 0
+              snapshot.igViews = totalViews || p.profileViewsCount || 0
 
               // Calculate new followers
               const prevFollowers = prevData?.igFollowers || 0
@@ -153,11 +156,17 @@ serve(async (req) => {
       }
 
       // ── TIKTOK ──
-      if (student.tiktok_url) {
+      // Check Firebase social_profiles for TikTok URL if not in Supabase
+      let tiktokUrl = student.tiktok_url || null
+      if (!tiktokUrl) {
+        const fbProfile = await firebaseGet(FIREBASE_DB_URL, `portal/social_profiles/${uid}`)
+        if (fbProfile?.tiktokUrl) tiktokUrl = fbProfile.tiktokUrl
+      }
+      if (tiktokUrl) {
         try {
           // Extract username from URL
-          const ttMatch = student.tiktok_url.match(/@([\w.]+)/)
-          const ttUsername = ttMatch ? ttMatch[1] : student.tiktok_url.replace(/https?:\/\/(www\.)?tiktok\.com\/@?/, '').replace(/\//g, '')
+          const ttMatch = tiktokUrl.match(/@([\w.]+)/)
+          const ttUsername = ttMatch ? ttMatch[1] : tiktokUrl.replace(/https?:\/\/(www\.)?tiktok\.com\/@?/, '').replace(/\//g, '')
 
           if (ttUsername) {
             const runRes = await fetch(
