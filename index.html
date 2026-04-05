@@ -4477,16 +4477,20 @@ const renderAdminClientDetail = async (uid) => {
 
             async function refreshSocialData() {
                 const btn = document.getElementById('socialRefreshBtn');
+                const refreshIcon = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 8a6 6 0 0 1 10.3-4.2"/><path d="M14 8a6 6 0 0 1-10.3 4.2"/><path d="M12.3 1v3h-3"/><path d="M3.7 15v-3h3"/></svg>';
+                const spinIcon = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="animation:spin 1s linear infinite;"><path d="M2 8a6 6 0 0 1 10.3-4.2"/><path d="M14 8a6 6 0 0 1-10.3 4.2"/><path d="M12.3 1v3h-3"/><path d="M3.7 15v-3h3"/></svg>';
                 if (btn) {
                     btn.disabled = true;
-                    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="animation:spin 1s linear infinite;"><path d="M2 8a6 6 0 0 1 10.3-4.2"/><path d="M14 8a6 6 0 0 1-10.3 4.2"/><path d="M12.3 1v3h-3"/><path d="M3.7 15v-3h3"/></svg> Refreshing...';
+                    btn.innerHTML = spinIcon + ' Scraping profiles... (30-60s)';
                 }
                 try {
-                    await sbClient.functions.invoke('scrape-profiles', { body: {} });
-                    setTimeout(() => { navigateTo('social'); }, 2000);
+                    const res = await sbClient.functions.invoke('scrape-profiles', { body: {} });
+                    if (btn) btn.innerHTML = spinIcon + ' Updating...';
+                    setTimeout(() => setPage('social'), 1500);
                 } catch (e) {
                     console.error('Refresh failed:', e);
-                    if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 8a6 6 0 0 1 10.3-4.2"/><path d="M14 8a6 6 0 0 1-10.3 4.2"/><path d="M12.3 1v3h-3"/><path d="M3.7 15v-3h3"/></svg> Refresh'; }
+                    if (btn) { btn.disabled = false; btn.innerHTML = refreshIcon + ' Refresh'; }
+                    alert('Refresh failed \u2014 please try again.');
                 }
             }
 
