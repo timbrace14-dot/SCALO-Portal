@@ -1163,6 +1163,8 @@
             const allTotals = allEntries.map(e => getWeeklyTotals(e));
             const allRevenue = allTotals.reduce((s,e) => s+e.revenue, 0);
             const allExpenses = allTotals.reduce((s,e) => s+e.expenses, 0);
+            const allBusinessExpenses = allTotals.reduce((s,e) => s+(e.businessExpenses||0), 0);
+            const allPersonalExpenses = allTotals.reduce((s,e) => s+(e.personalExpenses||0), 0);
             const allClients = allTotals.reduce((s,e) => s+e.newClients, 0);
             const allViews = allEntries.reduce((s,e) => s+(parseFloat(e.instagramViews)||0)+(parseFloat(e.tiktokViews)||0), 0);
             const allFollowers = allEntries.reduce((s,e) => s+(parseFloat(e.instagramFollowers)||0)+(parseFloat(e.tiktokFollowers)||0), 0);
@@ -1233,47 +1235,40 @@
                         </div>
                     </div>
 
-                    <!-- ICP SECTION -->
-                    <div style="background:#0f0f0f;border:0.5px solid #2a2a2a;border-radius:16px;padding:28px 24px;margin-bottom:24px;">
-                        <h2 class="page-title">Your ICP</h2>
-                        <p class="page-subtitle">Know exactly who you serve.</p>
-
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;" class="mobile-grid-2">
-                            <div style="margin-bottom:0;">
-                                <label style="display:block;font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:8px;">Age Range</label>
-                                <input type="text" id="icpAge" value="${(goals.icpAge || '')}" placeholder="e.g. 18-35" style="width:100%;box-sizing:border-box;background:#1a1a1a;border:0.5px solid #333;border-radius:8px;color:#e8e8e8;padding:12px;font-family:inherit;font-size:14px;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='${ACCENT}'" onblur="this.style.borderColor='#333'">
-                            </div>
-                            <div style="margin-bottom:0;">
-                                <label style="display:block;font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:8px;">Gender</label>
-                                <input type="text" id="icpGender" value="${(goals.icpGender || '')}" placeholder="e.g. Male" style="width:100%;box-sizing:border-box;background:#1a1a1a;border:0.5px solid #333;border-radius:8px;color:#e8e8e8;padding:12px;font-family:inherit;font-size:14px;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='${ACCENT}'" onblur="this.style.borderColor='#333'">
-                            </div>
+                    ${(goals.icpAge || goals.icpGender || goals.icpWants || goals.icpPains) ? `
+                    <!-- ICP Summary on Overview -->
+                    <div style="background:#0f0f0f;border:0.5px solid #2a2a2a;border-radius:16px;padding:22px 24px;margin-bottom:24px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                            <div style="font-size:14px;color:#fff;font-weight:700;display:flex;align-items:center;gap:8px;"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="${ACCENT}" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><circle cx="8" cy="8" r="4" opacity="0.6"/><circle cx="8" cy="8" r="1.5" fill="${ACCENT}"/></svg> Your Ideal Client</div>
+                            <button onclick="setPage('icp')" style="font-size:11px;color:${ACCENT};background:none;border:1px solid ${ACCENT};padding:4px 12px;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;">Edit ICP &#x2192;</button>
                         </div>
-
-                        <div style="margin-bottom:18px;">
-                            <label style="display:block;font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:8px;">What do they want?</label>
-                            <textarea id="icpWants" rows="2" style="width:100%;box-sizing:border-box;background:#1a1a1a;border:0.5px solid #333;border-radius:8px;color:#e8e8e8;padding:12px;font-family:inherit;font-size:14px;resize:vertical;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='${ACCENT}'" onblur="this.style.borderColor='#333'" placeholder="e.g. A clean, sharp fade they can maintain between cuts">${(goals.icpWants || '')}</textarea>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;" class="mobile-grid-2">
+                            ${goals.icpGender || goals.icpAge ? `<div style="background:#141414;border-radius:10px;padding:14px;border-left:3px solid ${ACCENT};">
+                                <div style="font-size:10px;color:${ACCENT};text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:6px;">Who</div>
+                                <div style="font-size:13px;color:#fff;font-weight:600;">${goals.icpGender || ''}${goals.icpAge ? ', aged ' + goals.icpAge : ''}</div>
+                                ${goals.icpSpend ? '<div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:4px;">Spends &#xA3;' + goals.icpSpend + ' per visit</div>' : ''}
+                            </div>` : ''}
+                            ${goals.icpWants ? `<div style="background:#141414;border-radius:10px;padding:14px;border-left:3px solid #4ADE80;">
+                                <div style="font-size:10px;color:#4ADE80;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:6px;">Wants</div>
+                                <div style="font-size:12px;color:rgba(255,255,255,0.7);line-height:1.5;">${goals.icpWants.length > 100 ? goals.icpWants.slice(0,100) + '...' : goals.icpWants}</div>
+                            </div>` : ''}
+                            ${goals.icpPains ? `<div style="background:#141414;border-radius:10px;padding:14px;border-left:3px solid #FF4533;">
+                                <div style="font-size:10px;color:#FF4533;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:6px;">Pain Points</div>
+                                <div style="font-size:12px;color:rgba(255,255,255,0.7);line-height:1.5;">${goals.icpPains.length > 100 ? goals.icpPains.slice(0,100) + '...' : goals.icpPains}</div>
+                            </div>` : ''}
+                            ${goals.icpChannels ? `<div style="background:#141414;border-radius:10px;padding:14px;border-left:3px solid #FBBF24;">
+                                <div style="font-size:10px;color:#FBBF24;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:6px;">Where to Find Them</div>
+                                <div style="font-size:12px;color:rgba(255,255,255,0.7);line-height:1.5;">${goals.icpChannels}</div>
+                            </div>` : ''}
                         </div>
-
-                        <div style="margin-bottom:18px;">
-                            <label style="display:block;font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:8px;">What are their pain points?</label>
-                            <textarea id="icpPains" rows="2" style="width:100%;box-sizing:border-box;background:#1a1a1a;border:0.5px solid #333;border-radius:8px;color:#e8e8e8;padding:12px;font-family:inherit;font-size:14px;resize:vertical;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='${ACCENT}'" onblur="this.style.borderColor='#333'" placeholder="e.g. No-shows, inconsistent bookings, relying on walk-ins">${(goals.icpPains || '')}</textarea>
-                        </div>
-
-                        <div style="margin-bottom:18px;">
-                            <label style="display:block;font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:8px;">Where do they hang out online?</label>
-                            <textarea id="icpChannels" rows="2" style="width:100%;box-sizing:border-box;background:#1a1a1a;border:0.5px solid #333;border-radius:8px;color:#e8e8e8;padding:12px;font-family:inherit;font-size:14px;resize:vertical;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='${ACCENT}'" onblur="this.style.borderColor='#333'" placeholder="e.g. Instagram, TikTok, local Facebook groups">${(goals.icpChannels || '')}</textarea>
-                        </div>
-
-                        <div style="margin-bottom:20px;">
-                            <label style="display:block;font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:8px;">Average spend per visit</label>
-                            <input type="text" id="icpSpend" value="${(goals.icpSpend || '')}" placeholder="e.g. 30-50" style="width:100%;box-sizing:border-box;background:#1a1a1a;border:0.5px solid #333;border-radius:8px;color:#e8e8e8;padding:12px;font-family:inherit;font-size:14px;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='${ACCENT}'" onblur="this.style.borderColor='#333'">
-                        </div>
-
-                        <button onclick="saveGoals()" style="background:${ACCENT};color:#000;border:none;padding:10px 22px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Save ICP</button>
-                    </div>
+                    </div>` : `
+                    <div style="background:#0f0f0f;border:0.5px dashed #333;border-radius:16px;padding:20px 24px;margin-bottom:24px;text-align:center;">
+                        <div style="font-size:13px;color:rgba(255,255,255,0.45);margin-bottom:10px;">You have not defined your ideal client yet</div>
+                        <button onclick="setPage('icp')" style="background:${ACCENT};color:#000;border:none;padding:8px 20px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;">Define Your ICP &#x2192;</button>
+                    </div>`}
 
                     <div style="font-size:14px;color:#fff;letter-spacing:0.02em;margin-bottom:10px;font-weight:700;">${IC.chart} All Time Totals</div>
-                    <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;">
+                    <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;">
                         <div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:14px;padding:14px 16px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 4px 24px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.06);">
                             <div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Revenue</div>
                             <div style="font-size:18px;font-weight:700;color:#fff;">${formatCurrency(allRevenue)}</div>
@@ -1283,8 +1278,12 @@
                             <div style="font-size:18px;font-weight:700;color:${allTrueProfit>=0?'#4ADE80':'#FF4533'};">${formatCurrency(allTrueProfit)}</div>
                         </div>
                         <div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:14px;padding:14px 16px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 4px 24px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.06);">
-                            <div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Expenses</div>
-                            <div style="font-size:18px;font-weight:700;color:#FF4533;">${formatCurrency(allExpenses)}</div>
+                            <div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Business Expenses</div>
+                            <div style="font-size:18px;font-weight:700;color:#FF4533;">${formatCurrency(allBusinessExpenses)}</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:14px;padding:14px 16px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 4px 24px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.06);">
+                            <div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">Personal Expenses</div>
+                            <div style="font-size:18px;font-weight:700;color:#FF4533;">${formatCurrency(allPersonalExpenses)}</div>
                         </div>
                         <div style="background:rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:14px;padding:14px 16px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 4px 24px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.06);">
                             <div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">New Clients</div>
@@ -1661,6 +1660,118 @@
         };
         const weekInputFromKey = (key) => {
             return key.replace('_W', '-W');
+        };
+
+        // ── ICP PAGE ──
+        const renderClientICP = async () => {
+            const goalsSnap = await db.ref(`portal/goals/${currentUser.uid}`).once('value');
+            const g = goalsSnap.val() || {};
+            const hasData = g.icpAge || g.icpGender || g.icpWants || g.icpPains || g.icpChannels || g.icpSpend;
+            return `
+                <div>
+                    <h2 class="page-title">Your ICP</h2>
+                    <p class="page-subtitle">Define exactly who your ideal client is so every piece of content speaks directly to them.</p>
+
+                    <div class="card" style="margin-bottom:24px;">
+                        <div class="section-header" style="margin-bottom:18px;">${IC.target || '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><circle cx="8" cy="8" r="4"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/></svg>'} Build Your Ideal Client Profile</div>
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;" class="mobile-grid-2">
+                            <div>
+                                <label style="display:block;font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin-bottom:8px;">Age Range</label>
+                                <input type="text" id="icpAge" value="${g.icpAge || ''}" placeholder="e.g. 18-35" class="form-input" style="margin-bottom:0;">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin-bottom:8px;">Gender</label>
+                                <input type="text" id="icpGender" value="${g.icpGender || ''}" placeholder="e.g. Male" class="form-input" style="margin-bottom:0;">
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom:18px;">
+                            <label style="display:block;font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin-bottom:8px;">What do they want?</label>
+                            <textarea id="icpWants" rows="3" class="form-input" placeholder="e.g. A clean, sharp fade they can maintain between cuts. Consistent quality every time.">${g.icpWants || ''}</textarea>
+                        </div>
+
+                        <div style="margin-bottom:18px;">
+                            <label style="display:block;font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin-bottom:8px;">What are their pain points?</label>
+                            <textarea id="icpPains" rows="3" class="form-input" placeholder="e.g. Can never get booked in, previous barber was inconsistent, want someone who actually listens">${g.icpPains || ''}</textarea>
+                        </div>
+
+                        <div style="margin-bottom:18px;">
+                            <label style="display:block;font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin-bottom:8px;">Where do they hang out online?</label>
+                            <textarea id="icpChannels" rows="2" class="form-input" placeholder="e.g. Instagram, TikTok, local Facebook groups">${g.icpChannels || ''}</textarea>
+                        </div>
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;" class="mobile-grid-2">
+                            <div>
+                                <label style="display:block;font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin-bottom:8px;">Average spend per visit</label>
+                                <input type="text" id="icpSpend" value="${g.icpSpend || ''}" placeholder="e.g. &#xA3;30-50" class="form-input" style="margin-bottom:0;">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin-bottom:8px;">How often do they visit?</label>
+                                <input type="text" id="icpFrequency" value="${g.icpFrequency || ''}" placeholder="e.g. Every 2-3 weeks" class="form-input" style="margin-bottom:0;">
+                            </div>
+                        </div>
+
+                        <button onclick="saveICP()" style="background:${ACCENT};color:#000;border:none;padding:12px 24px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Save ICP Profile</button>
+                        <span id="icpSavedMsg" style="font-size:13px;color:#4ADE80;font-weight:700;opacity:0;transition:opacity 0.4s;margin-left:14px;"></span>
+                    </div>
+
+                    ${hasData ? `
+                    <div class="card" style="margin-bottom:24px;">
+                        <div class="section-header" style="margin-bottom:16px;">${IC.bulb || '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1a5 5 0 0 1 3 9v2H5v-2a5 5 0 0 1 3-9z"/><path d="M6 14h4"/></svg>'} Your ICP Breakdown</div>
+                        <p style="font-size:13px;color:rgba(255,255,255,0.55);font-weight:400;margin-bottom:20px;line-height:1.6;">Based on what you have entered, here is your ideal client profile. Use this as a filter for every piece of content you create and every marketing decision you make.</p>
+
+                        <div style="background:#141414;border-radius:12px;padding:20px;border-left:3px solid ${ACCENT};margin-bottom:16px;">
+                            <div style="font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-bottom:10px;">Who They Are</div>
+                            <div style="font-size:15px;color:#fff;font-weight:600;line-height:1.6;">
+                                ${g.icpGender ? g.icpGender + (g.icpAge ? ', aged ' + g.icpAge : '') : (g.icpAge ? 'Aged ' + g.icpAge : 'Not defined yet')}
+                                ${g.icpSpend ? '<span style="color:rgba(255,255,255,0.45);font-size:13px;"> &#x2014; spending around &#xA3;' + g.icpSpend + ' per visit</span>' : ''}
+                                ${g.icpFrequency ? '<span style="color:rgba(255,255,255,0.45);font-size:13px;"> &#x2014; booking ' + g.icpFrequency.toLowerCase() + '</span>' : ''}
+                            </div>
+                        </div>
+
+                        ${g.icpWants ? `
+                        <div style="background:#141414;border-radius:12px;padding:20px;border-left:3px solid #4ADE80;margin-bottom:16px;">
+                            <div style="font-size:11px;color:#4ADE80;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-bottom:10px;">What They Want</div>
+                            <div style="font-size:14px;color:rgba(255,255,255,0.8);font-weight:400;line-height:1.7;">${g.icpWants}</div>
+                            <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
+                                <div style="font-size:11px;color:${ACCENT};font-weight:700;margin-bottom:6px;">Content Angle</div>
+                                <div style="font-size:12px;color:rgba(255,255,255,0.55);line-height:1.6;">Show them the result. Post transformation content, process videos, and client testimonials that prove you deliver exactly what they are looking for.</div>
+                            </div>
+                        </div>` : ''}
+
+                        ${g.icpPains ? `
+                        <div style="background:#141414;border-radius:12px;padding:20px;border-left:3px solid #FF4533;margin-bottom:16px;">
+                            <div style="font-size:11px;color:#FF4533;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-bottom:10px;">Their Pain Points</div>
+                            <div style="font-size:14px;color:rgba(255,255,255,0.8);font-weight:400;line-height:1.7;">${g.icpPains}</div>
+                            <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
+                                <div style="font-size:11px;color:${ACCENT};font-weight:700;margin-bottom:6px;">Content Angle</div>
+                                <div style="font-size:12px;color:rgba(255,255,255,0.55);line-height:1.6;">Call out these pain points directly in your hooks. When your ideal client sees their exact frustration in your content, they stop scrolling. Speak to the problem, then show them you are the solution.</div>
+                            </div>
+                        </div>` : ''}
+
+                        ${g.icpChannels ? `
+                        <div style="background:#141414;border-radius:12px;padding:20px;border-left:3px solid #FBBF24;margin-bottom:16px;">
+                            <div style="font-size:11px;color:#FBBF24;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-bottom:10px;">Where to Find Them</div>
+                            <div style="font-size:14px;color:rgba(255,255,255,0.8);font-weight:400;line-height:1.7;">${g.icpChannels}</div>
+                            <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
+                                <div style="font-size:11px;color:${ACCENT};font-weight:700;margin-bottom:6px;">Strategy</div>
+                                <div style="font-size:12px;color:rgba(255,255,255,0.55);line-height:1.6;">Double down on the platforms where your ICP already spends their time. Do not spread yourself thin. Be everywhere they are and nowhere they are not.</div>
+                            </div>
+                        </div>` : ''}
+
+                        <div style="background:${ACCENT};border-radius:12px;padding:20px;margin-top:20px;">
+                            <div style="font-size:13px;color:#000;font-weight:700;margin-bottom:6px;">The Golden Rule</div>
+                            <div style="font-size:13px;color:rgba(0,0,0,0.7);line-height:1.6;">Every reel, every story, every caption should pass one test: would your ideal client ${g.icpGender ? '(' + g.icpGender.toLowerCase() + ', ' + (g.icpAge || '?') + ')' : ''} stop scrolling for this? If the answer is no, do not post it.</div>
+                        </div>
+                    </div>` : `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg></div>
+                        <p style="margin-bottom:6px;font-size:15px;">Define your ideal client</p>
+                        <p style="font-size:13px;font-weight:400;color:rgba(255,255,255,0.45);">Fill in the form above and we will generate your ICP breakdown with content strategies tailored to your audience.</p>
+                    </div>`}
+                </div>
+            `;
         };
 
         const renderClientNumbers = async () => {
@@ -4554,6 +4665,7 @@ const renderAdminClientDetail = async (uid) => {
             const clientNavItems = [
                 { page: 'hub', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="5.5" height="5.5" rx="1.2"/><rect x="9.5" y="1" width="5.5" height="5.5" rx="1.2"/><rect x="1" y="9.5" width="5.5" height="5.5" rx="1.2"/><rect x="9.5" y="9.5" width="5.5" height="5.5" rx="1.2"/></svg>', label: 'Overview' },
                 { page: 'implementation', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12L6 4L10 9L14 2"/><circle cx="6" cy="4" r="1.2" fill="currentColor"/><circle cx="10" cy="9" r="1.2" fill="currentColor"/></svg>', label: 'The Roadmap' },
+                { page: 'icp', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><circle cx="8" cy="8" r="4" opacity="0.6"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/></svg>', label: 'Your ICP' },
                 { page: 'numbers', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><text x="3" y="12.5" font-size="13" font-weight="700" fill="currentColor" stroke="none" font-family="sans-serif">$</text></svg>', label: 'Business' },
                 { page: 'tasks', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5L6.5 12L13 4"/></svg>', label: 'Tasks' },
                 { page: 'content', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>', label: 'Content' },
@@ -4605,6 +4717,7 @@ const renderAdminClientDetail = async (uid) => {
                 else if (currentPage === 'implementation') pageContent = await renderClientImplementation();
                 else if (currentPage === 'numbers') pageContent = await renderClientNumbers();
                 else if (currentPage === 'tasks') pageContent = await renderClientTasks();
+                else if (currentPage === 'icp') pageContent = await renderClientICP();
                 else if (currentPage === 'content') pageContent = await renderClientContent();
                 else if (currentPage === 'inspo') pageContent = await renderClientInspo();
                 else if (currentPage === 'social') pageContent = await renderClientSocial();
@@ -4680,21 +4793,15 @@ const renderAdminClientDetail = async (uid) => {
         // ── SAVE GOALS ──
         window.saveGoals = async () => {
             if (!currentUser) return;
-            const data = {
+            const updates = {
                 why: (document.getElementById('goalWhy')?.value || '').trim(),
                 how: (document.getElementById('goalHow')?.value || '').trim(),
                 goal90: (document.getElementById('goal90')?.value || '').trim(),
                 goal6m: (document.getElementById('goal6m')?.value || '').trim(),
-                icpAge: (document.getElementById('icpAge')?.value || '').trim(),
-                icpGender: (document.getElementById('icpGender')?.value || '').trim(),
-                icpWants: (document.getElementById('icpWants')?.value || '').trim(),
-                icpPains: (document.getElementById('icpPains')?.value || '').trim(),
-                icpChannels: (document.getElementById('icpChannels')?.value || '').trim(),
-                icpSpend: (document.getElementById('icpSpend')?.value || '').trim(),
                 updatedAt: new Date().toISOString()
             };
             try {
-                await db.ref(`portal/goals/${currentUser.uid}`).set(data);
+                await db.ref(`portal/goals/${currentUser.uid}`).update(updates);
                 const msg = document.getElementById('goalsSavedMsg');
                 if (msg) {
                     msg.textContent = 'Goals saved';
@@ -4702,6 +4809,28 @@ const renderAdminClientDetail = async (uid) => {
                     setTimeout(() => { msg.style.opacity = '0'; }, 2500);
                 }
             } catch (err) { alert('Error saving goals: ' + err.message); }
+        };
+        window.saveICP = async () => {
+            if (!currentUser) return;
+            const updates = {
+                icpAge: (document.getElementById('icpAge')?.value || '').trim(),
+                icpGender: (document.getElementById('icpGender')?.value || '').trim(),
+                icpWants: (document.getElementById('icpWants')?.value || '').trim(),
+                icpPains: (document.getElementById('icpPains')?.value || '').trim(),
+                icpChannels: (document.getElementById('icpChannels')?.value || '').trim(),
+                icpSpend: (document.getElementById('icpSpend')?.value || '').trim(),
+                icpFrequency: (document.getElementById('icpFrequency')?.value || '').trim(),
+                updatedAt: new Date().toISOString()
+            };
+            try {
+                await db.ref(`portal/goals/${currentUser.uid}`).update(updates);
+                const msg = document.getElementById('icpSavedMsg');
+                if (msg) {
+                    msg.textContent = 'ICP saved';
+                    msg.style.opacity = '1';
+                    setTimeout(() => { msg.style.opacity = '0'; setPage('icp'); }, 1500);
+                }
+            } catch (err) { alert('Error saving ICP: ' + err.message); }
         };
 
         // ── GLOBALS ──
