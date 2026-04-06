@@ -43,10 +43,10 @@ SELECT cron.schedule(
   $$
 );
 
--- 2. WEEKLY: Scrape inspo creators (every Monday at 7:45 AM UTC — before email)
+-- 2. DAILY: Scrape inspo creators (every day at 7:45 AM UTC — before email)
 SELECT cron.schedule(
-  'scrape-inspo-weekly',
-  '45 7 * * 1',  -- Monday 7:45 AM UTC
+  'scrape-inspo-daily',
+  '45 7 * * *',  -- 7:45 AM UTC daily
   $$
   SELECT net.http_post(
     url := 'https://kadgzthwuzzjwxxcbgzi.supabase.co/functions/v1/scrape-inspo',

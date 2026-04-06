@@ -897,11 +897,11 @@
         };
 
         // ── AUTO-SCRAPE: trigger Supabase Edge Functions when data is stale ──
-        const triggerScrapeReels = async (studentId) => {
+        const triggerScrapeReels = async (uid) => {
             if (!sbClient) return;
             try {
                 const { data, error } = await sbClient.functions.invoke('scrape-reels', {
-                    body: studentId ? { student_id: studentId } : {}
+                    body: uid ? { uid } : {}
                 });
                 if (error) console.warn('scrape-reels error:', error);
                 else console.log('scrape-reels result:', data);
@@ -925,29 +925,25 @@
         const checkAndTriggerContentScrape = async (uid) => {
             if (!sbClient) return;
             try {
-                const sbIdSnap = await db.ref(`portal/users/${uid}/supabaseStudentId`).once('value');
-                const studentId = sbIdSnap.val();
-                if (!studentId) return;
+                const contentSnap = await db.ref(`portal/content_library/${uid}`).once('value');
+                const contentData = contentSnap.val();
 
-                const { data: videos } = await sbClient.from('videos')
-                    .select('scraped_at')
-                    .eq('student_id', studentId)
-                    .order('scraped_at', { ascending: false })
-                    .limit(1);
-
-                if (videos && videos.length > 0 && videos[0].scraped_at) {
-                    const lastScrape = new Date(videos[0].scraped_at);
-                    const hoursSince = (Date.now() - lastScrape.getTime()) / (1000 * 60 * 60);
-                    if (hoursSince > 24) {
-                        console.log(`Content Library stale (${hoursSince.toFixed(1)}h) — triggering scrape...`);
-                        await triggerScrapeReels(studentId);
-                        // Refresh the page after scrape
-                        setTimeout(() => { if (currentPage === 'content') setPage('content'); }, 3000);
+                if (contentData) {
+                    const videos = Object.values(contentData);
+                    const latest = videos.reduce((max, v) => v.scrapedAt > max ? v.scrapedAt : max, '');
+                    if (latest) {
+                        const lastScrape = new Date(latest);
+                        const hoursSince = (Date.now() - lastScrape.getTime()) / (1000 * 60 * 60);
+                        if (hoursSince > 24) {
+                            console.log('Content Library stale (' + hoursSince.toFixed(1) + 'h) - triggering scrape...');
+                            await triggerScrapeReels(uid);
+                            setTimeout(() => { if (currentPage === 'content') setPage('content'); }, 3000);
+                        }
                     }
                 } else {
                     // No videos at all — trigger first scrape
-                    console.log('No content library data — triggering first scrape...');
-                    await triggerScrapeReels(studentId);
+                    console.log('No content library data - triggering first scrape...');
+                    await triggerScrapeReels(uid);
                     setTimeout(() => { if (currentPage === 'content') setPage('content'); }, 3000);
                 }
             } catch(e) { console.warn('Auto-scrape check failed:', e); }
@@ -2417,48 +2413,35 @@
             let instagramHandle = null;
             let lastScraped = null;
             try {
-                if (!sbClient) throw new Error('Supabase not initialized');
-                // Get instagram handle from Firebase first
-                const igSnap = await db.ref(`portal/users/${targetUid}/instagramHandle`).once('value');
+                // Get instagram handle from social_profiles or legacy instagramHandle
+                const [profileSnap, igSnap, contentSnap] = await Promise.all([
+                    db.ref(`portal/social_profiles/${targetUid}`).once('value'),
+                    db.ref(`portal/users/${targetUid}/instagramHandle`).once('value'),
+                    db.ref(`portal/content_library/${targetUid}`).once('value')
+                ]);
+                const profile = profileSnap.val();
                 instagramHandle = igSnap.val();
-                // Look up Supabase student by instagram_handle (or stored supabaseStudentId)
-                let supaStudentId = null;
-                const sbIdSnap = await db.ref(`portal/users/${targetUid}/supabaseStudentId`).once('value');
-                supaStudentId = sbIdSnap.val();
-                if (!supaStudentId && instagramHandle) {
-                    // Fallback: look up by instagram_handle
-                    const studentLookup = await sbClient.from('students').select('id').eq('instagram_handle', instagramHandle).limit(1).single();
-                    if (!studentLookup.error && studentLookup.data) supaStudentId = studentLookup.data.id;
+                if (!instagramHandle && profile?.instagramUrl) {
+                    instagramHandle = profile.instagramUrl.replace(/https?:\/\/(www\.)?instagram\.com\//i,'').replace(/[?#].*$/,'').replace(/\//g,'');
                 }
-                let videosRes = { data: [], error: null };
-                let studentRes = { data: null, error: null };
-                if (supaStudentId) {
-                    [videosRes, studentRes] = await Promise.all([
-                        sbClient.from('videos').select('*').eq('student_id', supaStudentId).order('views', { ascending: false }).limit(20),
-                        sbClient.from('students').select('instagram_handle').eq('id', supaStudentId).single()
-                    ]);
-                }
-                if (!videosRes.error && videosRes.data) {
-                    contentList = videosRes.data.map(v => ({
-                        id: v.id,
-                        title: v.caption ? v.caption.slice(0, 80) + (v.caption.length > 80 ? '…' : '') : 'Instagram Reel',
+                const contentData = contentSnap.val();
+                if (contentData) {
+                    contentList = Object.values(contentData).map((v) => ({
+                        id: v.videoUrl || '',
+                        title: v.caption ? v.caption.slice(0, 80) + (v.caption.length > 80 ? '...' : '') : 'Instagram Reel',
                         platform: 'Instagram',
                         views: v.views || v.plays || 0,
-                        likes: v.likes,
-                        comments: v.comments,
-                        link: v.video_url,
-                        datePosted: v.posted_at ? v.posted_at.slice(0, 10) : null,
-                        thumbnail: v.thumbnail_url,
-                        scraped_at: v.scraped_at
+                        likes: v.likes || 0,
+                        comments: v.comments || 0,
+                        link: v.videoUrl || '',
+                        datePosted: v.postedAt || null,
+                        thumbnail: v.thumbnailUrl || '',
+                        scraped_at: v.scrapedAt || null
                     }));
-                    lastScraped = videosRes.data[0]?.scraped_at;
+                    contentList.sort((a, b) => (b.views || 0) - (a.views || 0));
+                    lastScraped = contentList[0]?.scraped_at;
                 }
-                if (!studentRes.error && studentRes.data) instagramHandle = studentRes.data.instagram_handle;
-                if (!instagramHandle) {
-                    const snap = await db.ref(`portal/users/${targetUid}/instagramHandle`).once('value');
-                    instagramHandle = snap.val();
-                }
-            } catch(e) { console.warn('Supabase error', e); }
+            } catch(e) { console.warn('Content load error', e); }
             const scraped = lastScraped ? new Date(lastScraped).toLocaleDateString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : null;
             return `
                 <div>
@@ -4537,7 +4520,7 @@ const renderAdminClientDetail = async (uid) => {
                     btn.innerHTML = spinIcon + ' Scraping profiles... (30-60s)';
                 }
                 try {
-                    const res = await sbClient.functions.invoke('scrape-profiles', { body: {} });
+                    const res = await sbClient.functions.invoke('scrape-profiles', { body: { uid: currentUser.uid } });
                     if (btn) btn.innerHTML = spinIcon + ' Updating...';
                     setTimeout(() => setPage('social'), 1500);
                 } catch (e) {
@@ -4722,7 +4705,7 @@ const renderAdminClientDetail = async (uid) => {
             if (btn) { btn.innerHTML = IC.refresh + ' Scraping reels... (30-60s)'; btn.disabled = true; btn.style.opacity = '0.6'; }
             try {
                 if (!sbClient) throw new Error('Supabase not connected');
-                const { data, error } = await sbClient.functions.invoke('scrape-reels', { body: {} });
+                const { data, error } = await sbClient.functions.invoke('scrape-reels', { body: { uid: currentUser.uid } });
                 if (error) throw new Error(error.message || JSON.stringify(error));
                 if (btn) btn.innerHTML = IC.refresh + ' Updating...';
                 setTimeout(() => setPage('content'), 1500);
