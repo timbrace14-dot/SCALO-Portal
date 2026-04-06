@@ -258,6 +258,49 @@
         html.light-mode [style*="background:linear-gradient(135deg,#1a0a0a"] { background: linear-gradient(135deg,#F0F5ED,#EDF0F5) !important; }
         html.light-mode [style*="background:linear-gradient(135deg,rgba(255,69,51"] { background: linear-gradient(135deg,rgba(220,38,38,0.04),rgba(217,119,6,0.03)) !important; border-color: rgba(220,38,38,0.15) !important; }
 
+        /* ── Chart cards ── */
+        html.light-mode .chart-card { background: #FFFFFF !important; border-color: rgba(0,0,0,0.08) !important; box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important; backdrop-filter: none !important; }
+        html.light-mode .chart-title { color: rgba(0,0,0,0.5) !important; }
+
+        /* ── Section headers ── */
+        html.light-mode .section-header { color: rgba(0,0,0,0.5) !important; }
+
+        /* ── Tasks ── */
+        html.light-mode .task-description { color: rgba(0,0,0,0.55) !important; }
+        html.light-mode .checklist-text { color: rgba(0,0,0,0.6) !important; }
+        html.light-mode .checklist-text.done { color: rgba(0,0,0,0.35) !important; }
+        html.light-mode .progress-bar { background: rgba(0,0,0,0.06) !important; }
+
+        /* ── Buttons ── */
+        html.light-mode .btn-secondary { background: rgba(0,0,0,0.04) !important; color: #1A1A1A !important; }
+        html.light-mode .btn-secondary:hover { background: rgba(0,0,0,0.08) !important; }
+
+        /* ── Sidebar nav items (class styles) ── */
+        html.light-mode .sidebar-nav-item svg { stroke: rgba(0,0,0,0.45) !important; }
+        html.light-mode .sidebar-nav-item.active svg { stroke: #fff !important; }
+
+        /* ── Client list / search ── */
+        html.light-mode .client-card { background: #FFFFFF !important; border-color: rgba(0,0,0,0.08) !important; }
+        html.light-mode .client-card:hover { border-color: rgba(0,0,0,0.15) !important; }
+        html.light-mode .client-name { color: #1A1A1A !important; }
+        html.light-mode .search-box { background: #FFFFFF !important; border-color: rgba(0,0,0,0.1) !important; color: #1A1A1A !important; }
+
+        /* ── Metric cards (class styles) ── */
+        html.light-mode .metric-card-big,
+        html.light-mode .day-card { background: #FFFFFF !important; border-color: rgba(0,0,0,0.08) !important; }
+        html.light-mode .day-card:hover { border-color: rgba(0,0,0,0.15) !important; }
+
+        /* ── Week selector ── */
+        html.light-mode .week-selector { background: #FFFFFF !important; border-color: rgba(0,0,0,0.08) !important; }
+
+        /* ── Platform badges ── */
+        html.light-mode .platform-badge { color: #fff !important; }
+
+        /* ── Inline colour overrides (additional patterns) ── */
+        html.light-mode [style*="color:rgba(255,255,255,0.56)"] { color: rgba(0,0,0,0.5) !important; }
+        html.light-mode [style*="color:rgba(255,255,255,0.22)"] { color: rgba(0,0,0,0.2) !important; }
+        html.light-mode [style*="background:#1C1C1C"] { background: #FFFFFF !important; }
+
         /* ── Misc element overrides ── */
         html.light-mode hr { border-color: rgba(0,0,0,0.08) !important; }
         html.light-mode table th { color: rgba(0,0,0,0.5) !important; background: #F5F5F0 !important; }
