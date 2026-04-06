@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "scalo-portal",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8098", "--directory", "/Users/timbrace/Desktop/SCALO"],
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["-e", "const h=require('http'),f=require('fs'),p=require('path'),d='/Users/timbrace/Desktop/SCALO';h.createServer((q,r)=>{const u=q.url.split('?')[0],fp=p.join(d,u==='/'?'index.html':u),e=p.extname(fp),t={'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml','.ico':'image/x-icon'}[e]||'application/octet-stream';f.readFile(fp,(err,data)=>{if(err){r.writeHead(404);r.end('Not found')}else{r.writeHead(200,{'Content-Type':t});r.end(data)}})}).listen(8098,()=>console.log('Serving on 8098'))"],
       "port": 8098
     }
   ]
