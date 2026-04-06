@@ -60,6 +60,23 @@ SELECT cron.schedule(
   $$
 );
 
+-- 3. DAILY: Push notification to students who haven't logged (8pm UK time)
+--    19:00 UTC = 8pm BST (summer). In winter GMT it will fire at 7pm UK.
+SELECT cron.schedule(
+  'notify-unlogged-daily',
+  '0 19 * * *',  -- 19:00 UTC = 8pm BST
+  $$
+  SELECT net.http_post(
+    url := 'https://kadgzthwuzzjwxxcbgzi.supabase.co/functions/v1/notify-unlogged',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key')
+    ),
+    body := '{}'::jsonb
+  );
+  $$
+);
+
 -- View scheduled jobs:
 -- SELECT * FROM cron.job;
 
