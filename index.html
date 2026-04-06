@@ -921,57 +921,8 @@
             } catch(e) { console.warn('scrape-inspo failed:', e); }
         };
 
-        // Check if content library data is stale (>24 hours since last scrape)
-        const checkAndTriggerContentScrape = async (uid) => {
-            if (!sbClient) return;
-            try {
-                const contentSnap = await db.ref(`portal/content_library/${uid}`).once('value');
-                const contentData = contentSnap.val();
-
-                if (contentData) {
-                    const videos = Object.values(contentData);
-                    const latest = videos.reduce((max, v) => v.scrapedAt > max ? v.scrapedAt : max, '');
-                    if (latest) {
-                        const lastScrape = new Date(latest);
-                        const hoursSince = (Date.now() - lastScrape.getTime()) / (1000 * 60 * 60);
-                        if (hoursSince > 24) {
-                            console.log('Content Library stale (' + hoursSince.toFixed(1) + 'h) - triggering scrape...');
-                            await triggerScrapeReels(uid);
-                            setTimeout(() => { if (currentPage === 'content') setPage('content'); }, 3000);
-                        }
-                    }
-                } else {
-                    // No videos at all — trigger first scrape
-                    console.log('No content library data - triggering first scrape...');
-                    await triggerScrapeReels(uid);
-                    setTimeout(() => { if (currentPage === 'content') setPage('content'); }, 3000);
-                }
-            } catch(e) { console.warn('Auto-scrape check failed:', e); }
-        };
-
-        // Check if inspo data needs Monday refresh
-        const checkAndTriggerInspoScrape = async (uid) => {
-            try {
-                const now = new Date();
-                const isMonday = now.getDay() === 1;
-                const currentWeekKey = getInspoWeekKey ? getInspoWeekKey() : getWeekKey();
-
-                const snap = await db.ref(`portal/inspo_videos/${uid}/${currentWeekKey}`).once('value');
-                const hasThisWeekData = snap.val() && Object.keys(snap.val()).length > 0;
-
-                // Trigger if it's Monday and we don't have this week's data yet
-                if (isMonday && !hasThisWeekData) {
-                    console.log('Monday inspo scrape needed — triggering...');
-                    await triggerScrapeInspo(uid);
-                    setTimeout(() => { if (currentPage === 'inspo') setPage('inspo'); }, 5000);
-                } else if (!hasThisWeekData) {
-                    // Not Monday but still no data for this week
-                    console.log('No inspo data for current week — triggering scrape...');
-                    await triggerScrapeInspo(uid);
-                    setTimeout(() => { if (currentPage === 'inspo') setPage('inspo'); }, 5000);
-                }
-            } catch(e) { console.warn('Inspo auto-scrape check failed:', e); }
-        };
+        // Content library and inspo scrapes are on-demand only (student clicks Refresh).
+        // Only social profile stats run on a daily cron to save Apify costs.
 
         // ── HELPERS ──
         const getWeekKey = () => {
@@ -4604,8 +4555,8 @@ const renderAdminClientDetail = async (uid) => {
                 else if (currentPage === 'implementation') pageContent = await renderClientImplementation();
                 else if (currentPage === 'numbers') pageContent = await renderClientNumbers();
                 else if (currentPage === 'tasks') pageContent = await renderClientTasks();
-                else if (currentPage === 'content') { pageContent = await renderClientContent(); checkAndTriggerContentScrape(currentUser.uid); }
-                else if (currentPage === 'inspo') { pageContent = await renderClientInspo(); checkAndTriggerInspoScrape(currentUser.uid); }
+                else if (currentPage === 'content') pageContent = await renderClientContent();
+                else if (currentPage === 'inspo') pageContent = await renderClientInspo();
                 else if (currentPage === 'social') pageContent = await renderClientSocial();
                 else if (currentPage === 'progress') pageContent = await renderClientProgress();
                 else if (currentPage === 'scaleSignal') pageContent = await renderClientScaleSignal();
