@@ -296,9 +296,29 @@
         /* ── Platform badges ── */
         html.light-mode .platform-badge { color: #fff !important; }
 
+        /* ── Roadmap / Implementation Checklist ── */
+        html.light-mode .impl-level { background: #FFFFFF !important; border-color: rgba(0,0,0,0.08) !important; }
+        html.light-mode .impl-level-header:hover { background: rgba(0,0,0,0.03) !important; }
+        html.light-mode .impl-level-title { color: #1A1A1A !important; }
+        html.light-mode .impl-level-chevron { color: rgba(0,0,0,0.35) !important; }
+        html.light-mode .impl-level-count { color: rgba(0,0,0,0.5) !important; }
+        html.light-mode .impl-level-bar { background: rgba(0,0,0,0.06) !important; }
+        html.light-mode .impl-item { border-top-color: rgba(0,0,0,0.06) !important; }
+        html.light-mode .impl-item:hover { background: rgba(0,0,0,0.02) !important; }
+        html.light-mode .impl-item-title { color: rgba(0,0,0,0.7) !important; }
+        html.light-mode .impl-item.done .impl-item-title { color: rgba(0,0,0,0.35) !important; }
+        html.light-mode .impl-check { border-color: rgba(0,0,0,0.2) !important; }
+        html.light-mode .impl-check:hover { border-color: rgba(0,0,0,0.4) !important; }
+        html.light-mode .impl-check.done { background: #4A7A2E !important; border-color: #4A7A2E !important; color: #fff !important; }
+        html.light-mode .impl-section-label { color: rgba(0,0,0,0.35) !important; border-top-color: rgba(0,0,0,0.06) !important; }
+        html.light-mode .impl-coming-soon { color: rgba(0,0,0,0.25) !important; }
+        html.light-mode .impl-level.coming .impl-level-header { opacity: 0.4 !important; }
+
         /* ── Inline colour overrides (additional patterns) ── */
         html.light-mode [style*="color:rgba(255,255,255,0.56)"] { color: rgba(0,0,0,0.5) !important; }
         html.light-mode [style*="color:rgba(255,255,255,0.22)"] { color: rgba(0,0,0,0.2) !important; }
+        html.light-mode [style*="color:rgba(255,255,255,0.75)"] { color: rgba(0,0,0,0.65) !important; }
+        html.light-mode [style*="color:rgba(255,255,255,0.3)"] { color: rgba(0,0,0,0.35) !important; }
         html.light-mode [style*="background:#1C1C1C"] { background: #FFFFFF !important; }
 
         /* ── Misc element overrides ── */
