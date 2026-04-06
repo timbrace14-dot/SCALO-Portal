@@ -1199,8 +1199,8 @@
 
                     <!-- GOALS SECTION -->
                     <div style="background:#0f0f0f;border:0.5px solid #2a2a2a;border-radius:16px;padding:28px 24px;margin-bottom:24px;">
-                        <div style="font-family:'Instrument Serif',serif;font-style:italic;font-size:52px;color:#f5c842;letter-spacing:-2px;line-height:1.1;margin-bottom:4px;">Your Goals</div>
-                        <div style="font-size:13px;color:#555;text-transform:uppercase;letter-spacing:1.5px;font-weight:500;margin-bottom:24px;">Write it down. Make it real.</div>
+                        <h2 class="page-title">Your Goals</h2>
+                        <p class="page-subtitle">Write it down. Make it real.</p>
 
                         <div style="margin-bottom:18px;">
                             <label style="display:block;font-size:11px;color:#f5c842;text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:4px;">Your Why</label>
@@ -1231,6 +1231,45 @@
                             <button onclick="saveGoals()" style="background:#f5c842;color:#0f0f0f;border:none;padding:10px 22px;border-radius:8px;font-family:'Helvetica Neue',Helvetica,sans-serif;font-size:13px;font-weight:700;letter-spacing:-0.015em;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Save Goals</button>
                             <span id="goalsSavedMsg" style="font-size:13px;color:#4ADE80;font-weight:700;opacity:0;transition:opacity 0.4s;"></span>
                         </div>
+                    </div>
+
+                    <!-- ICP SECTION -->
+                    <div style="background:#0f0f0f;border:0.5px solid #2a2a2a;border-radius:16px;padding:28px 24px;margin-bottom:24px;">
+                        <h2 class="page-title">Your ICP</h2>
+                        <p class="page-subtitle">Know exactly who you serve.</p>
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;" class="mobile-grid-2">
+                            <div style="margin-bottom:0;">
+                                <label style="display:block;font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:8px;">Age Range</label>
+                                <input type="text" id="icpAge" value="${(goals.icpAge || '')}" placeholder="e.g. 18-35" style="width:100%;box-sizing:border-box;background:#1a1a1a;border:0.5px solid #333;border-radius:8px;color:#e8e8e8;padding:12px;font-family:inherit;font-size:14px;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='${ACCENT}'" onblur="this.style.borderColor='#333'">
+                            </div>
+                            <div style="margin-bottom:0;">
+                                <label style="display:block;font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:8px;">Gender</label>
+                                <input type="text" id="icpGender" value="${(goals.icpGender || '')}" placeholder="e.g. Male" style="width:100%;box-sizing:border-box;background:#1a1a1a;border:0.5px solid #333;border-radius:8px;color:#e8e8e8;padding:12px;font-family:inherit;font-size:14px;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='${ACCENT}'" onblur="this.style.borderColor='#333'">
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom:18px;">
+                            <label style="display:block;font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:8px;">What do they want?</label>
+                            <textarea id="icpWants" rows="2" style="width:100%;box-sizing:border-box;background:#1a1a1a;border:0.5px solid #333;border-radius:8px;color:#e8e8e8;padding:12px;font-family:inherit;font-size:14px;resize:vertical;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='${ACCENT}'" onblur="this.style.borderColor='#333'" placeholder="e.g. A clean, sharp fade they can maintain between cuts">${(goals.icpWants || '')}</textarea>
+                        </div>
+
+                        <div style="margin-bottom:18px;">
+                            <label style="display:block;font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:8px;">What are their pain points?</label>
+                            <textarea id="icpPains" rows="2" style="width:100%;box-sizing:border-box;background:#1a1a1a;border:0.5px solid #333;border-radius:8px;color:#e8e8e8;padding:12px;font-family:inherit;font-size:14px;resize:vertical;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='${ACCENT}'" onblur="this.style.borderColor='#333'" placeholder="e.g. No-shows, inconsistent bookings, relying on walk-ins">${(goals.icpPains || '')}</textarea>
+                        </div>
+
+                        <div style="margin-bottom:18px;">
+                            <label style="display:block;font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:8px;">Where do they hang out online?</label>
+                            <textarea id="icpChannels" rows="2" style="width:100%;box-sizing:border-box;background:#1a1a1a;border:0.5px solid #333;border-radius:8px;color:#e8e8e8;padding:12px;font-family:inherit;font-size:14px;resize:vertical;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='${ACCENT}'" onblur="this.style.borderColor='#333'" placeholder="e.g. Instagram, TikTok, local Facebook groups">${(goals.icpChannels || '')}</textarea>
+                        </div>
+
+                        <div style="margin-bottom:20px;">
+                            <label style="display:block;font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:8px;">Average spend per visit</label>
+                            <input type="text" id="icpSpend" value="${(goals.icpSpend || '')}" placeholder="e.g. 30-50" style="width:100%;box-sizing:border-box;background:#1a1a1a;border:0.5px solid #333;border-radius:8px;color:#e8e8e8;padding:12px;font-family:inherit;font-size:14px;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='${ACCENT}'" onblur="this.style.borderColor='#333'">
+                        </div>
+
+                        <button onclick="saveGoals()" style="background:${ACCENT};color:#000;border:none;padding:10px 22px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Save ICP</button>
                     </div>
 
                     <div style="font-size:14px;color:#fff;letter-spacing:0.02em;margin-bottom:10px;font-weight:700;">${IC.chart} All Time Totals</div>
@@ -1343,8 +1382,12 @@
                                 <span style="font-size:15px;font-weight:700;color:#FF4533;">−${formatCurrency(lossOfEarnings)}</span>
                             </div>
                             <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255,69,51,0.08);border-radius:10px;">
-                                <span style="font-size:13px;font-weight:500;color:rgba(255,255,255,0.65);">Expenses</span>
-                                <span style="font-size:15px;font-weight:700;color:#FF4533;">−${formatCurrency(expenses)}</span>
+                                <span style="font-size:13px;font-weight:500;color:rgba(255,255,255,0.65);">Business Expenses</span>
+                                <span style="font-size:15px;font-weight:700;color:#FF4533;">&#x2212;${formatCurrency(currentEntry.businessExpenses||0)}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255,69,51,0.08);border-radius:10px;">
+                                <span style="font-size:13px;font-weight:500;color:rgba(255,255,255,0.65);">Personal Expenses</span>
+                                <span style="font-size:15px;font-weight:700;color:#FF4533;">&#x2212;${formatCurrency(currentEntry.personalExpenses||0)}</span>
                             </div>
                             <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:${trueProfit>=0?'rgba(74,222,128,0.08)':'#FEF2F2'};border-radius:10px;border:2px solid ${trueProfit>=0?'#4ADE80':'#FF4533'};">
                                 <span style="font-size:14px;font-weight:700;color:#fff;">True Profit <span style="font-size:11px;font-weight:500;color:rgba(255,255,255,0.45);">(${trueMargin.toFixed(1)}% margin)</span></span>
@@ -1452,7 +1495,8 @@
                 <div style="font-size:13px;color:rgba(255,255,255,0.45);margin-bottom:16px;">How it's calculated:</div>
                 <div style="background:#141414;border-radius:10px;padding:12px;font-size:13px;margin-bottom:8px;">Revenue: <strong>${formatCurrency(d.revenue)}</strong></div>
                 <div style="background:rgba(255,69,51,0.08);border-radius:10px;padding:12px;font-size:13px;margin-bottom:8px;">− Loss of Earnings (${d.noShows} no-shows × ${formatCurrency(d.avgTicket)}): <strong style="color:#FF4533;">−${formatCurrency(d.lossOfEarnings)}</strong></div>
-                <div style="background:rgba(255,69,51,0.08);border-radius:10px;padding:12px;font-size:13px;margin-bottom:8px;">− Expenses: <strong style="color:#FF4533;">−${formatCurrency(d.expenses)}</strong></div>
+                <div style="background:rgba(255,69,51,0.08);border-radius:10px;padding:12px;font-size:13px;margin-bottom:8px;">&#x2212; Business Expenses: <strong style="color:#FF4533;">&#x2212;${formatCurrency(d.businessExpenses||0)}</strong></div>
+                <div style="background:rgba(255,69,51,0.08);border-radius:10px;padding:12px;font-size:13px;margin-bottom:8px;">&#x2212; Personal Expenses: <strong style="color:#FF4533;">&#x2212;${formatCurrency(d.personalExpenses||0)}</strong></div>
                 <div style="background:${d.trueProfit>=0?'rgba(74,222,128,0.08)':'#FEF2F2'};border-radius:10px;padding:12px;font-size:13px;margin-bottom:16px;border:1.5px solid ${d.trueProfit>=0?'#4ADE80':'#FF4533'};">= True Profit: <strong style="color:${d.trueProfit>=0?'#4ADE80':'#FF4533'};">${formatCurrency(d.trueProfit)} (${d.trueMargin.toFixed(1)}%)</strong></div>
                 <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.65);margin-bottom:8px;">💡 Ways to improve:</div>
                 ${tips.map(t => `<div style="font-size:12px;color:rgba(255,255,255,0.65);font-weight:400;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);">• ${t}</div>`).join('')}`;
@@ -1514,9 +1558,9 @@
         let selectedWeekKey = null;
         let selectedDayIndex = null; // 0=Mon, 1=Tue, ..., 6=Sun
 
-        const FIELD_KEYS = ['appointmentsAvailable','appointmentsFilled','newClients','rebookings','noShows','avgTicketPrice','revenue','expenses'];
-        const FIELD_LABELS = ['Appts Available','Appts Filled','New Clients','Rebookings','No Shows','Avg Ticket Price','Revenue','Expenses'];
-        const CURRENCY_FIELDS = ['avgTicketPrice','revenue','expenses'];
+        const FIELD_KEYS = ['appointmentsAvailable','appointmentsFilled','newClients','rebookings','noShows','avgTicketPrice','revenue','businessExpenses','personalExpenses'];
+        const FIELD_LABELS = ['Appts Available','Appts Filled','New Clients','Rebookings','No Shows','Avg Ticket Price','Revenue','Business Expenses','Personal Expenses'];
+        const CURRENCY_FIELDS = ['avgTicketPrice','revenue','businessExpenses','personalExpenses'];
         const DAY_NAMES = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
         // Helper: get Monday date of a week key like "2026_W13"
@@ -1547,10 +1591,10 @@
 
         // Helper: normalize entry data — returns weekly totals from either old (flat) or new (days) format
         const getWeeklyTotals = (entry) => {
-            if (!entry) return { appointmentsAvailable:0, appointmentsFilled:0, newClients:0, rebookings:0, noShows:0, avgTicketPrice:0, revenue:0, expenses:0 };
+            if (!entry) return { appointmentsAvailable:0, appointmentsFilled:0, newClients:0, rebookings:0, noShows:0, avgTicketPrice:0, revenue:0, businessExpenses:0, personalExpenses:0, expenses:0 };
             // New format: has a "days" property
             if (entry.days) {
-                const totals = { appointmentsAvailable:0, appointmentsFilled:0, newClients:0, rebookings:0, noShows:0, avgTicketPrice:0, revenue:0, expenses:0 };
+                const totals = { appointmentsAvailable:0, appointmentsFilled:0, newClients:0, rebookings:0, noShows:0, avgTicketPrice:0, revenue:0, businessExpenses:0, personalExpenses:0 };
                 let avgTicketSum = 0, avgTicketCount = 0;
                 for (let i = 0; i < 7; i++) {
                     const day = entry.days[i];
@@ -1563,13 +1607,19 @@
                             totals[key] += parseFloat(day[key]) || 0;
                         }
                     });
+                    // Backwards compat: old "expenses" field maps to businessExpenses
+                    if (day.expenses && !day.businessExpenses) totals.businessExpenses += parseFloat(day.expenses) || 0;
                 }
                 totals.avgTicketPrice = avgTicketCount > 0 ? avgTicketSum / avgTicketCount : 0;
+                totals.expenses = totals.businessExpenses + totals.personalExpenses;
                 return totals;
             }
             // Old format: flat weekly data
             const result = {};
             FIELD_KEYS.forEach(key => { result[key] = parseFloat(entry[key]) || 0; });
+            // Backwards compat: old "expenses" field maps to businessExpenses
+            if (entry.expenses && !entry.businessExpenses) result.businessExpenses = parseFloat(entry.expenses) || 0;
+            result.expenses = result.businessExpenses + result.personalExpenses;
             return result;
         };
 
@@ -2397,7 +2447,7 @@
             return `
                 <div>
                     <h2 class="page-title">Content Library</h2>
-                    <p class="page-subtitle">Top 20 best performing reels &#x2014; auto-updated daily</p>
+                    <p class="page-subtitle">Top 20 best performing reels &#x2014; click Refresh to update your list</p>
                     ${instagramHandle ? `
                     <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 18px;box-shadow:0 4px 24px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.06);margin-bottom:20px;">
                         <div style="width:36px;height:36px;background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></div>
@@ -2904,14 +2954,14 @@
             return `
                 <div>
                     <h2 class="page-title">Content Inspo</h2>
-                    <p class="page-subtitle">Top 4 performing reels from your favourite creators &#x2014; refreshed every Monday
-                        <button onclick="handleRefreshInspo()" id="refreshInspoBtn" style="background:#1A1A1A;color:rgba(255,255,255,0.65);border:1px solid rgba(255,255,255,0.12);padding:4px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;margin-left:12px;">${IC.refresh} Refresh Now</button>
+                    <p class="page-subtitle">Top 4 performing reels from your favourite creators &#x2014; click Refresh once you have recreated all these reels and need new content ideas
+                        <button onclick="handleRefreshInspo()" id="refreshInspoBtn" style="background:#1A1A1A;color:rgba(255,255,255,0.65);border:1px solid rgba(255,255,255,0.12);padding:4px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;margin-left:12px;">${IC.refresh} Refresh</button>
                     </p>
 
                     <!-- Creators setup -->
                     <div class="card" style="margin-bottom:24px;">
                         <div class="section-header" style="margin-bottom:14px;">Your Inspiration Creators</div>
-                        <p style="font-size:13px;color:rgba(255,255,255,0.45);font-weight:400;margin-bottom:16px;">Add up to 3 Instagram accounts you draw inspiration from. We'll pull their top 4 reels each week and email you every Monday.</p>
+                        <p style="font-size:13px;color:rgba(255,255,255,0.45);font-weight:400;margin-bottom:16px;">Add up to 3 Instagram accounts you draw inspiration from. We&#x27;ll pull their top 4 reels. Click Refresh when you need new ideas.</p>
                         ${creatorList.length < 3 ? `
                         <div style="display:flex;gap:10px;margin-bottom:16px;">
                             <div style="position:relative;flex:1;">
@@ -2955,7 +3005,7 @@
                     <div class="empty-state">
                         <div class="empty-state-icon">${IC.star}</div>
                         <p style="margin-bottom:6px;">Videos loading soon</p>
-                        <p style="font-size:13px;font-weight:400;color:rgba(255,255,255,0.45);">Your inspo videos will appear here after the next Monday scrape. You'll also get an email every Monday morning.</p>
+                        <p style="font-size:13px;font-weight:400;color:rgba(255,255,255,0.45);">Click Refresh above to pull the top reels from your inspiration creators.</p>
                     </div>` : ''}
 
                     ${creatorList.map(([, creator]) => {
@@ -2981,7 +3031,7 @@
                                             ${v.likes?`<span style="font-size:11px;color:rgba(255,255,255,0.56);">${IC.heart} <strong style="color:#fff;">${formatNumber(v.likes)}</strong></span>`:''}
                                             ${v.comments?`<span style="font-size:11px;color:rgba(255,255,255,0.56);">${IC.chat} <strong style="color:#fff;">${formatNumber(v.comments)}</strong></span>`:''}
                                         </div>
-                                        <a href="${v.link || 'https://www.instagram.com/' + creator.handle + '/reels/'}" target="_blank" rel="noopener" style="font-size:12px;color:${ACCENT};font-weight:700;text-decoration:none;">View Reel &#x2192;</a>
+                                        <a href="${v.link || 'https://www.instagram.com/' + creator.handle + '/reels/'}" target="_blank" rel="noopener" style="font-size:12px;color:${ACCENT};font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg> View Reel &#x2192;</a>
                                     </div>
                                 </div>
                                 ${v.analysis ? `
@@ -4635,6 +4685,12 @@ const renderAdminClientDetail = async (uid) => {
                 how: (document.getElementById('goalHow')?.value || '').trim(),
                 goal90: (document.getElementById('goal90')?.value || '').trim(),
                 goal6m: (document.getElementById('goal6m')?.value || '').trim(),
+                icpAge: (document.getElementById('icpAge')?.value || '').trim(),
+                icpGender: (document.getElementById('icpGender')?.value || '').trim(),
+                icpWants: (document.getElementById('icpWants')?.value || '').trim(),
+                icpPains: (document.getElementById('icpPains')?.value || '').trim(),
+                icpChannels: (document.getElementById('icpChannels')?.value || '').trim(),
+                icpSpend: (document.getElementById('icpSpend')?.value || '').trim(),
                 updatedAt: new Date().toISOString()
             };
             try {
