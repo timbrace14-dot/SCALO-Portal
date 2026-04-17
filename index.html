@@ -1138,8 +1138,37 @@
 
         const SUPABASE_URL = 'https://kadgzthwuzzjwxxcbgzi.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImthZGd6dGh3dXp6and4eGNiZ3ppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzNjA0MjAsImV4cCI6MjA4OTkzNjQyMH0.7ebR6MOYE9YJf9ALefoZO_LkrkZ4jhD_booINh1j2K0';
+        const WORKER_URL = 'https://scalo-stripe.timbrace14.workers.dev';
         let sbClient = null;
         try { sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e) { console.warn('Supabase init failed', e); }
+
+        // ── Firebase → Supabase JWT bridge ──
+        // Exchanges the current Firebase ID token for a Supabase-signed JWT, then
+        // recreates sbClient so every PostgREST call carries the user's identity.
+        // Runs on login and every ~55 minutes to stay ahead of the 1-hour expiry.
+        let _sbSessionTimer = null;
+        async function refreshSupabaseSession(user) {
+            if (!user) return;
+            try {
+                const idToken = await user.getIdToken();
+                const res = await fetch(WORKER_URL + '/supabase-session', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + idToken }
+                });
+                if (!res.ok) { console.warn('Supabase session bridge failed:', res.status, await res.text()); return; }
+                const { access_token, expires_in } = await res.json();
+                sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                    global: { headers: { Authorization: 'Bearer ' + access_token } }
+                });
+                if (_sbSessionTimer) clearTimeout(_sbSessionTimer);
+                const refreshMs = Math.max(60000, (expires_in - 300) * 1000);
+                _sbSessionTimer = setTimeout(() => { if (auth.currentUser) refreshSupabaseSession(auth.currentUser); }, refreshMs);
+            } catch (e) { console.warn('refreshSupabaseSession error:', e); }
+        }
+        function clearSupabaseSession() {
+            if (_sbSessionTimer) { clearTimeout(_sbSessionTimer); _sbSessionTimer = null; }
+            try { sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e) {}
+        }
 
         let currentUser = null;
         let authLoading = true;
@@ -5316,6 +5345,7 @@ const renderAdminClientDetail = async (uid) => {
 
         auth.onAuthStateChanged(async (user) => {
             if (user) {
+                await refreshSupabaseSession(user);
                 const snap = await db.ref(`portal/users/${user.uid}`).once('value');
                 if (snap.exists()) {
                     const userData = snap.val();
@@ -5338,7 +5368,7 @@ const renderAdminClientDetail = async (uid) => {
                     await db.ref(`portal/users/${user.uid}`).set(profile);
                     currentUser = { uid: user.uid, ...profile };
                 }
-            } else { currentUser = null; }
+            } else { currentUser = null; clearSupabaseSession(); }
             authLoading = false;
             render();
         });
