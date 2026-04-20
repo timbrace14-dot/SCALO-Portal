@@ -1081,6 +1081,44 @@
             .impl-level-header { padding: 14px 14px; }
         }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* ── BUSINESS REPORT ── */
+        .br-period-grid { display:flex; flex-direction:column; gap:12px; margin-bottom:28px; }
+        .br-period { background:#0f0f0f; border:1.5px solid rgba(255,255,255,0.06); border-radius:14px; padding:20px 24px; }
+        .br-period.current { border-color: rgba(184,233,134,0.3); box-shadow: 0 0 0 1px rgba(184,233,134,0.08) inset; }
+        .br-period-head { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:6px 16px; margin-bottom:14px; }
+        .br-period-label { font-size:10px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:rgba(255,255,255,0.45); }
+        .br-period-hero { font-size:clamp(24px, 2.8vw, 34px); font-weight:800; letter-spacing:-0.02em; color:#fff; font-variant-numeric:tabular-nums; }
+        .br-period-hero-sub { font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:rgba(255,255,255,0.35); margin-left:6px; }
+        .br-capacity { margin-bottom:12px; }
+        .br-capacity-row { display:flex; justify-content:space-between; align-items:baseline; font-size:11px; color:rgba(255,255,255,0.55); margin-bottom:6px; letter-spacing:0.03em; }
+        .br-capacity-row strong { color:#fff; font-weight:700; }
+        .br-capacity-bar { width:100%; height:8px; background:rgba(255,255,255,0.05); border-radius:6px; overflow:hidden; position:relative; }
+        .br-capacity-fill { height:100%; background:linear-gradient(90deg, rgba(184,233,134,0.4), #B8E986); border-radius:6px; transition: width 1s cubic-bezier(0.22, 1, 0.36, 1); }
+        .br-capacity-missed { color:#F87171; font-weight:700; }
+        .br-period-row { display:flex; flex-wrap:wrap; gap:8px 14px; font-size:11px; color:rgba(255,255,255,0.55); padding-top:12px; border-top:1px solid rgba(255,255,255,0.05); }
+        .br-period-row strong { color:#fff; font-weight:700; }
+        .br-chart-card { background:#0f0f0f; border:1.5px solid rgba(255,255,255,0.06); border-radius:14px; padding:22px 20px 18px; margin-bottom:20px; }
+        .br-chart-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:10px; }
+        .br-chart-title { font-size:12px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.72); }
+        .br-chart-sub { font-size:11px; color:rgba(255,255,255,0.4); }
+        .br-chart { display:grid; grid-template-columns: repeat(var(--br-cols, 12), 1fr); align-items:end; gap:clamp(4px, 1vw, 10px); height:260px; padding-top:8px; }
+        .br-bar { display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:8px; height:100%; position:relative; min-width:0; }
+        .br-bar-value { font-family:inherit; font-weight:700; font-size:clamp(9px, 0.95vw, 11px); color:#fff; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; opacity:0; transform:translateY(4px); transition:opacity 0.6s ease, transform 0.6s ease; white-space:nowrap; }
+        .br-bar.in-view .br-bar-value { opacity:1; transform:translateY(0); }
+        .br-bar-fill { width:100%; max-width:52px; background: linear-gradient(to top, rgba(184,233,134,0.28), #B8E986); border-radius:5px 5px 0 0; height:0; transition: height 1.2s cubic-bezier(0.22, 1, 0.36, 1); }
+        .br-bar.current .br-bar-fill { box-shadow: 0 0 18px rgba(184,233,134,0.4), 0 -3px 0 #B8E986 inset; }
+        .br-bar-label { font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:rgba(255,255,255,0.42); margin-top:6px; white-space:nowrap; }
+        .br-bar.current .br-bar-label { color:#B8E986; }
+        .br-export-btn { background:#B8E986; color:#000; border:none; padding:10px 18px; border-radius:10px; font-weight:700; font-size:12px; cursor:pointer; font-family:inherit; }
+        .br-empty { text-align:center; padding:60px 20px; color:rgba(255,255,255,0.45); }
+        .br-empty-title { font-size:16px; font-weight:700; color:rgba(255,255,255,0.7); margin-bottom:6px; }
+        @media (max-width: 720px) {
+            .br-chart { height:200px; gap:3px; }
+            .br-bar-fill { max-width:32px; border-radius:4px 4px 0 0; }
+            .br-bar-value { font-size:8px; }
+            .br-bar-label { font-size:8px; letter-spacing:0.08em; }
+        }
     </style>
 </head>
 <body>
@@ -2885,6 +2923,212 @@
             ['revenue','rates','views','followers'].forEach(chartId => {
                 drawChart(chartId, progressViews[chartId] || 'month');
             });
+        };
+
+        // ── BUSINESS REPORT ──
+        // All-time / this-month / this-week summary + month-by-month animated
+        // bar chart. Same animation style as the waitlist landing page.
+        const brMonthKey = (d) => d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0');
+        const brMonthLabel = (key) => {
+            const [y, m] = key.split('-');
+            return new Date(Date.UTC(+y, +m - 1, 1)).toLocaleString('en-GB', { month: 'short' }).toUpperCase();
+        };
+        const brMonthLabelFull = (key) => {
+            const [y, m] = key.split('-');
+            return new Date(Date.UTC(+y, +m - 1, 1)).toLocaleString('en-GB', { month: 'short', year: '2-digit' }).toUpperCase();
+        };
+        const brFmtMoney = (v) => '£' + Math.round(v || 0).toLocaleString('en-GB');
+
+        const renderClientBusinessReport = async () => {
+            const snap = await db.ref(`portal/entries/${currentUser.uid}`).once('value');
+            const all = snap.val() || {};
+            const weekKeys = Object.keys(all).filter(k => /^\d{4}_W\d{1,2}$/.test(k));
+
+            if (weekKeys.length === 0) {
+                return `
+                    <div>
+                        <h2 class="page-title">Business Report</h2>
+                        <p class="page-subtitle">Your revenue hub — all-time, month, week.</p>
+                        <div class="br-empty">
+                            <div class="br-empty-title">No data logged yet</div>
+                            <div style="font-size:13px;">Log your numbers and your report will populate here automatically.</div>
+                            <button onclick="setPage('numbers')" style="margin-top:20px;background:${ACCENT};color:#000;border:none;padding:12px 24px;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;font-family:inherit;">Log Numbers &#x2192;</button>
+                        </div>
+                    </div>`;
+            }
+
+            const now = new Date();
+            const thisMonthKey = brMonthKey(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)));
+            const thisWeekKey = getWeekKey();
+
+            const monthRevenue = {};
+            const monthTotals = {};
+            const weekTotalsByKey = {};
+            let earliestMonthKey = thisMonthKey;
+
+            weekKeys.forEach(wk => {
+                const t = getWeeklyTotals(all[wk]);
+                weekTotalsByKey[wk] = t;
+                const monday = getMondayOfWeek(wk);
+                const mKey = brMonthKey(new Date(Date.UTC(monday.getFullYear(), monday.getMonth(), 1)));
+                monthRevenue[mKey] = (monthRevenue[mKey] || 0) + (t.revenue || 0);
+                if (!monthTotals[mKey]) monthTotals[mKey] = { revenue:0, newClients:0, rebookings:0, noShows:0, appointmentsFilled:0, appointmentsAvailable:0, businessExpenses:0, personalExpenses:0 };
+                ['revenue','newClients','rebookings','noShows','appointmentsFilled','appointmentsAvailable','businessExpenses','personalExpenses'].forEach(k => {
+                    monthTotals[mKey][k] += (t[k] || 0);
+                });
+                if (mKey < earliestMonthKey) earliestMonthKey = mKey;
+            });
+
+            const buildMonthRange = (startKey, endKey) => {
+                const [sy, sm] = startKey.split('-').map(Number);
+                const [ey, em] = endKey.split('-').map(Number);
+                const keys = [];
+                let y = sy, m = sm;
+                while (y < ey || (y === ey && m <= em)) {
+                    keys.push(y + '-' + String(m).padStart(2, '0'));
+                    m++; if (m > 12) { m = 1; y++; }
+                }
+                return keys;
+            };
+            const months = buildMonthRange(earliestMonthKey, thisMonthKey);
+
+            const emptyTot = { revenue:0, newClients:0, rebookings:0, noShows:0, appointmentsFilled:0, appointmentsAvailable:0, businessExpenses:0, personalExpenses:0 };
+            const allTime = weekKeys.reduce((acc, wk) => {
+                const t = weekTotalsByKey[wk];
+                Object.keys(acc).forEach(k => acc[k] += (t[k] || 0));
+                return acc;
+            }, { ...emptyTot });
+            const thisMonth = monthTotals[thisMonthKey] || { ...emptyTot };
+            const thisWeek = weekTotalsByKey[thisWeekKey] || { ...emptyTot };
+
+            const periodCard = (label, tot, isCurrent) => {
+                const avail = Math.round(tot.appointmentsAvailable);
+                const filled = Math.round(tot.appointmentsFilled);
+                const missed = Math.max(0, avail - filled);
+                const pct = avail > 0 ? Math.min(100, Math.round((filled / avail) * 100)) : 0;
+                const profit = tot.revenue - (tot.businessExpenses + tot.personalExpenses);
+                return `
+                <div class="br-period ${isCurrent ? 'current' : ''}">
+                    <div class="br-period-head">
+                        <div class="br-period-label">${label}</div>
+                        <div>
+                            <span class="br-period-hero">${brFmtMoney(tot.revenue)}</span>
+                            <span class="br-period-hero-sub">revenue</span>
+                        </div>
+                    </div>
+                    <div class="br-capacity">
+                        <div class="br-capacity-row">
+                            <span><strong>${filled.toLocaleString('en-GB')}</strong> of <strong>${avail.toLocaleString('en-GB')}</strong> appointments filled${avail > 0 ? ` · <span class="br-capacity-missed">${missed.toLocaleString('en-GB')} empty chair${missed === 1 ? '' : 's'}</span>` : ''}</span>
+                            <span><strong>${avail > 0 ? pct + '%' : '—'}</strong> capacity</span>
+                        </div>
+                        <div class="br-capacity-bar"><div class="br-capacity-fill" style="width:${pct}%;"></div></div>
+                    </div>
+                    <div class="br-period-row">
+                        <span><strong>${Math.round(tot.newClients).toLocaleString('en-GB')}</strong> new clients</span>
+                        <span><strong>${Math.round(tot.rebookings).toLocaleString('en-GB')}</strong> rebookings</span>
+                        <span><strong>${Math.round(tot.noShows).toLocaleString('en-GB')}</strong> no-shows</span>
+                        <span><strong>${brFmtMoney(profit)}</strong> profit</span>
+                    </div>
+                </div>`;
+            };
+
+            const maxVal = Math.max(1, ...months.map(k => monthRevenue[k] || 0));
+            const bars = months.map(k => {
+                const v = monthRevenue[k] || 0;
+                const h = (v / maxVal) * 100;
+                const isCurrent = k === thisMonthKey;
+                return `<div class="br-bar ${isCurrent ? 'current' : ''}" data-value="${v}" data-target-height="${h}">
+                    <div class="br-bar-value">£0</div>
+                    <div class="br-bar-fill"></div>
+                    <div class="br-bar-label">${months.length > 18 ? brMonthLabelFull(k) : brMonthLabel(k)}</div>
+                </div>`;
+            }).join('');
+
+            const csvRows = [['Month', 'Revenue', 'New Clients', 'Rebookings', 'No Shows', 'Appts Filled', 'Appts Available', 'Business Expenses', 'Personal Expenses']];
+            months.forEach(k => {
+                const t = monthTotals[k] || emptyTot;
+                csvRows.push([k, t.revenue, t.newClients, t.rebookings, t.noShows, t.appointmentsFilled, t.appointmentsAvailable, t.businessExpenses, t.personalExpenses]);
+            });
+            window._brCsvPayload = csvRows;
+
+            return `
+                <div>
+                    <h2 class="page-title">Business Report</h2>
+                    <p class="page-subtitle">Your revenue hub — backdated from your first entry to today.</p>
+
+                    <div class="br-period-grid">
+                        ${periodCard('All-Time', allTime, false)}
+                        ${periodCard('This Month', thisMonth, true)}
+                        ${periodCard('This Week', thisWeek, true)}
+                    </div>
+
+                    <div class="br-chart-card">
+                        <div class="br-chart-head">
+                            <div>
+                                <div class="br-chart-title">Month by Month</div>
+                                <div class="br-chart-sub">Revenue per month since you started logging</div>
+                            </div>
+                            <button class="br-export-btn" onclick="exportBusinessReportCsv()">&#x2193; Export CSV</button>
+                        </div>
+                        <div class="br-chart" id="brChart" style="--br-cols:${months.length};">
+                            ${bars}
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        window.animateBusinessReportChart = () => {
+            const chart = document.getElementById('brChart');
+            if (!chart) return;
+            const bars = chart.querySelectorAll('.br-bar');
+            if (!bars.length) return;
+            const countUp = (el, target, durationMs) => {
+                const start = performance.now();
+                const tick = () => {
+                    const t = Math.min(1, (performance.now() - start) / durationMs);
+                    const eased = 1 - Math.pow(1 - t, 3);
+                    el.textContent = '£' + Math.round(target * eased).toLocaleString('en-GB');
+                    if (t < 1) requestAnimationFrame(tick);
+                };
+                requestAnimationFrame(tick);
+            };
+            const play = () => {
+                const stagger = Math.max(80, Math.min(500, 4500 / Math.max(1, bars.length)));
+                bars.forEach((bar, i) => {
+                    setTimeout(() => {
+                        const h = parseFloat(bar.getAttribute('data-target-height')) || 0;
+                        const target = parseFloat(bar.getAttribute('data-value')) || 0;
+                        bar.querySelector('.br-bar-fill').style.height = h + '%';
+                        bar.classList.add('in-view');
+                        countUp(bar.querySelector('.br-bar-value'), target, 1100);
+                    }, i * stagger);
+                });
+            };
+            if (!('IntersectionObserver' in window)) { play(); return; }
+            let played = false;
+            const io = new IntersectionObserver((entries) => {
+                entries.forEach((e) => {
+                    if (e.isIntersecting && !played) { played = true; play(); io.disconnect(); }
+                });
+            }, { threshold: 0.2 });
+            io.observe(chart);
+        };
+
+        window.exportBusinessReportCsv = () => {
+            const rows = window._brCsvPayload || [];
+            if (!rows.length) return;
+            const csv = rows.map(r => r.map(v => {
+                const s = String(v == null ? '' : v);
+                return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+            }).join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'scalo-business-report-' + new Date().toISOString().slice(0,10) + '.csv';
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
         };
 
         // ── CONTENT LIBRARY ──
@@ -5041,6 +5285,7 @@ const renderAdminClientDetail = async (uid) => {
             const clientNavItems = [
                 { page: 'hub', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="5.5" height="5.5" rx="1.2"/><rect x="9.5" y="1" width="5.5" height="5.5" rx="1.2"/><rect x="1" y="9.5" width="5.5" height="5.5" rx="1.2"/><rect x="9.5" y="9.5" width="5.5" height="5.5" rx="1.2"/></svg>', label: 'Overview' },
                 { page: 'implementation', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12L6 4L10 9L14 2"/><circle cx="6" cy="4" r="1.2" fill="currentColor"/><circle cx="10" cy="9" r="1.2" fill="currentColor"/></svg>', label: 'The Roadmap' },
+                { page: 'businessReport', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h6l3 3V14a0.5 0.5 0 0 1-0.5 0.5h-8.5A0.5 0.5 0 0 1 3 14V2a0.5 0.5 0 0 1 0.5-0.5Z"/><path d="M9.5 1.5v3h3"/><path d="M5.5 11v-1M8 11V8.5M10.5 11V6.5"/></svg>', label: 'Business Report' },
                 { page: 'icp', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><circle cx="8" cy="8" r="4" opacity="0.6"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/></svg>', label: 'Your ICP' },
                 { page: 'numbers', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><text x="3" y="12.5" font-size="13" font-weight="700" fill="currentColor" stroke="none" font-family="sans-serif">$</text></svg>', label: 'Business' },
                 { page: 'tasks', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5L6.5 12L13 4"/></svg>', label: 'Tasks' },
@@ -5091,6 +5336,7 @@ const renderAdminClientDetail = async (uid) => {
             } else {
                 if (currentPage === 'hub') pageContent = await renderClientHub();
                 else if (currentPage === 'implementation') pageContent = await renderClientImplementation();
+                else if (currentPage === 'businessReport') pageContent = await renderClientBusinessReport();
                 else if (currentPage === 'numbers') pageContent = await renderClientNumbers();
                 else if (currentPage === 'tasks') pageContent = await renderClientTasks();
                 else if (currentPage === 'icp') pageContent = await renderClientICP();
@@ -5101,7 +5347,7 @@ const renderAdminClientDetail = async (uid) => {
                 else if (currentPage === 'scaleSignal') pageContent = await renderClientScaleSignal();
             }
 
-            const pageTitles = { hub:'Overview', implementation:'The Roadmap', numbers:'Log Your Numbers', tasks:'Your Tasks', content:'Content Library', inspo:'Inspo Feed', social:'Social Profiles', progress:'Analytics', scaleSignal:'The Scale Signal', clients:'Your Clients', addClient:'Add New Client', crm:'Client CRM', clientDetail:'Client Detail' };
+            const pageTitles = { hub:'Overview', implementation:'The Roadmap', businessReport:'Business Report', numbers:'Log Your Numbers', tasks:'Your Tasks', content:'Content Library', inspo:'Inspo Feed', social:'Social Profiles', progress:'Analytics', scaleSignal:'The Scale Signal', clients:'Your Clients', addClient:'Add New Client', crm:'Client CRM', clientDetail:'Client Detail' };
             const pageTitle = pageTitles[currentPage] || '';
             const initials = ((currentUser.firstName||'?')[0] + (currentUser.lastName||'?')[0]).toUpperCase();
             const avatarHtml = currentUser.profilePicture
@@ -5133,6 +5379,7 @@ const renderAdminClientDetail = async (uid) => {
             if (currentPage === 'progress' && !isAdmin) setTimeout(renderProgressCharts, 50);
             if (currentPage === 'hub' && !isAdmin) setTimeout(renderHubCharts, 50);
             if (currentPage === 'social' && !isAdmin) setTimeout(renderSocialCharts, 50);
+            if (currentPage === 'businessReport' && !isAdmin) setTimeout(animateBusinessReportChart, 60);
 
             // Event listeners
             if (isAdmin) {
