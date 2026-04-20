@@ -30,37 +30,6 @@
             --green: #4ADE80;
         }
 
-        .theme-toggle {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 50px;
-            padding: 3px;
-            margin-right: 8px;
-        }
-        .theme-btn {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            border: none;
-            background: transparent;
-            color: rgba(255,255,255,0.4);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-            font-size: 14px;
-            padding: 0;
-        }
-        .theme-btn.active {
-            background: rgba(255,255,255,0.12);
-            color: #fff;
-        }
-        .theme-btn:hover { color: rgba(255,255,255,0.7); }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         html { overflow-x: hidden; }
@@ -817,7 +786,7 @@
 
     <script>
         // ── DESIGN TOKENS (theme-aware) ──
-        function isLightMode() { return document.documentElement.classList.contains('light-mode'); }
+        function isLightMode() { return false; }
         Object.defineProperty(window, 'ACCENT', { get() { return isLightMode() ? '#4A7A2E' : '#B8E986'; } });
         Object.defineProperty(window, 'ACCENT_DIM', { get() { return isLightMode() ? 'rgba(74,122,46,0.1)' : 'rgba(184,233,134,0.15)'; } });
         Object.defineProperty(window, 'ACCENT_RGBA', { get() { return isLightMode() ? 'rgba(74,122,46,' : 'rgba(184,233,134,'; } });
@@ -1276,6 +1245,30 @@
             const allOccupancy = allApptsAvailable > 0 ? (allApptsFilled / allApptsAvailable * 100) : 0;
             const allRebook = allApptsFilled > 0 ? (allRebookings / allApptsFilled * 100) : 0;
 
+            // ── Last month rate calculations for coaching alerts ──
+            const now = new Date();
+            const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const lastMonthYear = lastMonth.getFullYear();
+            const lastMonthNum = lastMonth.getMonth(); // 0-indexed
+            const lastMonthName = lastMonth.toLocaleDateString('en-GB', { month: 'long' });
+            let lmApptsAvailable = 0, lmApptsFilled = 0, lmRebookings = 0, lmWeeksLogged = 0;
+            Object.entries(entries).forEach(([wk, e]) => {
+                const yr = parseInt(wk.split('_')[0]);
+                const wn = parseInt(wk.split('_W')[1]);
+                const d = new Date(yr, 0, 1 + (wn - 1) * 7);
+                if (d.getFullYear() === lastMonthYear && d.getMonth() === lastMonthNum) {
+                    const t = getWeeklyTotals(e);
+                    lmApptsAvailable += t.appointmentsAvailable;
+                    lmApptsFilled += t.appointmentsFilled;
+                    lmRebookings += t.rebookings;
+                    lmWeeksLogged++;
+                }
+            });
+            const lmOccupancy = lmApptsAvailable > 0 ? (lmApptsFilled / lmApptsAvailable * 100) : 0;
+            const lmRebook = lmApptsFilled > 0 ? (lmRebookings / lmApptsFilled * 100) : 0;
+            const showRebookAlert = lmWeeksLogged > 0 && lmRebook < 50 && !sessionStorage.getItem('dismissedRebookAlert');
+            const showOccupancyAlert = lmWeeksLogged > 0 && lmOccupancy >= 80 && !sessionStorage.getItem('dismissedOccupancyAlert');
+
             hubChartData = { trueMargin, occupancy, rebook, allTrueProfitMargin, allOccupancy, allRebook, revenue, expenses, lossOfEarnings, trueProfit, noShows, avgTicket, appointmentsAvailable: currentEntry.appointmentsAvailable||0, appointmentsFilled: currentEntry.appointmentsFilled||0, rebookings: currentEntry.rebookings||0 };
 
             const incompleteTasks = Object.entries(tasks).filter(([, task]) => {
@@ -1297,6 +1290,32 @@
                     <div class="greeting" style="margin-bottom:20px;">
                         <div class="greeting-text">${greeting}, <strong>${currentUser.firstName}</strong></div>
                     </div>
+
+                    ${showRebookAlert ? `
+                    <!-- REBOOK RATE ALERT -->
+                    <div id="rebookAlertBanner" style="background:linear-gradient(135deg,#1a1508,#1a1208);border:1px solid rgba(251,191,36,0.25);border-left:4px solid #FBBF24;border-radius:14px;padding:18px 20px;margin-bottom:16px;display:flex;align-items:flex-start;justify-content:space-between;gap:14px;">
+                        <div style="flex:1;">
+                            <div style="font-size:13px;font-weight:700;color:#FBBF24;margin-bottom:6px;display:flex;align-items:center;gap:8px;">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#FBBF24" stroke-width="1.5"><path d="M8 1L15 14H1L8 1z"/><path d="M8 6v4"/><circle cx="8" cy="12" r="0.5" fill="#FBBF24"/></svg>
+                                Rebook Rate: ${lmRebook.toFixed(0)}% in ${lastMonthName}
+                            </div>
+                            <div style="font-size:13px;color:rgba(255,255,255,0.75);line-height:1.5;">Hey ${currentUser.firstName}, your rebook rate is under 50%. You really need to focus on rebooking all your clients, as this is going to increase and swell the pipeline moving forward.</div>
+                        </div>
+                        <button onclick="dismissAlert('rebook')" style="background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-size:18px;padding:0;line-height:1;flex-shrink:0;">&times;</button>
+                    </div>` : ''}
+
+                    ${showOccupancyAlert ? `
+                    <!-- OCCUPANCY RATE ALERT -->
+                    <div id="occupancyAlertBanner" style="background:linear-gradient(135deg,#0a1a0f,#0a1a12);border:1px solid rgba(74,222,128,0.25);border-left:4px solid #4ADE80;border-radius:14px;padding:18px 20px;margin-bottom:16px;display:flex;align-items:flex-start;justify-content:space-between;gap:14px;">
+                        <div style="flex:1;">
+                            <div style="font-size:13px;font-weight:700;color:#4ADE80;margin-bottom:6px;display:flex;align-items:center;gap:8px;">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#4ADE80" stroke-width="1.5"><path d="M8 1v6l4 2"/><circle cx="8" cy="8" r="7"/></svg>
+                                Occupancy Rate: ${lmOccupancy.toFixed(0)}% in ${lastMonthName}
+                            </div>
+                            <div style="font-size:13px;color:rgba(255,255,255,0.75);line-height:1.5;">Hey ${currentUser.firstName}, you've had a month of a consistent occupancy rate of over 80%. I think you should highly consider raising your prices and start a conversation with Tim.</div>
+                        </div>
+                        <button onclick="dismissAlert('occupancy')" style="background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-size:18px;padding:0;line-height:1;flex-shrink:0;">&times;</button>
+                    </div>` : ''}
 
                     <!-- GOALS SECTION -->
                     <div style="background:#0f0f0f;border:0.5px solid #2a2a2a;border-radius:16px;padding:28px 24px;margin-bottom:24px;">
@@ -1909,10 +1928,10 @@
                     const isCurrency = CURRENCY_FIELDS.includes(key);
                     const val = dayData[key] !== undefined && dayData[key] !== null ? dayData[key] : '';
                     return `<div>
-                        <div class="form-label">${FIELD_LABELS[fi]}</div>
+                        <div class="form-label" style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:6px;letter-spacing:0.05em;">${FIELD_LABELS[fi]}</div>
                         ${isCurrency ? `<div style="position:relative;"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.45);font-size:14px;">&#xA3;</span>
-                        <input type="number" class="num-field day-field-${idx}" data-key="${key}" data-day="${idx}" value="${val}" inputmode="numeric" style="padding-left:28px;" placeholder="0"></div>`
-                        : `<input type="number" class="num-field day-field-${idx}" data-key="${key}" data-day="${idx}" value="${val}" inputmode="numeric" placeholder="0">`}
+                        <input type="number" class="num-field day-field-${idx}" data-key="${key}" data-day="${idx}" value="${val}" inputmode="numeric" style="padding-left:28px;" placeholder="${FIELD_LABELS[fi]}"></div>`
+                        : `<input type="number" class="num-field day-field-${idx}" data-key="${key}" data-day="${idx}" value="${val}" inputmode="numeric" placeholder="${FIELD_LABELS[fi]}">`}
                     </div>`;
                 }).join('');
 
@@ -5103,6 +5122,19 @@ const renderAdminClientDetail = async (uid) => {
                         btn.addEventListener('click', () => handleDeleteContent(btn.dataset.id));
                     });
                 }
+            }
+        };
+
+        // ── DISMISS COACHING ALERT ──
+        window.dismissAlert = (type) => {
+            if (type === 'rebook') {
+                sessionStorage.setItem('dismissedRebookAlert', '1');
+                const el = document.getElementById('rebookAlertBanner');
+                if (el) el.style.display = 'none';
+            } else if (type === 'occupancy') {
+                sessionStorage.setItem('dismissedOccupancyAlert', '1');
+                const el = document.getElementById('occupancyAlertBanner');
+                if (el) el.style.display = 'none';
             }
         };
 
