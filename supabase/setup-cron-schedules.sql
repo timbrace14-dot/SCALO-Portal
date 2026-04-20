@@ -77,6 +77,15 @@ SELECT cron.schedule(
   $$
 );
 
+-- 4. KEEPALIVE: Prevent Supabase free-tier inactivity pausing (every 3 days at 4:00 AM UTC)
+SELECT cron.schedule(
+  'keepalive',
+  '0 4 */3 * *',  -- Every 3 days at 4:00 AM UTC
+  $$
+  SELECT count(*) FROM information_schema.tables;
+  $$
+);
+
 -- View scheduled jobs:
 -- SELECT * FROM cron.job;
 
