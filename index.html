@@ -5197,7 +5197,7 @@ const renderAdminClientDetail = async (uid) => {
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.47 3.53a9.96 9.96 0 0 0-7.06-2.93C5.56.6 1.34 4.8 1.32 9.65c0 1.58.42 3.13 1.2 4.5L1.2 19.2l5.16-1.35a9.6 9.6 0 0 0 4.04.91h.01c4.85 0 9.07-4.2 9.09-9.06a9.94 9.94 0 0 0-2.03-5.17zM10.41 17.2a7.56 7.56 0 0 1-3.87-1.06l-.28-.16-2.88.76.77-2.82-.18-.29a7.54 7.54 0 0 1-1.16-4.01c0-4.06 3.3-7.37 7.37-7.37a7.3 7.3 0 0 1 5.21 2.17 7.35 7.35 0 0 1 2.15 5.22c-.01 4.06-3.31 7.37-7.37 7.37zm4.04-5.52c-.22-.11-1.3-.64-1.5-.72-.21-.07-.36-.11-.51.11-.15.22-.58.72-.72.87-.13.15-.26.17-.49.06-.22-.11-.93-.34-1.78-1.1-.66-.58-1.1-1.3-1.23-1.52-.13-.22-.01-.34.1-.45.1-.1.22-.26.33-.39.11-.13.15-.22.22-.37.07-.15.04-.28-.02-.39-.06-.11-.51-1.24-.7-1.69-.18-.45-.37-.38-.51-.39h-.44c-.15 0-.39.06-.6.28-.2.22-.78.76-.78 1.86s.8 2.16.91 2.31c.11.15 1.58 2.41 3.83 3.38.54.23.95.37 1.28.47.54.17 1.03.15 1.42.09.43-.07 1.3-.53 1.49-1.05.18-.51.18-.95.13-1.05-.06-.09-.21-.15-.44-.26z"/></svg>
                                 Book a Call
                             </a>
-                            <button onclick="firebase.database().ref('portal/scale_signal/' + currentUser.uid).remove().then(() => navigateTo('scaleSignal'))" style="flex:1;padding:14px;background:var(--bg-input);border:1px solid var(--border);color:rgba(255,255,255,0.6);border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;">
+                            <button onclick="firebase.database().ref('portal/scale_signal/' + currentUser.uid).remove().then(() => setPage('scaleSignal'))" style="flex:1;padding:14px;background:var(--bg-input);border:1px solid var(--border);color:rgba(255,255,255,0.6);border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;">
                                 Retake Assessment
                             </button>
                         </div>
@@ -5636,32 +5636,45 @@ const renderAdminClientDetail = async (uid) => {
                 </div>
             `;
 
+            const pageTitles = { hub:'Overview', implementation:'The Roadmap', businessReport:'Business Report', numbers:'Log Your Numbers', tasks:'Your Tasks', content:'Content Library', inspo:'Inspo Feed', social:'Social Profiles', progress:'Analytics', scaleSignal:'The Scale Signal', intelligence:'SCALO Intelligence', clients:'Your Clients', addClient:'Add New Client', crm:'Client CRM', clientDetail:'Client Detail' };
+
             let pageContent = '';
-            if (isAdmin) {
-                if (currentPage === 'clients') pageContent = await renderAdminClients();
-                else if (currentPage === 'addClient') pageContent = await renderAdminAddClient();
-                else if (currentPage === 'tasks') pageContent = await renderAdminTasks();
-                else if (currentPage === 'crm') pageContent = await renderAdminCRM();
-                else if (currentPage === 'clientDetail' && selectedClientDetail) pageContent = await renderAdminClientDetail(selectedClientDetail);
-                else if (currentPage === 'scaleSignal') pageContent = await renderAdminScaleSignal();
-                else { currentPage = 'clients'; pageContent = await renderAdminClients(); }
-            } else {
-                if (currentPage === 'hub') pageContent = await renderClientHub();
-                else if (currentPage === 'implementation') pageContent = await renderClientImplementation();
-                else if (currentPage === 'businessReport') pageContent = await renderClientBusinessReport();
-                else if (currentPage === 'numbers') pageContent = await renderClientNumbers();
-                else if (currentPage === 'tasks') pageContent = await renderClientTasks();
-                else if (currentPage === 'icp') pageContent = await renderClientICP();
-                else if (currentPage === 'content') pageContent = await renderClientContent();
-                else if (currentPage === 'inspo') pageContent = await renderClientInspo();
-                else if (currentPage === 'social') pageContent = await renderClientSocial();
-                else if (currentPage === 'progress') pageContent = await renderClientProgress();
-                else if (currentPage === 'scaleSignal') pageContent = await renderClientScaleSignal();
-                else if (currentPage === 'intelligence' && SCALO_INTELLIGENCE_ENABLED) pageContent = await renderClientIntelligence();
-                else if (currentPage === 'intelligence') { currentPage = 'hub'; pageContent = await renderClientHub(); }
+            try {
+                if (isAdmin) {
+                    if (currentPage === 'clients') pageContent = await renderAdminClients();
+                    else if (currentPage === 'addClient') pageContent = await renderAdminAddClient();
+                    else if (currentPage === 'tasks') pageContent = await renderAdminTasks();
+                    else if (currentPage === 'crm') pageContent = await renderAdminCRM();
+                    else if (currentPage === 'clientDetail' && selectedClientDetail) pageContent = await renderAdminClientDetail(selectedClientDetail);
+                    else if (currentPage === 'scaleSignal') pageContent = await renderAdminScaleSignal();
+                    else { currentPage = 'clients'; pageContent = await renderAdminClients(); }
+                } else {
+                    if (currentPage === 'hub') pageContent = await renderClientHub();
+                    else if (currentPage === 'implementation') pageContent = await renderClientImplementation();
+                    else if (currentPage === 'businessReport') pageContent = await renderClientBusinessReport();
+                    else if (currentPage === 'numbers') pageContent = await renderClientNumbers();
+                    else if (currentPage === 'tasks') pageContent = await renderClientTasks();
+                    else if (currentPage === 'icp') pageContent = await renderClientICP();
+                    else if (currentPage === 'content') pageContent = await renderClientContent();
+                    else if (currentPage === 'inspo') pageContent = await renderClientInspo();
+                    else if (currentPage === 'social') pageContent = await renderClientSocial();
+                    else if (currentPage === 'progress') pageContent = await renderClientProgress();
+                    else if (currentPage === 'scaleSignal') pageContent = await renderClientScaleSignal();
+                    else if (currentPage === 'intelligence' && SCALO_INTELLIGENCE_ENABLED) pageContent = await renderClientIntelligence();
+                    else if (currentPage === 'intelligence') { currentPage = 'hub'; pageContent = await renderClientHub(); }
+                }
+            } catch (err) {
+                console.error('Render failed for page "' + currentPage + '":', err);
+                const errMsg = (err && err.message) ? err.message : String(err);
+                pageContent = '<div style="max-width:560px;margin:60px auto;padding:32px;background:rgba(255,69,51,0.06);border:1px solid rgba(255,69,51,0.25);border-radius:14px;text-align:center;">'
+                    + '<div style="font-size:32px;margin-bottom:12px;">&#9888;</div>'
+                    + '<div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:8px;">Couldn’t load this page</div>'
+                    + '<div style="font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:18px;line-height:1.5;">Something went wrong loading <strong>' + (pageTitles[currentPage] || currentPage) + '</strong>. Try refreshing, or head back to the overview.</div>'
+                    + '<div style="font-size:11px;color:rgba(255,255,255,0.35);font-family:monospace;background:rgba(0,0,0,0.3);padding:8px 12px;border-radius:8px;word-break:break-word;margin-bottom:18px;">' + errMsg.replace(/</g,'&lt;') + '</div>'
+                    + '<button onclick="setPage(\'' + (isAdmin ? 'clients' : 'hub') + '\')" style="background:var(--accent);color:#000;border:none;padding:10px 22px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Back to ' + (isAdmin ? 'Clients' : 'Overview') + '</button>'
+                    + '</div>';
             }
 
-            const pageTitles = { hub:'Overview', implementation:'The Roadmap', businessReport:'Business Report', numbers:'Log Your Numbers', tasks:'Your Tasks', content:'Content Library', inspo:'Inspo Feed', social:'Social Profiles', progress:'Analytics', scaleSignal:'The Scale Signal', intelligence:'SCALO Intelligence', clients:'Your Clients', addClient:'Add New Client', crm:'Client CRM', clientDetail:'Client Detail' };
             const pageTitle = pageTitles[currentPage] || '';
             const topbarHtml = `
                 <div class="portal-topbar">
