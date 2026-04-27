@@ -162,6 +162,50 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+        .sidebar-currency {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 0 16px;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.55);
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+        .sidebar-currency-label {
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: 9px;
+            color: rgba(255,255,255,0.4);
+            font-weight: 700;
+        }
+        .sidebar-currency-select {
+            flex: 1;
+            background: none;
+            border: none;
+            color: #fff;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 2px 4px;
+            text-align: right;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10' fill='none' stroke='%23ffffff80' stroke-width='1.5'%3E%3Cpath d='M2 4l3 3 3-3'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 4px center;
+            padding-right: 18px;
+        }
+        .sidebar-currency-select:focus { outline: none; color: var(--accent); }
+        .sidebar-currency-select option { background: #141414; color: #fff; }
+        @media (max-width: 640px) {
+            .sidebar-currency { display: none; }
+        }
 
         .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 
@@ -1833,6 +1877,17 @@
         // Sidebar section state: section id -> true (expanded) / false (collapsed). Undefined = use default.
         let sidebarSectionToggles = {};
 
+        // Currency: default GBP, overridden per user when they log in
+        const CURRENCIES = {
+            GBP: { symbol: '£', locale: 'en-GB', label: 'GBP', flag: '🇬🇧' },
+            EUR: { symbol: '€', locale: 'en-IE', label: 'EUR', flag: '🇪🇺' },
+            USD: { symbol: '$', locale: 'en-US', label: 'USD', flag: '🇺🇸' },
+            AUD: { symbol: 'A$', locale: 'en-AU', label: 'AUD', flag: '🇦🇺' },
+        };
+        let userCurrency = 'GBP';
+        const getCurrency = () => CURRENCIES[userCurrency] || CURRENCIES.GBP;
+        const currencySymbol = () => getCurrency().symbol;
+
         const IMPLEMENTATION_MODULES = [
             { level: 0, title: 'Level Zero: Brand Genesis', items: [
                 { id: 'l0_first_steps', title: 'First Steps into Brand Genesis', url: 'https://www.skool.com/scalo-6527/classroom/8e9a5112?md=b44610339b7d42759bd8b3af93d56f97' },
@@ -1962,7 +2017,11 @@
             return `${d.getFullYear()}_W${String(week).padStart(2, '0')}`;
         };
 
-        const formatCurrency = (val) => val ? `£${(parseFloat(val) || 0).toLocaleString('en-GB', {maximumFractionDigits: 0})}` : '£0';
+        const formatCurrency = (val) => {
+            const c = getCurrency();
+            if (!val) return c.symbol + '0';
+            return c.symbol + (parseFloat(val) || 0).toLocaleString(c.locale, { maximumFractionDigits: 0 });
+        };
 
         const formatNumber = (val) => {
             if (!val && val !== 0) return '0';
@@ -2917,7 +2976,7 @@
                     const val = dayData[key] !== undefined && dayData[key] !== null ? dayData[key] : '';
                     return `<div>
                         <div class="form-label" style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:6px;letter-spacing:0.05em;">${FIELD_LABELS[fi]}</div>
-                        ${isCurrency ? `<div style="position:relative;"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.45);font-size:14px;">&#xA3;</span>
+                        ${isCurrency ? `<div style="position:relative;"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.45);font-size:14px;">${currencySymbol()}</span>
                         <input type="number" class="num-field day-field-${idx}" data-key="${key}" data-day="${idx}" value="${val}" inputmode="numeric" style="padding-left:28px;" placeholder="${FIELD_LABELS[fi]}"></div>`
                         : `<input type="number" class="num-field day-field-${idx}" data-key="${key}" data-day="${idx}" value="${val}" inputmode="numeric" placeholder="${FIELD_LABELS[fi]}">`}
                     </div>`;
@@ -3009,7 +3068,7 @@
                     ${FIELD_KEYS.map((key, fi) => {
                         const val = totals[key] || 0;
                         const isCurrency = CURRENCY_FIELDS.includes(key);
-                        const display = isCurrency ? '&#xA3;' + parseFloat(val).toLocaleString('en-GB', {minimumFractionDigits:0, maximumFractionDigits:2}) : Math.round(val).toLocaleString('en-GB');
+                        const display = isCurrency ? currencySymbol() + parseFloat(val).toLocaleString(getCurrency().locale, {minimumFractionDigits:0, maximumFractionDigits:2}) : Math.round(val).toLocaleString('en-GB');
                         return `<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;text-align:center;">
                             <div style="font-size:9px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">${FIELD_LABELS[fi]}${key === 'avgTicketPrice' ? ' (avg)' : ''}</div>
                             <div style="font-size:16px;font-weight:700;color:${key === 'revenue' ? '#4ADE80' : key === 'expenses' ? '#FF4533' : '#fff'};">${display}</div>
@@ -3606,7 +3665,7 @@
             Chart.register(gradientBarPlugin);
             const barDs = (d, color) => [{ data:d, backgroundColor: d.map((v,i)=>i===d.length-1?color:color+'66'), _gradientColors: d.map((v,i)=>i===d.length-1?color:color+'66'), borderRadius:6, borderSkipped:false, borderWidth: 0, hoverBackgroundColor: color }];
             if (chartId === 'revenue') {
-                new Chart(canvas, { type:'bar', data:{ labels, datasets: barDs(data.map(w=>w.revenue||0),ACCENT) }, options:{ ...baseOpts, plugins:{ ...baseOpts.plugins, tooltip:{ callbacks:{ label: ctx=>' £'+ctx.raw.toLocaleString('en-GB') } } } } });
+                new Chart(canvas, { type:'bar', data:{ labels, datasets: barDs(data.map(w=>w.revenue||0),ACCENT) }, options:{ ...baseOpts, plugins:{ ...baseOpts.plugins, tooltip:{ callbacks:{ label: ctx=>' '+currencySymbol()+ctx.raw.toLocaleString(getCurrency().locale) } } } } });
             } else if (chartId === 'rates') {
                 new Chart(canvas, { type:'bar', data:{ labels, datasets:[
                     { label:'Occupancy %', data: data.map(w=>w.appointmentsAvailable>0?Math.round(w.appointmentsFilled/w.appointmentsAvailable*100):0), backgroundColor:ACCENT+'99', borderRadius:4 },
@@ -3685,7 +3744,7 @@
             const [y, m] = key.split('-');
             return new Date(Date.UTC(+y, +m - 1, 1)).toLocaleString('en-GB', { month: 'short', year: '2-digit' }).toUpperCase();
         };
-        const brFmtMoney = (v) => '£' + Math.round(v || 0).toLocaleString('en-GB');
+        const brFmtMoney = (v) => currencySymbol() + Math.round(v || 0).toLocaleString(getCurrency().locale);
 
         const renderClientBusinessReport = async () => {
             const snap = await db.ref(`portal/entries/${currentUser.uid}`).once('value');
@@ -3807,7 +3866,7 @@
                 const h = (v / maxVal) * 100;
                 const isCurrent = k === thisMonthKey;
                 return `<div class="br-bar ${isCurrent ? 'current' : ''}" data-value="${v}" data-target-height="${h}">
-                    <div class="br-bar-value">£0</div>
+                    <div class="br-bar-value">${currencySymbol()}0</div>
                     <div class="br-bar-fill"></div>
                     <div class="br-bar-label">${months.length > 18 ? brMonthLabelFull(k) : brMonthLabel(k)}</div>
                 </div>`;
@@ -3857,7 +3916,7 @@
                 const tick = () => {
                     const t = Math.min(1, (performance.now() - start) / durationMs);
                     const eased = 1 - Math.pow(1 - t, 3);
-                    el.textContent = '£' + Math.round(target * eased).toLocaleString('en-GB');
+                    el.textContent = currencySymbol() + Math.round(target * eased).toLocaleString(getCurrency().locale);
                     if (t < 1) requestAnimationFrame(tick);
                 };
                 requestAnimationFrame(tick);
@@ -5887,7 +5946,10 @@ const renderAdminClientDetail = async (uid) => {
         const INV_CATEGORIES = ['stocks', 'crypto', 'business'];
         const INV_CATEGORY_LABELS = { stocks: 'Stocks/Funds', crypto: 'Crypto', business: 'Business' };
 
-        const formatMoney = (n) => '£' + (Math.round((Number(n) || 0) * 100) / 100).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        const formatMoney = (n) => {
+            const c = getCurrency();
+            return c.symbol + (Math.round((Number(n) || 0) * 100) / 100).toLocaleString(c.locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        };
 
         // ── COUNT-UP ANIMATION ──
         // Apply data-countup="<targetNumber>" data-countup-prefix="£" to any element to animate it on render.
@@ -6141,7 +6203,7 @@ const renderAdminClientDetail = async (uid) => {
                     <div class="money-hero">
                         <div class="money-hero-card">
                             <div class="money-hero-label">Total saved</div>
-                            <div class="money-hero-value" data-countup="${Math.round(saved)}" data-countup-prefix="£">${formatMoney(saved)}</div>
+                            <div class="money-hero-value" data-countup="${Math.round(saved)}" data-countup-prefix="${currencySymbol()}">${formatMoney(saved)}</div>
                             <div class="money-hero-sub">${formatMoney(weeklyTarget)}/week target</div>
                         </div>
                         <div class="money-hero-card">
@@ -6151,7 +6213,7 @@ const renderAdminClientDetail = async (uid) => {
                         </div>
                         <div class="money-hero-card">
                             <div class="money-hero-label">Total invested</div>
-                            <div class="money-hero-value" data-countup="${Math.round(invested)}" data-countup-prefix="£">${formatMoney(invested)}</div>
+                            <div class="money-hero-value" data-countup="${Math.round(invested)}" data-countup-prefix="${currencySymbol()}">${formatMoney(invested)}</div>
                             <div class="money-hero-sub">${invEntries.length === 0 ? 'No entries yet' : Object.keys(investments.entries || {}).length + ' entries'}</div>
                         </div>
                     </div>
@@ -6783,6 +6845,15 @@ const renderAdminClientDetail = async (uid) => {
                             <div class="sidebar-profile-name">${sidebarFullName}</div>
                         </div>
                     </div>
+                    ${!isAdmin ? `
+                    <div class="sidebar-currency" onclick="event.stopPropagation()">
+                        <span class="sidebar-currency-label">Currency</span>
+                        <select class="sidebar-currency-select" onchange="changeCurrency(this.value)" aria-label="Currency">
+                            ${Object.entries(CURRENCIES).map(([code, c]) => `
+                                <option value="${code}" ${userCurrency === code ? 'selected' : ''}>${c.flag} ${c.label}</option>
+                            `).join('')}
+                        </select>
+                    </div>` : ''}
                     <div class="sidebar-nav">
                         ${navHtml}
                     </div>
@@ -6956,6 +7027,21 @@ const renderAdminClientDetail = async (uid) => {
         document.documentElement.classList.remove('light-mode');
 
         window.setPage = (page) => { currentPage = page; render(); };
+        window.changeCurrency = async (code) => {
+            if (!CURRENCIES[code]) return;
+            userCurrency = code;
+            if (currentUser && currentUser.uid) {
+                try {
+                    await db.ref('portal/users/' + currentUser.uid + '/currency').set(code);
+                    currentUser.currency = code;
+                    toast.success('Currency set to ' + CURRENCIES[code].label);
+                } catch (e) {
+                    toast.error('Could not save currency: ' + e.message);
+                }
+            }
+            render();
+        };
+
         window.toggleSidebarSection = (sectionId) => {
             // Read the current rendered state directly to avoid recomputing default logic here
             const el = document.querySelector('.sidebar-section[data-id="' + sectionId + '"]');
@@ -7083,6 +7169,7 @@ const renderAdminClientDetail = async (uid) => {
                     } else {
                         accessRevoked = false;
                         currentUser = { uid: user.uid, ...userData };
+                        userCurrency = (userData.currency && CURRENCIES[userData.currency]) ? userData.currency : 'GBP';
                         db.ref(`portal/users/${user.uid}/lastLogin`).set(new Date().toISOString());
                         // Setup push notifications for students (not admin)
                         if (userData.role !== 'admin') {
@@ -7094,7 +7181,7 @@ const renderAdminClientDetail = async (uid) => {
                     await db.ref(`portal/users/${user.uid}`).set(profile);
                     currentUser = { uid: user.uid, ...profile };
                 }
-            } else { currentUser = null; clearSupabaseSession(); }
+            } else { currentUser = null; userCurrency = 'GBP'; clearSupabaseSession(); }
             authLoading = false;
             render();
         });
