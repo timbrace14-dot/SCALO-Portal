@@ -165,6 +165,51 @@
 
         .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 
+        /* Sidebar sections */
+        .sidebar-section { margin-bottom: 2px; }
+        .sidebar-section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 11px 14px;
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.55);
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.18s;
+            text-align: left;
+        }
+        .sidebar-section-header:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.85); }
+        .sidebar-section-header.has-active { color: rgba(255,255,255,0.95); }
+        .sidebar-section-chevron {
+            margin-left: auto;
+            transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+            color: rgba(255,255,255,0.4);
+            font-size: 10px;
+            display: inline-block;
+        }
+        .sidebar-section.expanded .sidebar-section-chevron { transform: rotate(90deg); }
+        .sidebar-section-items {
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .sidebar-section.expanded .sidebar-section-items { max-height: 360px; }
+        .sidebar-nav-item.sub {
+            padding: 9px 14px 9px 30px;
+            font-size: 12px;
+            font-weight: 500;
+            color: rgba(255,255,255,0.45);
+        }
+        .sidebar-nav-item.sub .sidebar-nav-icon { width: 16px; opacity: 0.7; }
+        .sidebar-nav-item.sub.active { padding-left: 27px; }
+
         .sidebar-nav-item {
             padding: 11px 14px;
             border-radius: 10px;
@@ -356,18 +401,28 @@
             font-weight: 700;
         }
 
-        /* ── CARDS (Glassmorphism) ── */
+        /* ── CARDS (Glassmorphism + gradient) ── */
         .card {
-            background: rgba(255,255,255,0.03);
+            background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--border);
             border-radius: 14px;
             padding: 22px 24px;
             margin-bottom: 16px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.04);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05);
             transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
+        .card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(184,233,134,0.06) 0%, transparent 55%);
+            pointer-events: none;
+        }
+        .card > * { position: relative; z-index: 1; }
 
         .card:hover {
             border-color: var(--border-hover);
@@ -478,16 +533,26 @@
         }
 
         .metric-card {
-            background: rgba(255,255,255,0.04);
+            background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 14px;
             padding: 18px 16px;
             text-align: center;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.07);
             transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(184,233,134,0.06) 0%, transparent 55%);
+            pointer-events: none;
+        }
+        .metric-card > * { position: relative; z-index: 1; }
 
         .metric-card:hover {
             border-color: rgba(255,255,255,0.18);
@@ -1268,12 +1333,22 @@
         .money-hero-sub { font-size: 12px; color: rgba(255,255,255,0.45); font-weight: 500; }
 
         .money-card {
-            background: rgba(255,255,255,0.04);
+            background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
             border: 1px solid rgba(255,255,255,0.08);
             border-radius: 16px;
             padding: 22px;
             margin-bottom: 16px;
+            position: relative;
+            overflow: hidden;
         }
+        .money-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(184,233,134,0.06) 0%, transparent 55%);
+            pointer-events: none;
+        }
+        .money-card > * { position: relative; z-index: 1; }
         .money-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 12px; flex-wrap: wrap; }
         .money-card-title { font-size: 14px; font-weight: 700; color: #fff; letter-spacing: -0.01em; }
         .money-card-sub { font-size: 12px; color: rgba(255,255,255,0.45); font-weight: 500; }
@@ -1755,6 +1830,8 @@
         let currentUser = null;
         let authLoading = true;
         let currentPage = 'hub';
+        // Sidebar section state: section id -> true (expanded) / false (collapsed). Undefined = use default.
+        let sidebarSectionToggles = {};
 
         const IMPLEMENTATION_MODULES = [
             { level: 0, title: 'Level Zero: Brand Genesis', items: [
@@ -2902,7 +2979,7 @@
                         </div>
                         <div class="money-cta-row">
                             <button class="money-btn-ghost" onclick="editWeeklyTransfer('${selectedWeekKey}')">Edit amount</button>
-                            <button class="money-btn-ghost" onclick="setPage('money')">View Money page &rarr;</button>
+                            <button class="money-btn-ghost" onclick="setPage('money')">View Investments &rarr;</button>
                         </div>
                     </div>`;
                 } else {
@@ -6058,7 +6135,7 @@ const renderAdminClientDetail = async (uid) => {
 
             return `
                 <div>
-                    <h2 class="page-title">Your Money</h2>
+                    <h2 class="page-title">Investments</h2>
                     <p class="page-subtitle">Track what you save, what you invest, and how close you are to your goals.</p>
 
                     <div class="money-hero">
@@ -6594,20 +6671,45 @@ const renderAdminClientDetail = async (uid) => {
             const isAdmin = currentUser.role === 'admin';
             const activeCheck = (isAdmin && currentPage === 'clientDetail') ? 'clients' : currentPage;
 
-            const clientNavItems = [
-                { page: 'hub', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="5.5" height="5.5" rx="1.2"/><rect x="9.5" y="1" width="5.5" height="5.5" rx="1.2"/><rect x="1" y="9.5" width="5.5" height="5.5" rx="1.2"/><rect x="9.5" y="9.5" width="5.5" height="5.5" rx="1.2"/></svg>', label: 'Overview' },
-                { page: 'implementation', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12L6 4L10 9L14 2"/><circle cx="6" cy="4" r="1.2" fill="currentColor"/><circle cx="10" cy="9" r="1.2" fill="currentColor"/></svg>', label: 'The Roadmap' },
-                { page: 'icp', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><circle cx="8" cy="8" r="4" opacity="0.6"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/></svg>', label: 'Your ICP' },
-                { page: 'numbers', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><text x="3" y="12.5" font-size="13" font-weight="700" fill="currentColor" stroke="none" font-family="sans-serif">$</text></svg>', label: 'Business' },
-                { page: 'businessReport', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h6l3 3V14a0.5 0.5 0 0 1-0.5 0.5h-8.5A0.5 0.5 0 0 1 3 14V2a0.5 0.5 0 0 1 0.5-0.5Z"/><path d="M9.5 1.5v3h3"/><path d="M5.5 11v-1M8 11V8.5M10.5 11V6.5"/></svg>', label: 'Business Report' },
-                { page: 'money', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4.5" width="12" height="8" rx="1.4"/><circle cx="8" cy="8.5" r="1.7"/><path d="M4.6 7v3M11.4 7v3"/></svg>', label: 'Money' },
-                { page: 'tasks', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5L6.5 12L13 4"/></svg>', label: 'Tasks' },
-                { page: 'content', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>', label: 'Content' },
-                { page: 'inspo', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 11C2 11 3 6 8 6C13 6 14 11 14 11"/><path d="M8 6V3"/><path d="M5.5 3.5C5.5 2 8 1 8 3"/><path d="M10.5 3.5C10.5 2 8 1 8 3"/></svg>', label: 'Inspo' },
-                { page: 'social', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2a6 6 0 0 1 0 12"/><path d="M8 2a6 6 0 0 0 0 12"/><path d="M8 14V8"/><path d="M5 5L8 8L11 5"/></svg>', label: 'Social' },
-                { page: 'progress', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="9" width="3" height="5" rx="0.5" fill="currentColor" opacity="0.4"/><rect x="6.5" y="5" width="3" height="9" rx="0.5" fill="currentColor" opacity="0.6"/><rect x="11.5" y="2" width="3" height="12" rx="0.5" fill="currentColor" opacity="0.9"/></svg>', label: 'Analytics' },
-                { page: 'scaleSignal', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="4" y="1" width="8" height="14" rx="2"/><circle cx="8" cy="4.2" r="1.5" fill="#4ADE80"/><circle cx="8" cy="8" r="1.5" fill="#FBBF24"/><circle cx="8" cy="11.8" r="1.5" fill="#FF4533"/></svg>', label: 'The Scale Signal' },
-                ...(SCALO_INTELLIGENCE_ENABLED ? [{ page: 'intelligence', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="10" height="8" rx="2"/><path d="M8 2v3"/><circle cx="8" cy="2" r="0.8" fill="currentColor"/><circle cx="6.5" cy="9" r="0.9" fill="currentColor"/><circle cx="9.5" cy="9" r="0.9" fill="currentColor"/><path d="M1.5 8.5v2"/><path d="M14.5 8.5v2"/></svg>', label: 'SCALO Intelligence' }] : []),
+            // Sidebar nav structure with collapsible sections.
+            // Each entry: { type:'item', page, icon, label } OR { type:'section', id, icon, label, items:[...] }
+            const ICON_OVERVIEW = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="5.5" height="5.5" rx="1.2"/><rect x="9.5" y="1" width="5.5" height="5.5" rx="1.2"/><rect x="1" y="9.5" width="5.5" height="5.5" rx="1.2"/><rect x="9.5" y="9.5" width="5.5" height="5.5" rx="1.2"/></svg>';
+            const ICON_ROADMAP = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12L6 4L10 9L14 2"/><circle cx="6" cy="4" r="1.2" fill="currentColor"/><circle cx="10" cy="9" r="1.2" fill="currentColor"/></svg>';
+            const ICON_ICP = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><circle cx="8" cy="8" r="4" opacity="0.6"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/></svg>';
+            const ICON_TASKS = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5L6.5 12L13 4"/></svg>';
+            const ICON_BUSINESS = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><text x="3" y="12.5" font-size="13" font-weight="700" fill="currentColor" stroke="none" font-family="sans-serif">$</text></svg>';
+            const ICON_BIZREPORT = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h6l3 3V14a0.5 0.5 0 0 1-0.5 0.5h-8.5A0.5 0.5 0 0 1 3 14V2a0.5 0.5 0 0 1 0.5-0.5Z"/><path d="M9.5 1.5v3h3"/><path d="M5.5 11v-1M8 11V8.5M10.5 11V6.5"/></svg>';
+            const ICON_INVESTMENTS = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4.5" width="12" height="8" rx="1.4"/><circle cx="8" cy="8.5" r="1.7"/><path d="M4.6 7v3M11.4 7v3"/></svg>';
+            const ICON_CONTENT = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>';
+            const ICON_INSPO = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 11C2 11 3 6 8 6C13 6 14 11 14 11"/><path d="M8 6V3"/><path d="M5.5 3.5C5.5 2 8 1 8 3"/><path d="M10.5 3.5C10.5 2 8 1 8 3"/></svg>';
+            const ICON_SOCIAL = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2a6 6 0 0 1 0 12"/><path d="M8 2a6 6 0 0 0 0 12"/><path d="M8 14V8"/><path d="M5 5L8 8L11 5"/></svg>';
+            const ICON_ANALYTICS = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="9" width="3" height="5" rx="0.5" fill="currentColor" opacity="0.4"/><rect x="6.5" y="5" width="3" height="9" rx="0.5" fill="currentColor" opacity="0.6"/><rect x="11.5" y="2" width="3" height="12" rx="0.5" fill="currentColor" opacity="0.9"/></svg>';
+            const ICON_SCALESIGNAL = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="4" y="1" width="8" height="14" rx="2"/><circle cx="8" cy="4.2" r="1.5" fill="#4ADE80"/><circle cx="8" cy="8" r="1.5" fill="#FBBF24"/><circle cx="8" cy="11.8" r="1.5" fill="#FF4533"/></svg>';
+            const ICON_INTELLIGENCE = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="10" height="8" rx="2"/><path d="M8 2v3"/><circle cx="8" cy="2" r="0.8" fill="currentColor"/><circle cx="6.5" cy="9" r="0.9" fill="currentColor"/><circle cx="9.5" cy="9" r="0.9" fill="currentColor"/><path d="M1.5 8.5v2"/><path d="M14.5 8.5v2"/></svg>';
+            const ICON_USER = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="6" r="2.5"/><path d="M3 14c0-2.5 2.2-4 5-4s5 1.5 5 4"/></svg>';
+            const ICON_BRIEFCASE = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="12" height="9" rx="1.5"/><path d="M5.5 5V3.5h5V5"/><path d="M2 9h12"/></svg>';
+            const ICON_CONTENT_GROUP = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="1.4"/><circle cx="6" cy="7" r="1"/><path d="M3 12.5L6.5 9 9 11 13 6"/></svg>';
+
+            const clientNavStructure = [
+                { type: 'item', page: 'hub', icon: ICON_OVERVIEW, label: 'Overview' },
+                { type: 'item', page: 'implementation', icon: ICON_ROADMAP, label: 'The Roadmap' },
+                { type: 'section', id: 'icpTasks', icon: ICON_USER, label: 'Your ICP & Tasks', items: [
+                    { page: 'icp', icon: ICON_ICP, label: 'Your ICP' },
+                    { page: 'tasks', icon: ICON_TASKS, label: 'Tasks' },
+                ]},
+                { type: 'section', id: 'business', icon: ICON_BRIEFCASE, label: 'Business', items: [
+                    { page: 'numbers', icon: ICON_BUSINESS, label: 'Business' },
+                    { page: 'businessReport', icon: ICON_BIZREPORT, label: 'Business Report' },
+                    { page: 'money', icon: ICON_INVESTMENTS, label: 'Investments' },
+                ]},
+                { type: 'section', id: 'content', icon: ICON_CONTENT_GROUP, label: 'Content', items: [
+                    { page: 'content', icon: ICON_CONTENT, label: 'Content' },
+                    { page: 'inspo', icon: ICON_INSPO, label: 'Inspo' },
+                    { page: 'social', icon: ICON_SOCIAL, label: 'Social' },
+                ]},
+                { type: 'item', page: 'scaleSignal', icon: ICON_SCALESIGNAL, label: 'The Scale Signal' },
+                ...(SCALO_INTELLIGENCE_ENABLED ? [{ type: 'item', page: 'intelligence', icon: ICON_INTELLIGENCE, label: 'SCALO Intelligence' }] : []),
+                { type: 'item', page: 'progress', icon: ICON_ANALYTICS, label: 'Analytics' },
             ];
 
             const adminNavItems = [
@@ -6618,7 +6720,53 @@ const renderAdminClientDetail = async (uid) => {
                 { page: 'scaleSignal', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="4" y="1" width="8" height="14" rx="2"/><circle cx="8" cy="4.2" r="1.5" fill="#4ADE80"/><circle cx="8" cy="8" r="1.5" fill="#FBBF24"/><circle cx="8" cy="11.8" r="1.5" fill="#FF4533"/></svg>', label: 'Scale Signal' },
             ];
 
-            const navItems = isAdmin ? adminNavItems : clientNavItems;
+            // Helper: is a section currently expanded?
+            const sectionContainsActive = (section) => section.items.some(it => it.page === activeCheck);
+            const isSectionExpanded = (section) => {
+                if (typeof sidebarSectionToggles[section.id] === 'boolean') return sidebarSectionToggles[section.id];
+                return sectionContainsActive(section);
+            };
+
+            // Render the structured client nav OR the flat admin nav
+            let navHtml;
+            if (isAdmin) {
+                navHtml = adminNavItems.map(item => `
+                    <button class="sidebar-nav-item ${activeCheck === item.page ? 'active' : ''}" onclick="setPage('${item.page}')">
+                        <span class="sidebar-nav-icon">${item.icon}</span>
+                        <span class="nav-label">${item.label}</span>
+                    </button>
+                `).join('');
+            } else {
+                navHtml = clientNavStructure.map(entry => {
+                    if (entry.type === 'item') {
+                        return `
+                            <button class="sidebar-nav-item ${activeCheck === entry.page ? 'active' : ''}" onclick="setPage('${entry.page}')">
+                                <span class="sidebar-nav-icon">${entry.icon}</span>
+                                <span class="nav-label">${entry.label}</span>
+                            </button>
+                        `;
+                    }
+                    // Section
+                    const expanded = isSectionExpanded(entry);
+                    const hasActive = sectionContainsActive(entry);
+                    const subItems = entry.items.map(sub => `
+                        <button class="sidebar-nav-item sub ${activeCheck === sub.page ? 'active' : ''}" onclick="setPage('${sub.page}')">
+                            <span class="sidebar-nav-icon">${sub.icon}</span>
+                            <span class="nav-label">${sub.label}</span>
+                        </button>
+                    `).join('');
+                    return `
+                        <div class="sidebar-section ${expanded ? 'expanded' : ''}" data-id="${entry.id}">
+                            <button class="sidebar-section-header ${hasActive ? 'has-active' : ''}" onclick="toggleSidebarSection('${entry.id}')">
+                                <span class="sidebar-nav-icon">${entry.icon}</span>
+                                <span class="nav-label">${entry.label}</span>
+                                <span class="sidebar-section-chevron">&#9656;</span>
+                            </button>
+                            <div class="sidebar-section-items">${subItems}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
 
             const sidebarInitials = ((currentUser.firstName||'?')[0] + (currentUser.lastName||'?')[0]).toUpperCase();
             const sidebarAvatarHtml = currentUser.profilePicture
@@ -6636,12 +6784,7 @@ const renderAdminClientDetail = async (uid) => {
                         </div>
                     </div>
                     <div class="sidebar-nav">
-                        ${navItems.map(item => `
-                            <button class="sidebar-nav-item ${activeCheck === item.page ? 'active' : ''}" onclick="setPage('${item.page}')">
-                                <span class="sidebar-nav-icon">${item.icon}</span>
-                                <span class="nav-label">${item.label}</span>
-                            </button>
-                        `).join('')}
+                        ${navHtml}
                     </div>
                     <button class="sidebar-signout" onclick="signOut()">
                         <span class="sidebar-nav-icon">&#x2192;</span>
@@ -6650,7 +6793,7 @@ const renderAdminClientDetail = async (uid) => {
                 </div>
             `;
 
-            const pageTitles = { hub:'Overview', implementation:'The Roadmap', businessReport:'Business Report', numbers:'Log Your Numbers', money:'Your Money', tasks:'Your Tasks', content:'Content Library', inspo:'Inspo Feed', social:'Social Profiles', progress:'Analytics', scaleSignal:'The Scale Signal', intelligence:'SCALO Intelligence', clients:'Your Clients', addClient:'Add New Client', crm:'Client CRM', clientDetail:'Client Detail' };
+            const pageTitles = { hub:'Overview', implementation:'The Roadmap', businessReport:'Business Report', numbers:'Log Your Numbers', money:'Investments', tasks:'Your Tasks', content:'Content Library', inspo:'Inspo Feed', social:'Social Profiles', progress:'Analytics', scaleSignal:'The Scale Signal', intelligence:'SCALO Intelligence', clients:'Your Clients', addClient:'Add New Client', crm:'Client CRM', clientDetail:'Client Detail' };
 
             let pageContent = '';
             try {
@@ -6813,6 +6956,22 @@ const renderAdminClientDetail = async (uid) => {
         document.documentElement.classList.remove('light-mode');
 
         window.setPage = (page) => { currentPage = page; render(); };
+        window.toggleSidebarSection = (sectionId) => {
+            // Read the current rendered state directly to avoid recomputing default logic here
+            const el = document.querySelector('.sidebar-section[data-id="' + sectionId + '"]');
+            // Fall back to the toggle map if we can't read the DOM
+            const stored = sidebarSectionToggles[sectionId];
+            if (typeof stored === 'boolean') {
+                sidebarSectionToggles[sectionId] = !stored;
+            } else {
+                // No explicit state yet — flip from the default (auto-expanded if it has the active page)
+                // We don't have access to the section structure here, so just store the OPPOSITE of "is currently visible"
+                const items = document.querySelector('.sidebar-section[data-id="' + sectionId + '"] .sidebar-section-items');
+                const wasExpanded = items && items.parentElement.classList.contains('expanded');
+                sidebarSectionToggles[sectionId] = !wasExpanded;
+            }
+            render();
+        };
         window.handleRefreshContent = async () => {
             const btn = document.getElementById('refreshContentBtn');
             const origHtml = btn ? btn.innerHTML : '';
