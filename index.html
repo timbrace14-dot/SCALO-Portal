@@ -2947,10 +2947,9 @@
                                 trigger();
                             }
                         });
-                    }, { threshold: 0.35 });
+                    }, { threshold: 0.1 });
                     obs.observe(canvas);
-                    // Fallback: kick off after 1.8s if the observer never fires
-                    setTimeout(trigger, 1800);
+                    // No timer fallback — we want the animation to wait for actual scroll-into-view
                 } else {
                     trigger();
                 }
