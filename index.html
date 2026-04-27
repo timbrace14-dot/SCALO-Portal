@@ -371,7 +371,103 @@
 
         .card:hover {
             border-color: var(--border-hover);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.06);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.07);
+        }
+
+        /* ── PREMIUM POLISH ── */
+        @keyframes pageFadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .page-fade-in {
+            animation: pageFadeIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        /* Lift on cards across the portal */
+        .money-card {
+            transition: all 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .money-card:hover {
+            border-color: rgba(255,255,255,0.16);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 36px rgba(0,0,0,0.28);
+        }
+        .money-hero-card {
+            transition: all 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .money-hero-card:hover {
+            border-color: rgba(184,233,134,0.25);
+            transform: translateY(-3px);
+            box-shadow: 0 14px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(184,233,134,0.06);
+        }
+        .money-investment-row {
+            transition: background 0.18s ease;
+        }
+        .money-investment-row:hover {
+            background: rgba(255,255,255,0.03);
+        }
+
+        /* Numeric count-up base style — JS sets the value */
+        [data-countup] {
+            display: inline-block;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Loading spinner (replaces "Loading..." text in places) */
+        .scalo-spinner {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: scaloSpin 0.7s linear infinite;
+        }
+        @keyframes scaloSpin {
+            to { transform: rotate(360deg); }
+        }
+        .loading {
+            min-height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.5);
+            font-weight: 600;
+            letter-spacing: 0.04em;
+        }
+        .loading::before {
+            content: '';
+            display: inline-block;
+            width: 22px;
+            height: 22px;
+            border: 2.5px solid rgba(255,255,255,0.08);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: scaloSpin 0.7s linear infinite;
+        }
+        .loading-text-only::before { display: none; }
+
+        /* Sidebar nav micro-interaction: subtle slide on hover */
+        .sidebar-nav-item:hover .nav-label {
+            transform: translateX(2px);
+        }
+        .sidebar-nav-item .nav-label {
+            transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        /* Buttons: small lift + soft glow on primary CTAs */
+        .btn-primary, .money-btn-primary, .bot-card-btn {
+            position: relative;
+        }
+        .btn-primary:hover, .money-btn-primary:hover, .bot-card-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(184,233,134,0.22);
+        }
+        .btn-primary:active, .money-btn-primary:active {
+            transform: translateY(0);
         }
 
         .card-grid {
@@ -5716,6 +5812,31 @@ const renderAdminClientDetail = async (uid) => {
 
         const formatMoney = (n) => '£' + (Math.round((Number(n) || 0) * 100) / 100).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
+        // ── COUNT-UP ANIMATION ──
+        // Apply data-countup="<targetNumber>" data-countup-prefix="£" to any element to animate it on render.
+        window.animateCountUps = () => {
+            document.querySelectorAll('[data-countup]').forEach(el => {
+                if (el.dataset.countupDone === '1') return;
+                const target = parseFloat(el.dataset.countup) || 0;
+                const prefix = el.dataset.countupPrefix || '';
+                const suffix = el.dataset.countupSuffix || '';
+                const duration = parseInt(el.dataset.countupDuration || '900');
+                const start = performance.now();
+                const startVal = 0;
+                const ease = (t) => 1 - Math.pow(1 - t, 3); // easeOutCubic
+                const fmt = (n) => Math.round(n).toLocaleString('en-GB');
+                const step = (now) => {
+                    const elapsed = now - start;
+                    const t = Math.min(1, elapsed / duration);
+                    const v = startVal + (target - startVal) * ease(t);
+                    el.textContent = prefix + fmt(v) + suffix;
+                    if (t < 1) requestAnimationFrame(step);
+                    else { el.textContent = prefix + fmt(target) + suffix; el.dataset.countupDone = '1'; }
+                };
+                requestAnimationFrame(step);
+            });
+        };
+
         const fetchMoneyData = async (uid) => {
             const [savingsSnap, investmentsSnap, entriesSnap] = await Promise.all([
                 db.ref('portal/savings/' + uid).once('value'),
@@ -5943,7 +6064,7 @@ const renderAdminClientDetail = async (uid) => {
                     <div class="money-hero">
                         <div class="money-hero-card">
                             <div class="money-hero-label">Total saved</div>
-                            <div class="money-hero-value">${formatMoney(saved)}</div>
+                            <div class="money-hero-value" data-countup="${Math.round(saved)}" data-countup-prefix="£">${formatMoney(saved)}</div>
                             <div class="money-hero-sub">${formatMoney(weeklyTarget)}/week target</div>
                         </div>
                         <div class="money-hero-card">
@@ -5953,7 +6074,7 @@ const renderAdminClientDetail = async (uid) => {
                         </div>
                         <div class="money-hero-card">
                             <div class="money-hero-label">Total invested</div>
-                            <div class="money-hero-value">${formatMoney(invested)}</div>
+                            <div class="money-hero-value" data-countup="${Math.round(invested)}" data-countup-prefix="£">${formatMoney(invested)}</div>
                             <div class="money-hero-sub">${invEntries.length === 0 ? 'No entries yet' : Object.keys(investments.entries || {}).length + ' entries'}</div>
                         </div>
                     </div>
@@ -6581,12 +6702,14 @@ const renderAdminClientDetail = async (uid) => {
                     ${sidebarHtml}
                     <div class="portal-content-area">
                         ${topbarHtml}
-                        ${pageContent}
+                        <div class="page-fade-in" key="${currentPage}-${Date.now()}">${pageContent}</div>
                     </div>
                 </div>
                 <div id="avatarModalContainer"></div>
                 <div id="botModalContainer"></div>
             `;
+            // Trigger count-up animations on freshly-rendered numbers
+            setTimeout(animateCountUps, 30);
 
             if (currentPage === 'progress' && !isAdmin) setTimeout(renderProgressCharts, 50);
             if (currentPage === 'hub' && !isAdmin) setTimeout(renderHubCharts, 50);
