@@ -110,7 +110,58 @@
             overflow-y: auto;
         }
 
-        .sidebar-logo { height: 22px; width: auto; object-fit: contain; margin-bottom: 36px; margin-left: 4px; }
+        .sidebar-logo { height: 22px; width: auto; object-fit: contain; margin-bottom: 20px; margin-left: 4px; }
+
+        .sidebar-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            margin-bottom: 24px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.09);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .sidebar-profile:hover {
+            background: rgba(255,255,255,0.07);
+            border-color: rgba(255,255,255,0.16);
+        }
+        .sidebar-profile-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: #000;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        .sidebar-profile-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+        .sidebar-profile-text { display: flex; flex-direction: column; min-width: 0; }
+        .sidebar-profile-greeting {
+            font-size: 9px;
+            color: rgba(255,255,255,0.45);
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        .sidebar-profile-name {
+            font-size: 13px;
+            color: #fff;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
         .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 
@@ -688,7 +739,10 @@
         @media (max-width: 640px) {
             .auth-left { display: none; }
             .portal-sidebar { width: 58px; padding: 20px 8px; align-items: center; }
-            .sidebar-logo { margin-left: 0; margin-bottom: 24px; height: 14px; width: auto; }
+            .sidebar-logo { margin-left: 0; margin-bottom: 16px; height: 14px; width: auto; }
+            .sidebar-profile { padding: 0; background: none; border: none; margin-bottom: 18px; justify-content: center; }
+            .sidebar-profile-text { display: none; }
+            .sidebar-profile-avatar { width: 32px; height: 32px; font-size: 12px; }
             .sidebar-nav { flex: 0 !important; }
             .sidebar-nav-item { justify-content: center; padding: 10px; gap: 0; }
             .sidebar-nav-item .nav-label { display: none; }
@@ -778,6 +832,322 @@
             .br-bar-fill { max-width:32px; border-radius:4px 4px 0 0; }
             .br-bar-value { font-size:8px; }
             .br-bar-label { font-size:8px; letter-spacing:0.08em; }
+        }
+
+        /* ── SCALO INTELLIGENCE ── */
+        .bot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .bot-card {
+            background: rgba(255,255,255,0.04);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
+        }
+
+        .bot-card:hover {
+            border-color: rgba(255,255,255,0.18);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08);
+        }
+
+        .bot-card-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: var(--accent-dim);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(184,233,134,0.25);
+        }
+
+        .bot-card-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #FFFFFF;
+            letter-spacing: -0.015em;
+        }
+
+        .bot-card-desc {
+            font-size: 13px;
+            color: rgba(255,255,255,0.56);
+            font-weight: 400;
+            line-height: 1.5;
+        }
+
+        .bot-card-label {
+            display: inline-block;
+            align-self: flex-start;
+            background: var(--accent-dim);
+            border: 1px solid rgba(184,233,134,0.25);
+            color: var(--accent);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .bot-card-btn {
+            margin-top: auto;
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 11px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+            letter-spacing: -0.01em;
+        }
+
+        .bot-card-btn:hover {
+            background: var(--accent-hover);
+            box-shadow: 0 4px 14px var(--accent-dim);
+        }
+
+        .bot-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.65);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+            padding: 20px;
+        }
+
+        .bot-modal {
+            background: #141414;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+            padding: 28px;
+            width: 100%;
+            max-width: 560px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+        }
+
+        .bot-modal-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .bot-modal-title { font-size: 20px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.015em; margin-bottom: 4px; }
+        .bot-modal-sub { font-size: 13px; color: rgba(255,255,255,0.56); font-weight: 400; }
+
+        .bot-modal-close {
+            background: rgba(255,255,255,0.06);
+            border: none;
+            color: rgba(255,255,255,0.6);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            font-size: 16px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 600;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .bot-modal-close:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+        .bot-prompt-box {
+            position: relative;
+            background: #0A0A0A;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 16px 16px 16px 16px;
+            margin-bottom: 22px;
+        }
+
+        .bot-prompt-text {
+            font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 12px;
+            line-height: 1.55;
+            color: rgba(255,255,255,0.75);
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .bot-copy-btn {
+            width: 100%;
+            margin-top: 14px;
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            letter-spacing: -0.01em;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .bot-copy-btn:hover { background: var(--accent-hover); box-shadow: 0 4px 14px var(--accent-dim); }
+        .bot-copy-btn.copied { background: #4ADE80; }
+
+        .bot-steps-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.56);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .bot-step {
+            display: flex;
+            gap: 14px;
+            padding: 14px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            margin-bottom: 8px;
+            align-items: flex-start;
+        }
+
+        .bot-step-num {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--accent-dim);
+            border: 1px solid rgba(184,233,134,0.3);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .bot-step-body { flex: 1; min-width: 0; }
+        .bot-step-title { font-size: 13px; font-weight: 700; color: #FFFFFF; margin-bottom: 2px; }
+        .bot-step-text { font-size: 12px; color: rgba(255,255,255,0.56); font-weight: 400; line-height: 1.5; }
+
+        /* Locked bot states */
+        .bot-card-icon-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .bot-card.locked .bot-card-icon {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.45);
+        }
+        .bot-card.locked .bot-card-name { color: rgba(255,255,255,0.7); }
+        .bot-card.locked .bot-card-desc { color: rgba(255,255,255,0.42); }
+        .bot-card.locked .bot-card-label {
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.5);
+        }
+
+        .bot-lock-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.65);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+
+        .bot-card-btn.locked {
+            background: rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.5);
+            cursor: not-allowed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .bot-card-btn.locked:hover {
+            background: rgba(255,255,255,0.1);
+            box-shadow: none;
+        }
+
+        .bot-lock-hint {
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+            font-weight: 500;
+            text-align: center;
+            margin-top: 6px;
+            line-height: 1.45;
+        }
+
+        .bot-lock-panel {
+            padding: 30px 20px 8px;
+            text-align: center;
+        }
+        .bot-lock-panel .bot-lock-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            color: rgba(255,255,255,0.65);
+        }
+        .bot-lock-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #FFFFFF;
+            letter-spacing: -0.015em;
+            margin-bottom: 8px;
+        }
+        .bot-lock-sub {
+            font-size: 13px;
+            color: rgba(255,255,255,0.55);
+            font-weight: 400;
+            line-height: 1.5;
+            max-width: 340px;
+            margin: 0 auto;
         }
     </style>
 </head>
@@ -936,7 +1306,10 @@
             ]},
             { level: 5, title: 'Level Five: Story to Status', items: [] },
             { level: 6, title: 'Level Six: Content to Cash', items: [] },
-            { level: 7, title: 'Level Seven: Price Ascension', items: [] },
+            { level: 7, title: 'Level Seven: Price Ascension', items: [
+                { id: 'l7_walkthrough', title: 'Price Ascension Walkthrough', url: 'https://www.skool.com/scalo-6527/classroom/7eda51fb?md=0f286d4030034c52b09e10570145adc8' },
+                { id: 'l7_ascension_runway', title: 'Ascension Runway', url: 'https://www.skool.com/scalo-6527/classroom/7eda51fb?md=6945c89e4b214c37a3cf4296b9513883' },
+            ]},
             { level: 8, title: 'Level Eight: Cash Surge', items: [] },
             { level: 9, title: 'Level Nine: Monetisation Ignition', items: [] },
         ];
@@ -4993,6 +5366,201 @@ const renderAdminClientDetail = async (uid) => {
                 }
             }
 
+        // ── SCALO INTELLIGENCE ──
+        // Feature flag: flip to true when ready to ship the Intelligence tab to clients.
+        // When false, the nav item is hidden and the /intelligence route is blocked.
+        const SCALO_INTELLIGENCE_ENABLED = true;
+
+        const SCALO_BOTS = [
+            {
+                id: 'story-coach',
+                name: 'SCALO Story Coach',
+                description: 'Turn your ideas into ready to film scripts using The Story Framework',
+                label: 'Story to Status Module',
+                requiresModuleLevel: 5,
+                unlockCopy: 'Complete Level Five: Story to Status to unlock this bot.',
+                icon: '<svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M10 8.4 C8.4 7.3, 5.4 7.1, 2.8 7.5 L2.8 15.2 C5.4 14.8, 8.4 15, 10 16 C11.6 15, 14.6 14.8, 17.2 15.2 L17.2 7.5 C14.6 7.1, 11.6 7.3, 10 8.4 Z"/><path d="M10 8.4 L10 16"/><path d="M5 4.1 L5.27 4.76 L5.9 4.9 L5.27 5.04 L5 5.7 L4.73 5.04 L4.1 4.9 L4.73 4.76 Z" fill="currentColor" stroke="none"/><path d="M10 1.8 L10.33 2.6 L11.15 2.9 L10.33 3.2 L10 4 L9.67 3.2 L8.85 2.9 L9.67 2.6 Z" fill="currentColor" stroke="none"/><path d="M14.5 3.4 L14.74 3.96 L15.3 4.1 L14.74 4.24 L14.5 4.8 L14.26 4.24 L13.7 4.1 L14.26 3.96 Z" fill="currentColor" stroke="none"/></svg>',
+                systemPrompt: `You are SCALO Story Coach, an expert short-form video scriptwriter trained in The Story Framework used inside the SCALO Story to Status Module.\n\nYour job is to take any idea a creator gives you \u2014 a rough thought, a client win, a common objection, an observation, a lesson \u2014 and turn it into a ready-to-film short-form video script (Reels / TikTok / Shorts) that follows The Story Framework exactly.\n\n=== THE STORY FRAMEWORK ===\nEvery script you produce must contain these six beats in order:\n1. HOOK (0\u20133s) \u2014 a scroll-stopping first line that creates curiosity, tension, or identification. No intros, no \u201chey guys\u201d, no wind-up.\n2. CONTEXT (3\u20138s) \u2014 one line that frames who this is for and why it matters right now.\n3. CONFLICT \u2014 the real problem, struggle, or misbelief the viewer is stuck on.\n4. TURN \u2014 the shift, realisation, or reframe that changes how they see it.\n5. PROOF \u2014 a concrete example, story, result, or specific how-to so the viewer believes the turn.\n6. CTA / STATUS LINE \u2014 a single closing line that either invites action or positions the creator as the authority on this topic.\n\n=== OUTPUT FORMAT ===\nAlways return the script in this exact structure:\n\nTITLE: <5\u20138 word working title>\nDURATION: <estimated seconds, aim 25\u201360s>\n\n[HOOK]\n<spoken line>\n\n[CONTEXT]\n<spoken line>\n\n[CONFLICT]\n<spoken line(s)>\n\n[TURN]\n<spoken line(s)>\n\n[PROOF]\n<spoken line(s)>\n\n[CTA / STATUS LINE]\n<spoken line>\n\nB-ROLL / DELIVERY NOTES:\n- <3\u20135 bullet points on how to film it: camera angle, cuts, on-screen text, tone>\n\n=== RULES ===\n- Write the way the creator actually speaks \u2014 short sentences, plain words, zero corporate jargon.\n- No filler like \u201cin today\u2019s video\u201d or \u201clet\u2019s dive in\u201d. Cut straight to the hook.\n- Keep each beat lean. If a line doesn\u2019t earn its place, cut it.\n- If the creator\u2019s idea is vague, ask ONE sharp clarifying question before writing. Otherwise, write the script.\n- If they ask for variations, produce 3 alternate hooks labelled Hook A / B / C.\n- Always end by offering: \u201cWant me to tighten it, swap the hook, or build the next one?\u201d`,
+                setupSteps: [
+                    { title: 'Copy the system prompt', text: 'Hit the green button above &#x2014; it&rsquo;s copied to your clipboard.' },
+                    { title: 'Open Claude and create a new Project', text: 'Go to claude.ai, click <strong>Projects</strong> in the sidebar, then <strong>Create Project</strong>.' },
+                    { title: 'Paste into Custom Instructions', text: 'Open the project, click <strong>Set custom instructions</strong>, paste, and save. Start chatting to use the bot.' },
+                ],
+            },
+            {
+                id: 'price-coach',
+                name: 'SCALO Price Coach',
+                description: 'Reverse engineer your dream life price and structure your increase using the Price Ascension framework',
+                label: 'Price Ascension Module',
+                requiresModuleLevel: 7,
+                unlockCopy: 'Complete Level Seven: Price Ascension to unlock this bot.',
+                icon: '<svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="13.5" width="3.5" height="4" rx="0.5"/><rect x="8.25" y="10" width="3.5" height="7.5" rx="0.5"/><rect x="14" y="6.5" width="3.5" height="11" rx="0.5"/><path d="M3 8 L10 4.2 L17 2.4"/><path d="M13.6 1.8 L17.2 2.4 L16.6 6"/></svg>',
+                systemPrompt: `You are the SCALO Price Coach. You help established barbers structure their price increases using the Price Ascension framework and the Ascension Runway. The goal is to give them complete clarity on exactly how much to raise their prices, what their new revenue looks like at different drop-off scenarios, and how to roll the increase out so they lose as few clients as possible.\n\nThe people using you are working barbers. They cut hair. They have a clientele. They are not building online businesses or coaching brands. They want to charge what they\u2019re worth and earn what they actually want to earn.\n\nYou write in plain, human language. No jargon. No corporate tone. No waffle. You write the way Tim Brace talks to his students. Short sentences. Plain words. British spelling throughout. No em dashes. No words like personal brand, monetise, content creator, audience growth, game-changer, no fluff, no BS, real talk, or heads down. You can swear lightly when it fits.\n\nYou are a proper data analyst sitting next to them. You break down their numbers like a psychopath. You explain what each number means. You don\u2019t just spit out a price, you walk them through why.\n\nThe framework: Price sits at the centre of a triangle made up of Dream life scenario figure, Expenses & break-even point, and Profit margin. The two levers to increase profit are volume (number of haircuts) or price (charging more). When occupancy is high, price is the lever. When occupancy is low, volume is the lever.\n\nThe reverse-engineering formula:\n- Dream life revenue \u00f7 weeks worked per year = weekly revenue target\n- Weekly revenue \u00f7 hours worked per week = hourly rate needed\n- Hourly rate \u00f7 4 = 15-minute rate\n- 15-minute rate \u00d7 number of 15-min blocks in their average appointment = target haircut price\n\nHOW A SESSION RUNS:\n\nWhen a barber comes in, the first thing you say is: "Right, before we map out your price increase, I need your numbers. Head to your portal, export your business report as a CSV, and upload it here. I need a minimum of 2 months of data to do this properly. If you\u2019ve got less than that, go log more days first and come back."\n\nWait for them to upload the CSV. Check the date range. If less than 2 months, send them back. No exceptions.\n\nOnce they\u2019ve uploaded enough data, run a full analysis:\n\n1. CURRENT STATE: Break down every number like a psychopath - total revenue, average ticket, total appointments, hours worked, occupancy rate, retention rate, new clients per month, returning clients, expenses, profit, profit margin, current break-even point. Tell them what each number is saying in plain terms.\n\n2. THE OCCUPANCY GATE (non-negotiable): If occupancy is under 65-70%, stop. Tell them: "Your occupancy is at X%. Before we even think about raising prices, you need to be filling your chair. Raising prices when you\u2019re not booked out means losing the clients you do have without enough demand to replace them. The lever you need to pull right now is volume, not price. Focus on generating new clients. Get to 70%+ occupancy consistently for 2 months, then come back and we\u2019ll structure the increase."\n\n3. DREAM LIFE SCENARIO: Ask "What do you actually want to be earning? Don\u2019t pick a number for me, pick the number that gives you your dream life. The one where you\u2019re flying business class, taking your family on the holidays you want, living the life that makes you love your business. What\u2019s that figure per year?" If they go conservative, push them: "Don\u2019t go conservative on me. What\u2019s the actual number?"\n\n4. CONFIRM ASSUMPTIONS: Weeks worked per year (default 48), hours per week (from CSV), average appointment length (from CSV).\n\n5. REVERSE ENGINEER THE TARGET PRICE: Show every step. Show the maths. State clearly: "To earn \u00a3[dream] a year, your haircut price needs to be \u00a3[target]. This is your destination. Now we\u2019re going to map out how to actually get there."\n\n6. THE STAIRCASE LOGIC: The target is the destination, not the next move. If target is more than 25% above current price, you\u2019re building a staircase.\n\nCAP RULES:\n- Default cap on a single increase: 25% of current price\n- Increase should land at clean numbers (\u00a35, \u00a310, \u00a315 jumps)\n- Override only if new client flow is exceptional: 50+ new clients per month allows pushing slightly above 25%, 150+ allows whatever the maths supports\n- For most barbers (10-20 new clients a month), stick to the cap\n\n8-MONTH RHYTHM: Default rhythm is every 8 months - two increases a year. Reframe their annual instinct: "Most barbers raise once a year because that\u2019s what feels normal. But raising by \u00a35-10 every 8 months instead of \u00a310 once a year actually compounds faster and your clients adjust more naturally to small bumps than one bigger one. We\u2019re doing two a year."\n\n7. PUSH THEM PAST LIMITING BELIEFS: When occupancy is 75%+, new client flow is healthy, retention is solid, and drop-off projections show they\u2019d still be up at the bigger number, push them up a tier. Reframe: "Your instinct is going to be to raise it by \u00a35 because that feels safe. Here\u2019s why I\u2019m telling you to do \u00a310 instead: If you raise by \u00a35 now, in 8 months you\u2019ll wish you\u2019d done \u00a310. Then you raise it again, and your clients get a sour taste because you\u2019ve done two increases close together. If you raise by \u00a310 now, you take one round of drop-off, you settle, and you don\u2019t have to touch the price again for 8-12 months. The numbers say you can absorb the \u00a310 jump. You\u2019ll lose [X] clients and still be up \u00a3[Y] a year. Doing it twice in a year is worse for client trust than doing it once at the right number." Be reasoned but firm. Call out the limiting belief by name.\n\n8. MAP THE FULL STAIRCASE: Show the journey, not just the next step. Example for \u00a330 \u2192 \u00a360:\nNOW: \u00a330 \u2192 \u00a337 (4-week runway)\n+8 months: \u00a337 \u2192 \u00a345\n+16 months: \u00a345 \u2192 \u00a353\n+24 months: \u00a353 \u2192 \u00a360 \u2713 target hit\nFrame it: "We\u2019re building you up over 24 months. This way you keep your clients, your business has time to attract more demand, and you arrive at \u00a360 with a healthy book - not a half-empty chair. Each step assumes another full session with me."\n\n9. DROP-OFF PROJECTIONS ON IMMEDIATE JUMP ONLY: Run numbers at 0%, 5%, 10%, 15%, 20%, 30%, 40% client drop-off at the next price (not target). For each: clients remaining, new weekly revenue, new annual revenue, comparison to current. State magic number: "You can afford to lose [X] clients and still earn the same as you do now. Anything less than that and you\u2019re up. Even at the typical 10-15% drop-off, you\u2019d still be up \u00a3[Y] a year."\n\n10. RECOMMEND THE RUNWAY (2/4/6 rule):\n- 2 weeks: only if mental demand and long waiting list. Bigger drop-off expected.\n- 4 weeks: sweet spot. Default for 70-85% occupancy.\n- 6 weeks: maximum. Use for 80%+ who want to keep as many clients as possible.\n\nTell them how to announce: tell loyal clients in person first, give all clients clear notice, handle objections during the runway period, lock the new price in on the date.\n\n11. FULL PLAN OUTPUT: End every session with a clean summary they can screenshot:\n\nSCALO PRICE INCREASE PLAN\nCURRENT STATE: Current price, annual revenue, occupancy, new clients/month, profit margin\nTARGET (Dream Life): Dream life revenue, target haircut price\nNEXT MOVE: New price, increase amount, why this number, runway weeks, announce date, live date\nDROP-OFF PROJECTIONS AT NEW PRICE: 0%, 10%, 20%, 30% drop with annual revenue, break-even drop %\nTHE FULL STAIRCASE TO TARGET: Now, +8 months, +16 months, +24 months\nNEXT SESSION: Come back in 8 months with fresh numbers\n\nRULES YOU DON\u2019T BREAK:\n- Never give a price recommendation without the CSV uploaded and analysed\n- Never skip the occupancy gate. Under 70%, no price increase, full stop\n- Never recommend a single jump above 25% of current price unless new client flow is 50+ per month\n- Never let them play smaller than their numbers support. Push past the limiting belief\n- Never pull a number out of thin air. Every recommendation comes from their actual numbers\n- Never tell them to raise prices because other barbers in their area are charging more\n- Always show the maths\n- Always optimise for profit, not revenue\n- Always show the full staircase to target\n- If they push back, walk through drop-off projections again. Remind them what they\u2019re optimising for: satisfied, healthy, happy, appreciated, time with family, friends, progression\n- Default to two increases a year (every 8 months)\n- If they\u2019re a shop owner with multiple income streams, ask about every income stream first\n\nTONE: Talk like Tim. Plain, direct, sometimes blunt. You\u2019re not their accountant, you\u2019re a barber who gets it and happens to be brilliant with numbers. Say the thing and move on. Don\u2019t waffle. Don\u2019t pad.`,
+                setupSteps: [
+                    { title: 'Copy the system prompt', text: 'Click the copy button above to copy the system prompt.' },
+                    { title: 'Open Claude and create a new project', text: 'Open Claude and create a new project called <strong>&ldquo;SCALO Price Coach&rdquo;</strong>.' },
+                    { title: 'Paste and upload your data', text: 'Paste the prompt into the project instructions, then upload your business report CSV when prompted.' },
+                ],
+            },
+        ];
+
+        // A bot is unlocked only when the linked roadmap module has items AND every item is ticked.
+        // If the module is empty (not yet uploaded), it stays locked — matches the spec.
+        const isBotUnlocked = (bot, completions) => {
+            if (bot.requiresModuleLevel == null) return true;
+            const mod = IMPLEMENTATION_MODULES.find(m => m.level === bot.requiresModuleLevel);
+            if (!mod || !mod.items || mod.items.length === 0) return false;
+            return mod.items.every(i => completions[i.id] === true);
+        };
+
+        const renderClientIntelligence = async () => {
+            const snap = await db.ref('portal/implementation/' + currentUser.uid).once('value');
+            const completions = snap.val() || {};
+            const locks = SCALO_BOTS.map(bot => !isBotUnlocked(bot, completions));
+            window.__scaloBots = SCALO_BOTS;
+            window.__scaloBotLocks = locks;
+
+            const lockIconSmall = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7.5" width="9" height="6.5" rx="1.4"/><path d="M5.5 7.5V5.2a2.5 2.5 0 0 1 5 0V7.5"/></svg>';
+
+            return `
+                <div>
+                    <h2 class="page-title">SCALO Intelligence</h2>
+                    <p class="page-subtitle">Drop-in bots built on SCALO frameworks &#x2014; paste into Claude and start using in under a minute.</p>
+
+                    <div class="bot-grid">
+                        ${SCALO_BOTS.map((bot, i) => {
+                            const locked = locks[i];
+                            return `
+                            <div class="bot-card${locked ? ' locked' : ''}">
+                                <div class="bot-card-icon-row">
+                                    <div class="bot-card-icon">${bot.icon}</div>
+                                    ${locked ? `<div class="bot-lock-badge" title="${bot.unlockCopy}">${lockIconSmall}<span>Locked</span></div>` : ''}
+                                </div>
+                                <div>
+                                    <div class="bot-card-name">${bot.name}</div>
+                                </div>
+                                <div class="bot-card-desc">${bot.description}</div>
+                                <span class="bot-card-label">${bot.label}</span>
+                                ${locked
+                                    ? `<button class="bot-card-btn locked" onclick="openBotModal(${i})" aria-disabled="true">${lockIconSmall}<span>Locked</span></button>
+                                       <div class="bot-lock-hint">${bot.unlockCopy}</div>`
+                                    : `<button class="bot-card-btn" onclick="openBotModal(${i})">Get This Bot</button>`}
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        };
+
+        window.openBotModal = (index) => {
+            const bot = (window.__scaloBots || SCALO_BOTS)[index];
+            if (!bot) return;
+            const container = document.getElementById('botModalContainer');
+            if (!container) return;
+            const locked = (window.__scaloBotLocks && window.__scaloBotLocks[index]) === true;
+
+            if (locked) {
+                window.__activeBotPrompt = null;
+                container.innerHTML = `
+                    <div class="bot-modal-overlay" onclick="closeBotModal(event)">
+                        <div class="bot-modal" onclick="event.stopPropagation()">
+                            <div class="bot-modal-head">
+                                <div>
+                                    <div class="bot-modal-title">${bot.name}</div>
+                                    <div class="bot-modal-sub">${bot.description}</div>
+                                </div>
+                                <button class="bot-modal-close" onclick="closeBotModal()" aria-label="Close">&#x00D7;</button>
+                            </div>
+
+                            <div class="bot-lock-panel">
+                                <div class="bot-lock-icon">
+                                    <svg width="26" height="26" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3.2" y="7.3" width="9.6" height="6.8" rx="1.6"/><path d="M5.3 7.3V5a2.7 2.7 0 0 1 5.4 0V7.3"/></svg>
+                                </div>
+                                <div class="bot-lock-title">Locked</div>
+                                <div class="bot-lock-sub">${bot.unlockCopy}</div>
+                                <button class="bot-card-btn" style="max-width:280px;margin:18px auto 0;display:block;" onclick="closeBotModal();setPage('implementation');">Go to the Roadmap &#x2192;</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Store on window so copy button can read the exact prompt without HTML escaping issues
+            window.__activeBotPrompt = bot.systemPrompt;
+            const escaped = bot.systemPrompt
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            container.innerHTML = `
+                <div class="bot-modal-overlay" onclick="closeBotModal(event)">
+                    <div class="bot-modal" onclick="event.stopPropagation()">
+                        <div class="bot-modal-head">
+                            <div>
+                                <div class="bot-modal-title">${bot.name}</div>
+                                <div class="bot-modal-sub">${bot.description}</div>
+                            </div>
+                            <button class="bot-modal-close" onclick="closeBotModal()" aria-label="Close">&#x00D7;</button>
+                        </div>
+
+                        <div class="bot-prompt-box">
+                            <div class="bot-prompt-text">${escaped}</div>
+                        </div>
+                        <button class="bot-copy-btn" id="botCopyBtn" onclick="copyBotPrompt()">
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M2.5 10.5V3a.5.5 0 0 1 .5-.5h7.5"/></svg>
+                            <span id="botCopyBtnLabel">Copy System Prompt</span>
+                        </button>
+
+                        <div style="height:22px;"></div>
+                        <div class="bot-steps-title">How to add it to Claude</div>
+                        ${(bot.setupSteps || []).map((step, idx) => `
+                        <div class="bot-step">
+                            <div class="bot-step-num">${idx + 1}</div>
+                            <div class="bot-step-body">
+                                <div class="bot-step-title">${step.title}</div>
+                                <div class="bot-step-text">${step.text}</div>
+                            </div>
+                        </div>`).join('')}
+                    </div>
+                </div>
+            `;
+        };
+
+        window.closeBotModal = (e) => {
+            if (e && e.target !== e.currentTarget) return;
+            const container = document.getElementById('botModalContainer');
+            if (container) container.innerHTML = '';
+            window.__activeBotPrompt = null;
+        };
+
+        window.copyBotPrompt = async () => {
+            const text = window.__activeBotPrompt || '';
+            const btn = document.getElementById('botCopyBtn');
+            const label = document.getElementById('botCopyBtnLabel');
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                }
+                if (btn) btn.classList.add('copied');
+                if (label) label.textContent = 'Copied \u2713';
+                setTimeout(() => {
+                    if (btn) btn.classList.remove('copied');
+                    if (label) label.textContent = 'Copy System Prompt';
+                }, 1800);
+            } catch (err) {
+                alert('Copy failed \u2014 please select the text and copy manually.');
+            }
+        };
+
         // ── MAIN RENDER ──
         const render = async () => {
             const root = document.getElementById('root');
@@ -5025,6 +5593,7 @@ const renderAdminClientDetail = async (uid) => {
                 { page: 'social', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2a6 6 0 0 1 0 12"/><path d="M8 2a6 6 0 0 0 0 12"/><path d="M8 14V8"/><path d="M5 5L8 8L11 5"/></svg>', label: 'Social' },
                 { page: 'progress', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="9" width="3" height="5" rx="0.5" fill="currentColor" opacity="0.4"/><rect x="6.5" y="5" width="3" height="9" rx="0.5" fill="currentColor" opacity="0.6"/><rect x="11.5" y="2" width="3" height="12" rx="0.5" fill="currentColor" opacity="0.9"/></svg>', label: 'Analytics' },
                 { page: 'scaleSignal', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="4" y="1" width="8" height="14" rx="2"/><circle cx="8" cy="4.2" r="1.5" fill="#4ADE80"/><circle cx="8" cy="8" r="1.5" fill="#FBBF24"/><circle cx="8" cy="11.8" r="1.5" fill="#FF4533"/></svg>', label: 'The Scale Signal' },
+                ...(SCALO_INTELLIGENCE_ENABLED ? [{ page: 'intelligence', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="10" height="8" rx="2"/><path d="M8 2v3"/><circle cx="8" cy="2" r="0.8" fill="currentColor"/><circle cx="6.5" cy="9" r="0.9" fill="currentColor"/><circle cx="9.5" cy="9" r="0.9" fill="currentColor"/><path d="M1.5 8.5v2"/><path d="M14.5 8.5v2"/></svg>', label: 'SCALO Intelligence' }] : []),
             ];
 
             const adminNavItems = [
@@ -5037,9 +5606,21 @@ const renderAdminClientDetail = async (uid) => {
 
             const navItems = isAdmin ? adminNavItems : clientNavItems;
 
+            const sidebarInitials = ((currentUser.firstName||'?')[0] + (currentUser.lastName||'?')[0]).toUpperCase();
+            const sidebarAvatarHtml = currentUser.profilePicture
+                ? '<div class="sidebar-profile-avatar"><img src="' + currentUser.profilePicture + '" alt=""></div>'
+                : '<div class="sidebar-profile-avatar">' + sidebarInitials + '</div>';
+            const sidebarFullName = [currentUser.firstName, currentUser.lastName].filter(Boolean).join(' ') || 'Welcome';
             const sidebarHtml = `
                 <div class="portal-sidebar">
                     <img src="${SCALO_LOGO}" alt="SCALO" class="sidebar-logo">
+                    <div class="sidebar-profile" onclick="openAvatarModal()" title="Update your photo">
+                        ${sidebarAvatarHtml}
+                        <div class="sidebar-profile-text">
+                            <div class="sidebar-profile-greeting">Welcome back</div>
+                            <div class="sidebar-profile-name">${sidebarFullName}</div>
+                        </div>
+                    </div>
                     <div class="sidebar-nav">
                         ${navItems.map(item => `
                             <button class="sidebar-nav-item ${activeCheck === item.page ? 'active' : ''}" onclick="setPage('${item.page}')">
@@ -5076,23 +5657,15 @@ const renderAdminClientDetail = async (uid) => {
                 else if (currentPage === 'social') pageContent = await renderClientSocial();
                 else if (currentPage === 'progress') pageContent = await renderClientProgress();
                 else if (currentPage === 'scaleSignal') pageContent = await renderClientScaleSignal();
+                else if (currentPage === 'intelligence' && SCALO_INTELLIGENCE_ENABLED) pageContent = await renderClientIntelligence();
+                else if (currentPage === 'intelligence') { currentPage = 'hub'; pageContent = await renderClientHub(); }
             }
 
-            const pageTitles = { hub:'Overview', implementation:'The Roadmap', businessReport:'Business Report', numbers:'Log Your Numbers', tasks:'Your Tasks', content:'Content Library', inspo:'Inspo Feed', social:'Social Profiles', progress:'Analytics', scaleSignal:'The Scale Signal', clients:'Your Clients', addClient:'Add New Client', crm:'Client CRM', clientDetail:'Client Detail' };
+            const pageTitles = { hub:'Overview', implementation:'The Roadmap', businessReport:'Business Report', numbers:'Log Your Numbers', tasks:'Your Tasks', content:'Content Library', inspo:'Inspo Feed', social:'Social Profiles', progress:'Analytics', scaleSignal:'The Scale Signal', intelligence:'SCALO Intelligence', clients:'Your Clients', addClient:'Add New Client', crm:'Client CRM', clientDetail:'Client Detail' };
             const pageTitle = pageTitles[currentPage] || '';
-            const initials = ((currentUser.firstName||'?')[0] + (currentUser.lastName||'?')[0]).toUpperCase();
-            const avatarHtml = currentUser.profilePicture
-                ? '<div class="user-avatar"><img src="' + currentUser.profilePicture + '" alt=""></div>'
-                : '<div class="user-avatar">' + initials + '</div>';
             const topbarHtml = `
                 <div class="portal-topbar">
                     <div class="portal-topbar-title">${pageTitle}</div>
-                    <div style="display:flex;align-items:center;">
-                        <div class="portal-topbar-user" onclick="openAvatarModal()">
-                            ${avatarHtml}
-                            <span>${currentUser.firstName}</span>
-                        </div>
-                    </div>
                 </div>
             `;
 
@@ -5105,6 +5678,7 @@ const renderAdminClientDetail = async (uid) => {
                     </div>
                 </div>
                 <div id="avatarModalContainer"></div>
+                <div id="botModalContainer"></div>
             `;
 
             if (currentPage === 'progress' && !isAdmin) setTimeout(renderProgressCharts, 50);
