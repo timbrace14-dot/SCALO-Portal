@@ -2062,14 +2062,14 @@
             const showOccupancyAlert = lmWeeksLogged > 0 && lmOccupancy >= 80 && !sessionStorage.getItem('dismissedOccupancyAlert');
 
             // ── Money: nudge if numbers logged this week but transfer not ticked ──
-            const hubSavingsSetup = (hubSavings.settings && hubSavings.settings.setupComplete) === true;
+            const hubSavingsSetup = (hubSavings.settings && hubSavings.settings.setupComplete) === true && Number(hubSavings.settings.weeklyTarget) > 0;
             const hubCurrentWeekKey = getWeekKey();
             const hubCurrentWeekEntry = getWeeklyTotals(entries[hubCurrentWeekKey] || {});
             const hubLoggedThisWeek = (hubCurrentWeekEntry.revenue || 0) > 0;
             const hubTransferDone = !!(hubSavings.transfers && hubSavings.transfers[hubCurrentWeekKey]);
-            const hubPct = (hubSavings.settings && hubSavings.settings.savingsPct) || SAVINGS_DEFAULT_PCT;
-            const hubExpectedTransfer = Math.round((hubCurrentWeekEntry.revenue || 0) * hubPct * 100) / 100;
-            const showTransferNudge = hubSavingsSetup && hubLoggedThisWeek && !hubTransferDone;
+            const hubWeeklyTarget = Number(hubSavings.settings && hubSavings.settings.weeklyTarget) || 0;
+            const hubExpectedTransfer = hubWeeklyTarget;
+            const showTransferNudge = hubSavingsSetup && hubLoggedThisWeek && !hubTransferDone && hubWeeklyTarget > 0;
 
             hubChartData = { trueMargin, occupancy, rebook, allTrueProfitMargin, allOccupancy, allRebook, revenue, expenses, lossOfEarnings, trueProfit, noShows, avgTicket, appointmentsAvailable: currentEntry.appointmentsAvailable||0, appointmentsFilled: currentEntry.appointmentsFilled||0, rebookings: currentEntry.rebookings||0 };
 
@@ -2097,7 +2097,7 @@
                     <!-- WEEKLY TRANSFER NUDGE -->
                     <div class="money-overview-banner" onclick="setPage('numbers')">
                         <div style="font-size:20px;flex-shrink:0;">💰</div>
-                        <div class="money-overview-banner-text">You logged numbers this week — don't forget your <strong>${formatMoney(hubExpectedTransfer)}</strong> Profit First transfer.</div>
+                        <div class="money-overview-banner-text">You logged numbers this week — don't forget your <strong>${formatMoney(hubExpectedTransfer)}</strong> savings target.</div>
                         <span style="font-size:12px;color:#FBBF24;font-weight:700;">Open &rarr;</span>
                     </div>` : ''}
 
@@ -2779,31 +2779,30 @@
             const filledCount = getFilledDayCount(data);
             const isOldFormat = !isDailyFormat(data) && Object.keys(data).length > 0 && (data.revenue || data.appointmentsFilled);
 
-            // ── Profit First card: surface savings transfer for the selected week ──
+            // ── Savings card: surface this week's savings target ──
             const pfSettings = savings.settings || {};
             const pfTransfers = savings.transfers || {};
-            const pfPct = pfSettings.savingsPct || SAVINGS_DEFAULT_PCT;
+            const pfWeeklyTarget = Number(pfSettings.weeklyTarget) || 0;
             const pfRevenue = (getWeeklyTotals(data).revenue) || 0;
-            const pfAmount = Math.round(pfRevenue * pfPct * 100) / 100;
             const pfThisWeekTransfer = pfTransfers[selectedWeekKey] || null;
             let pfCardHtml = '';
-            if (!pfSettings.setupComplete) {
+            if (!pfSettings.setupComplete || !pfWeeklyTarget) {
                 if (pfRevenue > 0) {
                     pfCardHtml = `<div class="pf-card" style="margin-top:8px;">
                         <div class="pf-head">
                             <div class="pf-head-icon">${IC.chart}</div>
-                            <div class="pf-head-text">Want to start saving from this revenue?</div>
+                            <div class="pf-head-text">Want to start saving toward a goal?</div>
                         </div>
-                        <div style="font-size:12px;color:rgba(255,255,255,0.55);margin-bottom:12px;line-height:1.5;">Set up a Profit First % once and the portal calculates your weekly transfer automatically. One tap each week.</div>
+                        <div style="font-size:12px;color:rgba(255,255,255,0.55);margin-bottom:12px;line-height:1.5;">Pick a goal, choose what you can save each week, and we'll calculate how long it takes to hit it.</div>
                         <button class="money-btn-primary" onclick="setPage('money')">Set up savings &rarr;</button>
                     </div>`;
                 }
-            } else if (pfRevenue > 0) {
+            } else {
                 if (pfThisWeekTransfer) {
                     pfCardHtml = `<div class="pf-card done" style="margin-top:8px;">
                         <div class="pf-head">
-                            <div class="pf-head-icon" style="background:rgba(74,222,128,0.18);color:#4ADE80;">${IC.check || '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5L6.5 12L13 4"/></svg>'}</div>
-                            <div class="pf-head-text">${formatMoney(pfThisWeekTransfer.amount)} transferred this week</div>
+                            <div class="pf-head-icon" style="background:rgba(74,222,128,0.18);color:#4ADE80;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5L6.5 12L13 4"/></svg></div>
+                            <div class="pf-head-text">${formatMoney(pfThisWeekTransfer.amount)} saved for this week</div>
                         </div>
                         <div class="money-cta-row">
                             <button class="money-btn-ghost" onclick="editWeeklyTransfer('${selectedWeekKey}')">Edit amount</button>
@@ -2814,17 +2813,15 @@
                     pfCardHtml = `<div class="pf-card" style="margin-top:8px;">
                         <div class="pf-head">
                             <div class="pf-head-icon">${IC.chart}</div>
-                            <div class="pf-head-text">Profit First &mdash; transfers for this week</div>
+                            <div class="pf-head-text">This week's savings target: ${formatMoney(pfWeeklyTarget)}</div>
                         </div>
-                        <div class="pf-amount-row">
-                            <div class="pf-amount">
-                                <div class="pf-amount-label">Transfer to savings</div>
-                                <div class="pf-amount-value">${formatMoney(pfAmount)}<span class="pf-amount-pct">${(pfPct * 100).toFixed(1)}% of ${formatMoney(pfRevenue)}</span></div>
-                            </div>
+                        <div style="font-size:12px;color:rgba(255,255,255,0.55);margin-bottom:14px;line-height:1.5;">How much did you actually put aside this week? Pre-filled with your target &mdash; edit if you saved more or less.</div>
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                            <span style="font-size:18px;font-weight:700;color:rgba(255,255,255,0.45);">&pound;</span>
+                            <input type="number" id="pfWeeklyAmount" min="0" step="1" value="${pfWeeklyTarget}" class="form-input" style="font-weight:700;font-size:16px;max-width:200px;margin-bottom:0;">
                         </div>
                         <div class="money-cta-row">
-                            <button class="money-btn-primary" onclick="markWeeklyTransfer('${selectedWeekKey}')">Done, transferred &check;</button>
-                            <button class="money-btn-secondary" onclick="editWeeklyTransfer('${selectedWeekKey}')">Edit amount</button>
+                            <button class="money-btn-primary" onclick="logWeeklySaving('${selectedWeekKey}')">Log it &check;</button>
                         </div>
                     </div>`;
                 }
@@ -5713,7 +5710,7 @@ const renderAdminClientDetail = async (uid) => {
         // Savings = structured % of weekly revenue (Profit First). Auto-calculated, one-tap to confirm transfer.
         // Investments = free-form ledger. Manual entries with optional category (Stocks/Crypto/Business).
 
-        const SAVINGS_DEFAULT_PCT = 0.05;
+        const SAVINGS_DEFAULT_WEEKLY = 100;
         const INV_CATEGORIES = ['stocks', 'crypto', 'business'];
         const INV_CATEGORY_LABELS = { stocks: 'Stocks/Funds', crypto: 'Crypto', business: 'Business' };
 
@@ -5759,21 +5756,33 @@ const renderAdminClientDetail = async (uid) => {
             return count;
         };
 
-        // Pace: are they on track to hit savings goal by target date?
-        // Returns { state: 'on-track' | 'behind' | 'ahead' | 'no-goal' | 'achieved', label, weeksLeft, weeklyNeeded }
-        const computePace = (savings) => {
-            const goal = savings && savings.goal;
-            if (!goal || !goal.targetAmount || !goal.targetDate) return { state: 'no-goal', label: 'No goal set' };
-            const saved = totalSaved(savings);
-            const remaining = Math.max(0, goal.targetAmount - saved);
-            if (remaining === 0) return { state: 'achieved', label: 'Goal hit 🎉' };
-            const now = new Date();
-            const target = new Date(goal.targetDate);
-            const msPerWeek = 7 * 86400000;
-            const weeksLeft = Math.max(1, Math.ceil((target.getTime() - now.getTime()) / msPerWeek));
-            const weeklyNeeded = remaining / weeksLeft;
+        // Compute weeks to goal at a given weekly rate
+        const weeksToGoal = (targetAmount, weeklyRate, alreadySaved) => {
+            const remaining = Math.max(0, (targetAmount || 0) - (alreadySaved || 0));
+            if (remaining <= 0) return 0;
+            if (!weeklyRate || weeklyRate <= 0) return Infinity;
+            return Math.ceil(remaining / weeklyRate);
+        };
 
-            // Compare to recent rate: avg of last 4 weeks of transfers
+        // Format a future date that's `weeks` weeks from now
+        const futureDateLabel = (weeks) => {
+            if (!isFinite(weeks)) return 'never at this rate';
+            const d = new Date(Date.now() + weeks * 7 * 86400000);
+            return d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+        };
+
+        // Pace: comparing actual weekly avg to their chosen weekly target
+        // Returns { state, label, weeksToGoal, weeklyTarget, avgRecent }
+        const computePace = (savings) => {
+            const settings = (savings && savings.settings) || {};
+            const goal = (savings && savings.goal) || {};
+            const weeklyTarget = Number(settings.weeklyTarget) || 0;
+            const saved = totalSaved(savings);
+            if (!goal.targetAmount) return { state: 'no-goal', label: 'No goal set', weeklyTarget };
+            const remaining = Math.max(0, goal.targetAmount - saved);
+            if (remaining === 0) return { state: 'achieved', label: 'Goal hit 🎉', weeklyTarget };
+
+            // Recent weekly average (last 4 weeks of logged savings)
             const transfers = savings.transfers || {};
             const recent = [];
             for (let offset = -1; offset >= -4; offset--) {
@@ -5781,17 +5790,21 @@ const renderAdminClientDetail = async (uid) => {
                 if (transfers[wk]) recent.push(Number(transfers[wk].amount) || 0);
             }
             const avgRecent = recent.length > 0 ? recent.reduce((a, b) => a + b, 0) / recent.length : 0;
+            const weeks = weeksToGoal(goal.targetAmount, weeklyTarget, saved);
 
             let state, label;
-            if (avgRecent >= weeklyNeeded * 0.95) {
-                state = avgRecent > weeklyNeeded * 1.1 ? 'ahead' : 'on-track';
-                label = state === 'ahead' ? 'Ahead of pace' : 'On pace';
+            if (avgRecent === 0 && recent.length === 0) {
+                state = 'no-goal';
+                label = weeklyTarget > 0 ? 'Start logging weeks' : 'Set a weekly target';
+            } else if (avgRecent >= weeklyTarget * 0.95) {
+                state = avgRecent > weeklyTarget * 1.1 ? 'ahead' : 'on-track';
+                label = state === 'ahead' ? 'Ahead of target' : 'On target';
             } else {
                 state = 'behind';
-                const shortfall = weeklyNeeded - avgRecent;
+                const shortfall = weeklyTarget - avgRecent;
                 label = 'Behind by ' + formatMoney(shortfall) + '/wk';
             }
-            return { state, label, weeksLeft, weeklyNeeded, avgRecent };
+            return { state, label, weeksToGoal: weeks, weeklyTarget, avgRecent };
         };
 
         // Has the current week's transfer been logged?
@@ -5805,46 +5818,51 @@ const renderAdminClientDetail = async (uid) => {
             const data = await fetchMoneyData(uid);
 
             const settings = data.savings.settings || {};
-            const isSetup = settings.setupComplete === true;
+            // Treat as setup only if both setupComplete AND a weekly target is set (handles old-model migration)
+            const isSetup = settings.setupComplete === true && Number(settings.weeklyTarget) > 0;
 
             if (!isSetup) return renderClientMoneySetup(data);
             return renderClientMoneyDashboard(data);
         };
 
         const renderClientMoneySetup = (data) => {
-            const existingPct = (data.savings && data.savings.settings && data.savings.settings.savingsPct) || SAVINGS_DEFAULT_PCT;
+            const existingWeekly = Number((data.savings && data.savings.settings && data.savings.settings.weeklyTarget)) || SAVINGS_DEFAULT_WEEKLY;
             const existingGoal = (data.savings && data.savings.goal) || {};
             const existingInvGoal = (data.investments && data.investments.goal) || {};
-            const today = new Date();
-            const defaultTargetDate = new Date(today.getFullYear() + 2, today.getMonth(), today.getDate()).toISOString().slice(0, 10);
+            const existingTarget = Number(existingGoal.targetAmount) || 0;
             return `
                 <div>
-                    <h2 class="page-title">Set up your Money plan</h2>
-                    <p class="page-subtitle">Two minutes now — then it runs itself every week.</p>
+                    <h2 class="page-title">Set up your savings plan</h2>
+                    <p class="page-subtitle">Pick a goal, pick what you'll save each week, and we'll work out how long it takes.</p>
 
                     <div class="money-setup-card">
                         <div class="money-setup-section">
-                            <div class="money-setup-label">Savings &mdash; % of weekly revenue</div>
-                            <div class="money-setup-help">Each week after you log your numbers, this % of your revenue gets calculated automatically and you tap once to confirm the transfer. Most barbers start with 5&ndash;10%.</div>
-                            <div style="display:flex;align-items:center;gap:12px;">
-                                <input type="number" id="moneySetupPct" min="0" max="50" step="0.5" value="${(existingPct * 100).toFixed(1)}" class="form-input" style="max-width:120px;font-weight:700;">
-                                <span style="font-size:18px;font-weight:700;color:rgba(255,255,255,0.45);">%</span>
+                            <div class="money-setup-label">What are you saving for?</div>
+                            <div class="money-setup-help">Give your goal a name and the target amount.</div>
+                            <input type="text" id="moneySetupGoalLabel" class="form-input" placeholder="e.g. House deposit" value="${(existingGoal.label || '').replace(/"/g, '&quot;')}" style="margin-bottom:10px;">
+                            <input type="number" id="moneySetupGoalAmount" class="form-input" placeholder="Target amount (£)" value="${existingTarget || ''}" min="0" step="100" oninput="updateSavingsPreview()">
+                        </div>
+
+                        <div class="money-setup-section">
+                            <div class="money-setup-label">How much can you save each week?</div>
+                            <div class="money-setup-help">Pick an amount you can realistically put aside every week. You can change this any time.</div>
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <span style="font-size:18px;font-weight:700;color:rgba(255,255,255,0.45);">&pound;</span>
+                                <input type="number" id="moneySetupWeekly" min="0" step="10" value="${existingWeekly}" class="form-input" style="font-weight:700;font-size:18px;" oninput="updateSavingsPreview()">
+                                <span style="font-size:14px;color:rgba(255,255,255,0.55);">per week</span>
                             </div>
                         </div>
 
                         <div class="money-setup-section">
-                            <div class="money-setup-label">Savings goal</div>
-                            <div class="money-setup-help">What are you saving for, by when, and how much?</div>
-                            <input type="text" id="moneySetupGoalLabel" class="form-input" placeholder="e.g. House deposit" value="${(existingGoal.label || '').replace(/"/g, '&quot;')}" style="margin-bottom:10px;">
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                                <input type="number" id="moneySetupGoalAmount" class="form-input" placeholder="Target amount (£)" value="${existingGoal.targetAmount || ''}" min="0" step="100">
-                                <input type="date" id="moneySetupGoalDate" class="form-input" value="${existingGoal.targetDate || defaultTargetDate}">
+                            <div id="savingsPreview" style="background:rgba(184,233,134,0.06);border:1px solid rgba(184,233,134,0.2);border-radius:12px;padding:16px 18px;text-align:center;">
+                                <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">At this pace</div>
+                                <div id="savingsPreviewText" style="font-size:15px;color:#fff;font-weight:600;line-height:1.4;">Enter a goal and weekly amount to see the timeline</div>
                             </div>
                         </div>
 
                         <div class="money-setup-section">
                             <div class="money-setup-label">Investment goal &mdash; optional</div>
-                            <div class="money-setup-help">Want a target for your investment portfolio? Skip if you'd rather just track without a target.</div>
+                            <div class="money-setup-help">Separate from savings &mdash; for stocks, crypto or business reinvestment. Skip if you'd rather just track without a target.</div>
                             <input type="text" id="moneySetupInvGoalLabel" class="form-input" placeholder="e.g. £100k portfolio (optional)" value="${(existingInvGoal.label || '').replace(/"/g, '&quot;')}" style="margin-bottom:10px;">
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                                 <input type="number" id="moneySetupInvGoalAmount" class="form-input" placeholder="Target (£)" value="${existingInvGoal.targetAmount || ''}" min="0" step="1000">
@@ -5858,6 +5876,26 @@ const renderAdminClientDetail = async (uid) => {
             `;
         };
 
+        // Live preview on the setup form
+        window.updateSavingsPreview = () => {
+            const target = parseFloat(document.getElementById('moneySetupGoalAmount').value);
+            const weekly = parseFloat(document.getElementById('moneySetupWeekly').value);
+            const previewEl = document.getElementById('savingsPreviewText');
+            if (!previewEl) return;
+            if (isNaN(target) || target <= 0 || isNaN(weekly) || weekly <= 0) {
+                previewEl.textContent = 'Enter a goal and weekly amount to see the timeline';
+                return;
+            }
+            const weeks = Math.ceil(target / weekly);
+            const months = Math.round(weeks / 4.345);
+            const years = (weeks / 52).toFixed(1);
+            const dateLabel = futureDateLabel(weeks);
+            const timeLabel = weeks < 8 ? `${weeks} week${weeks === 1 ? '' : 's'}`
+                : weeks < 78 ? `${months} month${months === 1 ? '' : 's'}`
+                : `${years} years`;
+            previewEl.innerHTML = `Saving <strong>${formatMoney(weekly)}/week</strong>, you'll hit <strong>${formatMoney(target)}</strong> in <strong>${timeLabel}</strong> &mdash; ${dateLabel}`;
+        };
+
         const renderClientMoneyDashboard = (data) => {
             const savings = data.savings;
             const investments = data.investments;
@@ -5869,11 +5907,15 @@ const renderAdminClientDetail = async (uid) => {
             const wealth = saved + invested;
             const streak = computeStreak(savings);
             const pace = computePace(savings);
-            const pct = settings.savingsPct || SAVINGS_DEFAULT_PCT;
+            const weeklyTarget = Number(settings.weeklyTarget) || 0;
 
             // Goal progress
             const goalAmount = Number(goal.targetAmount) || 0;
             const goalPct = goalAmount > 0 ? Math.min(100, (saved / goalAmount) * 100) : 0;
+
+            // Project remaining time at current weekly target
+            const weeksLeftAtTarget = weeksToGoal(goalAmount, weeklyTarget, saved);
+            const projectedDateLabel = futureDateLabel(weeksLeftAtTarget);
 
             // Investment goal progress (optional)
             const invGoalAmount = invGoal ? (Number(invGoal.targetAmount) || 0) : 0;
@@ -5885,16 +5927,13 @@ const renderAdminClientDetail = async (uid) => {
                 .sort((a, b) => (b.date || b.createdAt || '').localeCompare(a.date || a.createdAt || ''))
                 .slice(0, 6);
 
-            // % of revenue going to wealth (last 4 weeks: saved + invested ÷ revenue)
-            const transfers = savings.transfers || {};
-            let recentRevenue = 0, recentSaved = 0;
-            for (let offset = -1; offset >= -4; offset--) {
-                const wk = getOffsetWeekKey(offset);
-                const e = data.entries[wk];
-                if (e) recentRevenue += (getWeeklyTotals(e).revenue || 0);
-                if (transfers[wk]) recentSaved += Number(transfers[wk].amount) || 0;
-            }
-            const wealthPctOfRevenue = recentRevenue > 0 ? Math.round((recentSaved / recentRevenue) * 100) : 0;
+            const formatWeeks = (w) => {
+                if (!isFinite(w)) return '—';
+                if (w === 0) return 'Goal hit';
+                if (w < 8) return w + ' week' + (w === 1 ? '' : 's');
+                if (w < 78) return Math.round(w / 4.345) + ' months';
+                return (w / 52).toFixed(1) + ' years';
+            };
 
             return `
                 <div>
@@ -5905,17 +5944,17 @@ const renderAdminClientDetail = async (uid) => {
                         <div class="money-hero-card">
                             <div class="money-hero-label">Total saved</div>
                             <div class="money-hero-value">${formatMoney(saved)}</div>
-                            <div class="money-hero-sub">${(pct * 100).toFixed(1)}% of weekly revenue</div>
+                            <div class="money-hero-sub">${formatMoney(weeklyTarget)}/week target</div>
+                        </div>
+                        <div class="money-hero-card">
+                            <div class="money-hero-label">Time to goal</div>
+                            <div class="money-hero-value">${formatWeeks(weeksLeftAtTarget)}</div>
+                            <div class="money-hero-sub">${weeksLeftAtTarget > 0 && isFinite(weeksLeftAtTarget) ? 'at ' + formatMoney(weeklyTarget) + '/week &mdash; ' + projectedDateLabel : ''}</div>
                         </div>
                         <div class="money-hero-card">
                             <div class="money-hero-label">Total invested</div>
                             <div class="money-hero-value">${formatMoney(invested)}</div>
                             <div class="money-hero-sub">${invEntries.length === 0 ? 'No entries yet' : Object.keys(investments.entries || {}).length + ' entries'}</div>
-                        </div>
-                        <div class="money-hero-card">
-                            <div class="money-hero-label">Combined wealth</div>
-                            <div class="money-hero-value">${formatMoney(wealth)}</div>
-                            <div class="money-hero-sub">${wealthPctOfRevenue > 0 ? wealthPctOfRevenue + '% of recent revenue' : ' '}</div>
                         </div>
                     </div>
 
@@ -5926,7 +5965,7 @@ const renderAdminClientDetail = async (uid) => {
                         <div class="money-card-head">
                             <div>
                                 <div class="money-card-title">${goal.label ? goal.label.replace(/</g, '&lt;') : 'Savings goal'}</div>
-                                <div class="money-card-sub">Target ${formatMoney(goalAmount)} by ${goal.targetDate ? new Date(goal.targetDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '—'}</div>
+                                <div class="money-card-sub">Target ${formatMoney(goalAmount)} · ${formatMoney(weeklyTarget)}/week</div>
                             </div>
                             <span class="money-pace-pill ${pace.state}">${pace.label}</span>
                         </div>
@@ -5937,7 +5976,7 @@ const renderAdminClientDetail = async (uid) => {
                             <span><strong>${formatMoney(saved)}</strong> saved</span>
                             <span>${formatMoney(Math.max(0, goalAmount - saved))} to go</span>
                         </div>
-                        ${pace.weeklyNeeded ? `<div style="margin-top:10px;font-size:12px;color:rgba(255,255,255,0.5);">Need ${formatMoney(pace.weeklyNeeded)}/week (${pace.weeksLeft} weeks left). Recent avg: ${formatMoney(pace.avgRecent || 0)}/week.</div>` : ''}
+                        <div style="margin-top:10px;font-size:12px;color:rgba(255,255,255,0.5);">${pace.avgRecent > 0 ? 'Recent average: ' + formatMoney(pace.avgRecent) + '/week.' : 'Log this week\'s saving on the Business page to start tracking.'}</div>
                     </div>
 
                     <!-- Investments -->
@@ -5986,34 +6025,36 @@ const renderAdminClientDetail = async (uid) => {
 
         // Save setup form
         window.saveMoneySetup = async () => {
-            const pctInput = parseFloat(document.getElementById('moneySetupPct').value);
             const goalLabel = document.getElementById('moneySetupGoalLabel').value.trim();
             const goalAmount = parseFloat(document.getElementById('moneySetupGoalAmount').value);
-            const goalDate = document.getElementById('moneySetupGoalDate').value;
+            const weeklyTarget = parseFloat(document.getElementById('moneySetupWeekly').value);
             const invLabel = document.getElementById('moneySetupInvGoalLabel').value.trim();
             const invAmount = parseFloat(document.getElementById('moneySetupInvGoalAmount').value);
             const invDate = document.getElementById('moneySetupInvGoalDate').value;
 
-            if (isNaN(pctInput) || pctInput < 0 || pctInput > 50) {
-                toast.error('Savings % must be between 0 and 50');
+            if (!goalLabel || isNaN(goalAmount) || goalAmount <= 0) {
+                toast.error('Add a goal name and target amount');
                 return;
             }
-            if (!goalLabel || isNaN(goalAmount) || goalAmount <= 0 || !goalDate) {
-                toast.error('Set a savings goal label, amount, and date');
+            if (isNaN(weeklyTarget) || weeklyTarget <= 0) {
+                toast.error('Pick how much you can save each week');
                 return;
             }
+
+            const weeks = Math.ceil(goalAmount / weeklyTarget);
+            const projectedDate = new Date(Date.now() + weeks * 7 * 86400000).toISOString().slice(0, 10);
 
             const uid = currentUser.uid;
             try {
                 await db.ref('portal/savings/' + uid + '/settings').set({
-                    savingsPct: pctInput / 100,
+                    weeklyTarget,
                     setupComplete: true,
                     updatedAt: new Date().toISOString(),
                 });
                 await db.ref('portal/savings/' + uid + '/goal').set({
                     label: goalLabel,
                     targetAmount: goalAmount,
-                    targetDate: goalDate,
+                    targetDate: projectedDate,
                     startDate: new Date().toISOString().slice(0, 10),
                 });
                 if (invLabel && !isNaN(invAmount) && invAmount > 0 && invDate) {
@@ -6025,7 +6066,7 @@ const renderAdminClientDetail = async (uid) => {
                 } else {
                     await db.ref('portal/investments/' + uid + '/goal').remove();
                 }
-                toast.success('Money plan saved');
+                toast.success('Plan saved');
                 setPage('money');
             } catch (err) {
                 toast.error('Could not save: ' + err.message);
@@ -6135,37 +6176,39 @@ const renderAdminClientDetail = async (uid) => {
             }
         };
 
-        // Mark this week's transfer as done. Auto-calculates from current week's revenue × pct.
-        window.markWeeklyTransfer = async (weekKey) => {
+        // Log a week's saving. Reads amount from inline input if present, else uses weeklyTarget.
+        window.logWeeklySaving = async (weekKey) => {
             const uid = currentUser.uid;
             const wk = weekKey || getWeekKey();
+            const inputEl = document.getElementById('pfWeeklyAmount');
             try {
-                const [savingsSnap, entrySnap] = await Promise.all([
-                    db.ref('portal/savings/' + uid).once('value'),
-                    db.ref('portal/entries/' + uid + '/' + wk).once('value'),
-                ]);
+                const savingsSnap = await db.ref('portal/savings/' + uid).once('value');
                 const savings = savingsSnap.val() || {};
                 const settings = savings.settings || {};
-                if (!settings.setupComplete) {
+                if (!settings.setupComplete || !Number(settings.weeklyTarget)) {
                     toast.error('Set up your savings plan first');
                     setPage('money');
                     return;
                 }
-                const pct = settings.savingsPct || SAVINGS_DEFAULT_PCT;
-                const totals = getWeeklyTotals(entrySnap.val() || {});
-                const revenue = totals.revenue || 0;
-                const amount = Math.round(revenue * pct * 100) / 100;
+                const weeklyTarget = Number(settings.weeklyTarget);
+                let amount = inputEl ? parseFloat(inputEl.value) : weeklyTarget;
+                if (isNaN(amount) || amount < 0) amount = weeklyTarget;
+                amount = Math.round(amount * 100) / 100;
                 await db.ref('portal/savings/' + uid + '/transfers/' + wk).set({
-                    amount, revenue, pct,
+                    amount,
+                    weeklyTarget,
                     transferredAt: new Date().toISOString(),
-                    source: 'auto',
+                    source: 'manual',
                 });
-                toast.success('Transfer logged: ' + formatMoney(amount));
+                toast.success('Logged ' + formatMoney(amount) + ' for this week');
                 setPage(currentPage);
             } catch (err) {
-                toast.error('Could not log transfer: ' + err.message);
+                toast.error('Could not log: ' + err.message);
             }
         };
+
+        // Back-compat alias for any existing onclicks
+        window.markWeeklyTransfer = window.logWeeklySaving;
 
         // Edit/override transfer amount
         window.editWeeklyTransfer = async (weekKey) => {
@@ -6203,10 +6246,9 @@ const renderAdminClientDetail = async (uid) => {
                 const totals = getWeeklyTotals(entrySnap.val() || {});
                 await db.ref('portal/savings/' + uid + '/transfers/' + weekKey).set({
                     amount,
-                    revenue: totals.revenue || 0,
-                    pct: 0,
+                    weeklyTarget: 0,
                     transferredAt: new Date().toISOString(),
-                    source: 'manual',
+                    source: 'manual-edit',
                 });
                 document.getElementById('confirmModalContainer').innerHTML = '';
                 toast.success('Saved');
