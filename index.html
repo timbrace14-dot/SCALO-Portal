@@ -1150,6 +1150,159 @@
             margin: 0 auto;
         }
 
+        /* ── MONEY (SAVINGS + INVESTMENTS) ── */
+        .money-hero { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+        @media (max-width: 640px) { .money-hero { grid-template-columns: 1fr; } }
+        .money-hero-card {
+            background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+            border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 16px;
+            padding: 22px 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .money-hero-card::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at top right, rgba(184,233,134,0.08) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        .money-hero-label { font-size: 11px; color: rgba(255,255,255,0.5); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+        .money-hero-value { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -0.02em; line-height: 1; margin-bottom: 6px; }
+        .money-hero-sub { font-size: 12px; color: rgba(255,255,255,0.45); font-weight: 500; }
+
+        .money-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 22px;
+            margin-bottom: 16px;
+        }
+        .money-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 12px; flex-wrap: wrap; }
+        .money-card-title { font-size: 14px; font-weight: 700; color: #fff; letter-spacing: -0.01em; }
+        .money-card-sub { font-size: 12px; color: rgba(255,255,255,0.45); font-weight: 500; }
+
+        .money-progress-track { height: 8px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; margin: 12px 0 8px; }
+        .money-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent) 0%, #8FD17A 100%); border-radius: 999px; transition: width 0.6s cubic-bezier(0.34, 1.4, 0.64, 1); }
+        .money-progress-row { display: flex; justify-content: space-between; font-size: 12px; color: rgba(255,255,255,0.55); font-weight: 600; }
+        .money-progress-row strong { color: #fff; font-weight: 700; }
+
+        .money-pace-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 10px; border-radius: 999px;
+            font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+        }
+        .money-pace-pill.on-track { background: rgba(74,222,128,0.12); color: #4ADE80; }
+        .money-pace-pill.behind { background: rgba(255,69,51,0.1); color: #FF4533; }
+        .money-pace-pill.ahead { background: rgba(184,233,134,0.14); color: var(--accent); }
+        .money-pace-pill.no-goal { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); }
+
+        .money-streak-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 12px; border-radius: 999px;
+            background: rgba(251,191,36,0.12); color: #FBBF24;
+            font-size: 12px; font-weight: 700; letter-spacing: 0.01em;
+        }
+
+        .money-cta-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .money-btn-primary {
+            background: var(--accent); color: #000; border: none;
+            padding: 11px 18px; border-radius: 10px;
+            font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+            transition: all 0.18s;
+        }
+        .money-btn-primary:hover { background: var(--accent-hover); }
+        .money-btn-secondary {
+            background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.85); border: 1px solid rgba(255,255,255,0.1);
+            padding: 11px 18px; border-radius: 10px;
+            font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+            transition: all 0.18s;
+        }
+        .money-btn-secondary:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.18); }
+        .money-btn-ghost {
+            background: none; color: rgba(255,255,255,0.5); border: none;
+            padding: 6px 10px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+        }
+        .money-btn-ghost:hover { color: #fff; }
+
+        .money-investment-row {
+            display: grid; grid-template-columns: auto 1fr auto auto; gap: 12px;
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            align-items: center;
+        }
+        .money-investment-row:last-child { border-bottom: none; }
+        .money-investment-cat {
+            font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+            padding: 3px 8px; border-radius: 6px;
+            background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7);
+        }
+        .money-investment-cat.stocks { background: rgba(96,165,250,0.12); color: #60A5FA; }
+        .money-investment-cat.crypto { background: rgba(251,146,60,0.12); color: #FB923C; }
+        .money-investment-cat.business { background: rgba(184,233,134,0.14); color: var(--accent); }
+        .money-investment-note { font-size: 13px; color: rgba(255,255,255,0.85); font-weight: 500; }
+        .money-investment-amount { font-size: 14px; font-weight: 700; color: #fff; }
+        .money-investment-date { font-size: 11px; color: rgba(255,255,255,0.4); }
+
+        .money-empty {
+            text-align: center; padding: 40px 20px;
+            color: rgba(255,255,255,0.4);
+            font-size: 13px;
+        }
+
+        /* Setup form */
+        .money-setup-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 16px;
+            padding: 28px;
+            max-width: 640px;
+            margin: 0 auto 24px;
+        }
+        .money-setup-section { margin-bottom: 22px; }
+        .money-setup-section:last-child { margin-bottom: 0; }
+        .money-setup-label { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.55); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+        .money-setup-help { font-size: 12px; color: rgba(255,255,255,0.45); font-weight: 400; line-height: 1.5; margin-bottom: 10px; }
+
+        /* Profit First inline card on Numbers page */
+        .pf-card {
+            background: linear-gradient(135deg, rgba(184,233,134,0.06) 0%, rgba(184,233,134,0.02) 100%);
+            border: 1px solid rgba(184,233,134,0.2);
+            border-radius: 14px;
+            padding: 18px 20px;
+            margin: 8px 0 16px;
+        }
+        .pf-card.done { background: rgba(74,222,128,0.06); border-color: rgba(74,222,128,0.25); }
+        .pf-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        .pf-head-icon { width: 28px; height: 28px; border-radius: 8px; background: rgba(184,233,134,0.18); color: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .pf-head-text { font-size: 13px; font-weight: 700; color: #fff; letter-spacing: -0.005em; }
+        .pf-amount-row { display: flex; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+        .pf-amount {
+            flex: 1; min-width: 120px;
+            padding: 12px 14px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 10px;
+        }
+        .pf-amount-label { font-size: 10px; color: rgba(255,255,255,0.45); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+        .pf-amount-value { font-size: 18px; font-weight: 800; color: #fff; }
+        .pf-amount-pct { font-size: 11px; color: rgba(255,255,255,0.45); margin-left: 4px; font-weight: 600; }
+
+        .money-overview-banner {
+            background: rgba(251,191,36,0.08);
+            border: 1px solid rgba(251,191,36,0.25);
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .money-overview-banner:hover { background: rgba(251,191,36,0.12); }
+        .money-overview-banner-text { flex: 1; font-size: 13px; color: rgba(255,255,255,0.85); }
+        .money-overview-banner-text strong { color: #FBBF24; }
+
         /* ── TOAST + CONFIRM MODAL ── */
         .toast-container {
             position: fixed;
@@ -1820,18 +1973,20 @@
 
         const renderClientHub = async () => {
             const weekKey = getOffsetWeekKey(hubWeekOffset);
-            const [entriesSnap, tasksSnap, socialHistSnap, socialProfileSnap, goalsSnap] = await Promise.all([
+            const [entriesSnap, tasksSnap, socialHistSnap, socialProfileSnap, goalsSnap, savingsSnap] = await Promise.all([
                 db.ref(`portal/entries/${currentUser.uid}`).once('value'),
                 db.ref(`portal/tasks/${currentUser.uid}`).once('value'),
                 db.ref(`portal/social_history/${currentUser.uid}`).once('value'),
                 db.ref(`portal/social_profiles/${currentUser.uid}`).once('value'),
-                db.ref(`portal/goals/${currentUser.uid}`).once('value')
+                db.ref(`portal/goals/${currentUser.uid}`).once('value'),
+                db.ref(`portal/savings/${currentUser.uid}`).once('value'),
             ]);
             const goals = goalsSnap.val() || {};
             const entries = entriesSnap.val() || {};
             const tasks = tasksSnap.val() || {};
             const socialHistory = socialHistSnap.val() || {};
             const socialProfile = socialProfileSnap.val() || {};
+            const hubSavings = savingsSnap.val() || {};
             const socialWeeks = Object.entries(socialHistory).sort(([a],[b]) => a.localeCompare(b));
             const hasSocialHistory = socialWeeks.length > 0;
             const hasTikTok = !!socialProfile.tiktokUrl;
@@ -1906,6 +2061,16 @@
             const showRebookAlert = lmWeeksLogged > 0 && lmRebook < 50 && !sessionStorage.getItem('dismissedRebookAlert');
             const showOccupancyAlert = lmWeeksLogged > 0 && lmOccupancy >= 80 && !sessionStorage.getItem('dismissedOccupancyAlert');
 
+            // ── Money: nudge if numbers logged this week but transfer not ticked ──
+            const hubSavingsSetup = (hubSavings.settings && hubSavings.settings.setupComplete) === true;
+            const hubCurrentWeekKey = getWeekKey();
+            const hubCurrentWeekEntry = getWeeklyTotals(entries[hubCurrentWeekKey] || {});
+            const hubLoggedThisWeek = (hubCurrentWeekEntry.revenue || 0) > 0;
+            const hubTransferDone = !!(hubSavings.transfers && hubSavings.transfers[hubCurrentWeekKey]);
+            const hubPct = (hubSavings.settings && hubSavings.settings.savingsPct) || SAVINGS_DEFAULT_PCT;
+            const hubExpectedTransfer = Math.round((hubCurrentWeekEntry.revenue || 0) * hubPct * 100) / 100;
+            const showTransferNudge = hubSavingsSetup && hubLoggedThisWeek && !hubTransferDone;
+
             hubChartData = { trueMargin, occupancy, rebook, allTrueProfitMargin, allOccupancy, allRebook, revenue, expenses, lossOfEarnings, trueProfit, noShows, avgTicket, appointmentsAvailable: currentEntry.appointmentsAvailable||0, appointmentsFilled: currentEntry.appointmentsFilled||0, rebookings: currentEntry.rebookings||0 };
 
             const incompleteTasks = Object.entries(tasks).filter(([, task]) => {
@@ -1927,6 +2092,14 @@
                     <div class="greeting" style="margin-bottom:20px;">
                         <div class="greeting-text">${greeting}, <strong>${currentUser.firstName}</strong></div>
                     </div>
+
+                    ${showTransferNudge ? `
+                    <!-- WEEKLY TRANSFER NUDGE -->
+                    <div class="money-overview-banner" onclick="setPage('numbers')">
+                        <div style="font-size:20px;flex-shrink:0;">💰</div>
+                        <div class="money-overview-banner-text">You logged numbers this week — don't forget your <strong>${formatMoney(hubExpectedTransfer)}</strong> Profit First transfer.</div>
+                        <span style="font-size:12px;color:#FBBF24;font-weight:700;">Open &rarr;</span>
+                    </div>` : ''}
 
                     ${showRebookAlert ? `
                     <!-- REBOOK RATE ALERT -->
@@ -2534,12 +2707,14 @@
 
         const renderClientNumbers = async () => {
             if (!selectedWeekKey) selectedWeekKey = getWeekKey();
-            const [snap, allSnap] = await Promise.all([
+            const [snap, allSnap, savingsSnap] = await Promise.all([
                 db.ref(`portal/entries/${currentUser.uid}/${selectedWeekKey}`).once('value'),
-                db.ref(`portal/entries/${currentUser.uid}`).once('value')
+                db.ref(`portal/entries/${currentUser.uid}`).once('value'),
+                db.ref(`portal/savings/${currentUser.uid}`).once('value'),
             ]);
             const data = snap.val() || {};
             const allEntries = allSnap.val() || {};
+            const savings = savingsSnap.val() || {};
             const historyRows = Object.entries(allEntries)
                 .sort(([a], [b]) => b.localeCompare(a))
                 .slice(0, 20);
@@ -2604,6 +2779,57 @@
             const filledCount = getFilledDayCount(data);
             const isOldFormat = !isDailyFormat(data) && Object.keys(data).length > 0 && (data.revenue || data.appointmentsFilled);
 
+            // ── Profit First card: surface savings transfer for the selected week ──
+            const pfSettings = savings.settings || {};
+            const pfTransfers = savings.transfers || {};
+            const pfPct = pfSettings.savingsPct || SAVINGS_DEFAULT_PCT;
+            const pfRevenue = (getWeeklyTotals(data).revenue) || 0;
+            const pfAmount = Math.round(pfRevenue * pfPct * 100) / 100;
+            const pfThisWeekTransfer = pfTransfers[selectedWeekKey] || null;
+            let pfCardHtml = '';
+            if (!pfSettings.setupComplete) {
+                if (pfRevenue > 0) {
+                    pfCardHtml = `<div class="pf-card" style="margin-top:8px;">
+                        <div class="pf-head">
+                            <div class="pf-head-icon">${IC.chart}</div>
+                            <div class="pf-head-text">Want to start saving from this revenue?</div>
+                        </div>
+                        <div style="font-size:12px;color:rgba(255,255,255,0.55);margin-bottom:12px;line-height:1.5;">Set up a Profit First % once and the portal calculates your weekly transfer automatically. One tap each week.</div>
+                        <button class="money-btn-primary" onclick="setPage('money')">Set up savings &rarr;</button>
+                    </div>`;
+                }
+            } else if (pfRevenue > 0) {
+                if (pfThisWeekTransfer) {
+                    pfCardHtml = `<div class="pf-card done" style="margin-top:8px;">
+                        <div class="pf-head">
+                            <div class="pf-head-icon" style="background:rgba(74,222,128,0.18);color:#4ADE80;">${IC.check || '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5L6.5 12L13 4"/></svg>'}</div>
+                            <div class="pf-head-text">${formatMoney(pfThisWeekTransfer.amount)} transferred this week</div>
+                        </div>
+                        <div class="money-cta-row">
+                            <button class="money-btn-ghost" onclick="editWeeklyTransfer('${selectedWeekKey}')">Edit amount</button>
+                            <button class="money-btn-ghost" onclick="setPage('money')">View Money page &rarr;</button>
+                        </div>
+                    </div>`;
+                } else {
+                    pfCardHtml = `<div class="pf-card" style="margin-top:8px;">
+                        <div class="pf-head">
+                            <div class="pf-head-icon">${IC.chart}</div>
+                            <div class="pf-head-text">Profit First &mdash; transfers for this week</div>
+                        </div>
+                        <div class="pf-amount-row">
+                            <div class="pf-amount">
+                                <div class="pf-amount-label">Transfer to savings</div>
+                                <div class="pf-amount-value">${formatMoney(pfAmount)}<span class="pf-amount-pct">${(pfPct * 100).toFixed(1)}% of ${formatMoney(pfRevenue)}</span></div>
+                            </div>
+                        </div>
+                        <div class="money-cta-row">
+                            <button class="money-btn-primary" onclick="markWeeklyTransfer('${selectedWeekKey}')">Done, transferred &check;</button>
+                            <button class="money-btn-secondary" onclick="editWeeklyTransfer('${selectedWeekKey}')">Edit amount</button>
+                        </div>
+                    </div>`;
+                }
+            }
+
             const totalsRow = `<div class="card" style="margin-top:8px;margin-bottom:16px;background:#0f0f0f;border:1.5px solid ${ACCENT_RGBA}0.2);">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
                     <div class="section-header" style="margin-bottom:0;">${IC.chart} Weekly Totals</div>
@@ -2639,6 +2865,8 @@
                     ${isOldFormat ? '' : dayCards}
 
                     ${totalsRow}
+
+                    ${pfCardHtml}
 
                     ${historyRows.length > 0 ? `
                     <div class="card" style="margin-top:8px;margin-bottom:40px;">
@@ -5481,6 +5709,513 @@ const renderAdminClientDetail = async (uid) => {
                 }
             }
 
+        // ── MONEY: SAVINGS + INVESTMENTS ──
+        // Savings = structured % of weekly revenue (Profit First). Auto-calculated, one-tap to confirm transfer.
+        // Investments = free-form ledger. Manual entries with optional category (Stocks/Crypto/Business).
+
+        const SAVINGS_DEFAULT_PCT = 0.05;
+        const INV_CATEGORIES = ['stocks', 'crypto', 'business'];
+        const INV_CATEGORY_LABELS = { stocks: 'Stocks/Funds', crypto: 'Crypto', business: 'Business' };
+
+        const formatMoney = (n) => '£' + (Math.round((Number(n) || 0) * 100) / 100).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+        const fetchMoneyData = async (uid) => {
+            const [savingsSnap, investmentsSnap, entriesSnap] = await Promise.all([
+                db.ref('portal/savings/' + uid).once('value'),
+                db.ref('portal/investments/' + uid).once('value'),
+                db.ref('portal/entries/' + uid).once('value'),
+            ]);
+            return {
+                savings: savingsSnap.val() || {},
+                investments: investmentsSnap.val() || {},
+                entries: entriesSnap.val() || {},
+            };
+        };
+
+        // Sum saved across all transfers
+        const totalSaved = (savings) => {
+            const transfers = (savings && savings.transfers) || {};
+            return Object.values(transfers).reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+        };
+
+        // Sum invested across all entries
+        const totalInvested = (investments) => {
+            const entries = (investments && investments.entries) || {};
+            return Object.values(entries).reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+        };
+
+        // Streak = consecutive completed weeks ending at current week (or last week if current isn't done)
+        const computeStreak = (savings) => {
+            const transfers = (savings && savings.transfers) || {};
+            // Walk back from current week and count consecutive weeks with a transfer
+            let count = 0;
+            for (let offset = 0; offset >= -52; offset--) {
+                const wk = getOffsetWeekKey(offset);
+                if (transfers[wk]) count++;
+                else if (offset < 0) break;  // allow current week to be empty without breaking streak
+                else if (count > 0) break;
+                else continue;
+            }
+            return count;
+        };
+
+        // Pace: are they on track to hit savings goal by target date?
+        // Returns { state: 'on-track' | 'behind' | 'ahead' | 'no-goal' | 'achieved', label, weeksLeft, weeklyNeeded }
+        const computePace = (savings) => {
+            const goal = savings && savings.goal;
+            if (!goal || !goal.targetAmount || !goal.targetDate) return { state: 'no-goal', label: 'No goal set' };
+            const saved = totalSaved(savings);
+            const remaining = Math.max(0, goal.targetAmount - saved);
+            if (remaining === 0) return { state: 'achieved', label: 'Goal hit 🎉' };
+            const now = new Date();
+            const target = new Date(goal.targetDate);
+            const msPerWeek = 7 * 86400000;
+            const weeksLeft = Math.max(1, Math.ceil((target.getTime() - now.getTime()) / msPerWeek));
+            const weeklyNeeded = remaining / weeksLeft;
+
+            // Compare to recent rate: avg of last 4 weeks of transfers
+            const transfers = savings.transfers || {};
+            const recent = [];
+            for (let offset = -1; offset >= -4; offset--) {
+                const wk = getOffsetWeekKey(offset);
+                if (transfers[wk]) recent.push(Number(transfers[wk].amount) || 0);
+            }
+            const avgRecent = recent.length > 0 ? recent.reduce((a, b) => a + b, 0) / recent.length : 0;
+
+            let state, label;
+            if (avgRecent >= weeklyNeeded * 0.95) {
+                state = avgRecent > weeklyNeeded * 1.1 ? 'ahead' : 'on-track';
+                label = state === 'ahead' ? 'Ahead of pace' : 'On pace';
+            } else {
+                state = 'behind';
+                const shortfall = weeklyNeeded - avgRecent;
+                label = 'Behind by ' + formatMoney(shortfall) + '/wk';
+            }
+            return { state, label, weeksLeft, weeklyNeeded, avgRecent };
+        };
+
+        // Has the current week's transfer been logged?
+        const currentWeekTransferred = (savings) => {
+            const transfers = (savings && savings.transfers) || {};
+            return !!transfers[getWeekKey()];
+        };
+
+        const renderClientMoney = async () => {
+            const uid = currentUser.uid;
+            const data = await fetchMoneyData(uid);
+
+            const settings = data.savings.settings || {};
+            const isSetup = settings.setupComplete === true;
+
+            if (!isSetup) return renderClientMoneySetup(data);
+            return renderClientMoneyDashboard(data);
+        };
+
+        const renderClientMoneySetup = (data) => {
+            const existingPct = (data.savings && data.savings.settings && data.savings.settings.savingsPct) || SAVINGS_DEFAULT_PCT;
+            const existingGoal = (data.savings && data.savings.goal) || {};
+            const existingInvGoal = (data.investments && data.investments.goal) || {};
+            const today = new Date();
+            const defaultTargetDate = new Date(today.getFullYear() + 2, today.getMonth(), today.getDate()).toISOString().slice(0, 10);
+            return `
+                <div>
+                    <h2 class="page-title">Set up your Money plan</h2>
+                    <p class="page-subtitle">Two minutes now — then it runs itself every week.</p>
+
+                    <div class="money-setup-card">
+                        <div class="money-setup-section">
+                            <div class="money-setup-label">Savings &mdash; % of weekly revenue</div>
+                            <div class="money-setup-help">Each week after you log your numbers, this % of your revenue gets calculated automatically and you tap once to confirm the transfer. Most barbers start with 5&ndash;10%.</div>
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <input type="number" id="moneySetupPct" min="0" max="50" step="0.5" value="${(existingPct * 100).toFixed(1)}" class="form-input" style="max-width:120px;font-weight:700;">
+                                <span style="font-size:18px;font-weight:700;color:rgba(255,255,255,0.45);">%</span>
+                            </div>
+                        </div>
+
+                        <div class="money-setup-section">
+                            <div class="money-setup-label">Savings goal</div>
+                            <div class="money-setup-help">What are you saving for, by when, and how much?</div>
+                            <input type="text" id="moneySetupGoalLabel" class="form-input" placeholder="e.g. House deposit" value="${(existingGoal.label || '').replace(/"/g, '&quot;')}" style="margin-bottom:10px;">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                                <input type="number" id="moneySetupGoalAmount" class="form-input" placeholder="Target amount (£)" value="${existingGoal.targetAmount || ''}" min="0" step="100">
+                                <input type="date" id="moneySetupGoalDate" class="form-input" value="${existingGoal.targetDate || defaultTargetDate}">
+                            </div>
+                        </div>
+
+                        <div class="money-setup-section">
+                            <div class="money-setup-label">Investment goal &mdash; optional</div>
+                            <div class="money-setup-help">Want a target for your investment portfolio? Skip if you'd rather just track without a target.</div>
+                            <input type="text" id="moneySetupInvGoalLabel" class="form-input" placeholder="e.g. £100k portfolio (optional)" value="${(existingInvGoal.label || '').replace(/"/g, '&quot;')}" style="margin-bottom:10px;">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                                <input type="number" id="moneySetupInvGoalAmount" class="form-input" placeholder="Target (£)" value="${existingInvGoal.targetAmount || ''}" min="0" step="1000">
+                                <input type="date" id="moneySetupInvGoalDate" class="form-input" value="${existingInvGoal.targetDate || ''}">
+                            </div>
+                        </div>
+
+                        <button class="money-btn-primary" onclick="saveMoneySetup()" style="width:100%;margin-top:8px;">Save and start tracking &rarr;</button>
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderClientMoneyDashboard = (data) => {
+            const savings = data.savings;
+            const investments = data.investments;
+            const settings = savings.settings || {};
+            const goal = savings.goal || {};
+            const invGoal = (investments && investments.goal) || null;
+            const saved = totalSaved(savings);
+            const invested = totalInvested(investments);
+            const wealth = saved + invested;
+            const streak = computeStreak(savings);
+            const pace = computePace(savings);
+            const pct = settings.savingsPct || SAVINGS_DEFAULT_PCT;
+
+            // Goal progress
+            const goalAmount = Number(goal.targetAmount) || 0;
+            const goalPct = goalAmount > 0 ? Math.min(100, (saved / goalAmount) * 100) : 0;
+
+            // Investment goal progress (optional)
+            const invGoalAmount = invGoal ? (Number(invGoal.targetAmount) || 0) : 0;
+            const invGoalPct = invGoalAmount > 0 ? Math.min(100, (invested / invGoalAmount) * 100) : 0;
+
+            // Recent investments list (newest first, top 6)
+            const invEntries = Object.entries(investments.entries || {})
+                .map(([id, e]) => ({ id, ...e }))
+                .sort((a, b) => (b.date || b.createdAt || '').localeCompare(a.date || a.createdAt || ''))
+                .slice(0, 6);
+
+            // % of revenue going to wealth (last 4 weeks: saved + invested ÷ revenue)
+            const transfers = savings.transfers || {};
+            let recentRevenue = 0, recentSaved = 0;
+            for (let offset = -1; offset >= -4; offset--) {
+                const wk = getOffsetWeekKey(offset);
+                const e = data.entries[wk];
+                if (e) recentRevenue += (getWeeklyTotals(e).revenue || 0);
+                if (transfers[wk]) recentSaved += Number(transfers[wk].amount) || 0;
+            }
+            const wealthPctOfRevenue = recentRevenue > 0 ? Math.round((recentSaved / recentRevenue) * 100) : 0;
+
+            return `
+                <div>
+                    <h2 class="page-title">Your Money</h2>
+                    <p class="page-subtitle">Track what you save, what you invest, and how close you are to your goals.</p>
+
+                    <div class="money-hero">
+                        <div class="money-hero-card">
+                            <div class="money-hero-label">Total saved</div>
+                            <div class="money-hero-value">${formatMoney(saved)}</div>
+                            <div class="money-hero-sub">${(pct * 100).toFixed(1)}% of weekly revenue</div>
+                        </div>
+                        <div class="money-hero-card">
+                            <div class="money-hero-label">Total invested</div>
+                            <div class="money-hero-value">${formatMoney(invested)}</div>
+                            <div class="money-hero-sub">${invEntries.length === 0 ? 'No entries yet' : Object.keys(investments.entries || {}).length + ' entries'}</div>
+                        </div>
+                        <div class="money-hero-card">
+                            <div class="money-hero-label">Combined wealth</div>
+                            <div class="money-hero-value">${formatMoney(wealth)}</div>
+                            <div class="money-hero-sub">${wealthPctOfRevenue > 0 ? wealthPctOfRevenue + '% of recent revenue' : ' '}</div>
+                        </div>
+                    </div>
+
+                    ${streak > 0 ? `<div style="margin-bottom:16px;"><span class="money-streak-pill">🔥 ${streak} week${streak === 1 ? '' : 's'} in a row</span></div>` : ''}
+
+                    <!-- Savings goal -->
+                    <div class="money-card">
+                        <div class="money-card-head">
+                            <div>
+                                <div class="money-card-title">${goal.label ? goal.label.replace(/</g, '&lt;') : 'Savings goal'}</div>
+                                <div class="money-card-sub">Target ${formatMoney(goalAmount)} by ${goal.targetDate ? new Date(goal.targetDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '—'}</div>
+                            </div>
+                            <span class="money-pace-pill ${pace.state}">${pace.label}</span>
+                        </div>
+                        <div class="money-progress-track">
+                            <div class="money-progress-fill" style="width:${goalPct}%;"></div>
+                        </div>
+                        <div class="money-progress-row">
+                            <span><strong>${formatMoney(saved)}</strong> saved</span>
+                            <span>${formatMoney(Math.max(0, goalAmount - saved))} to go</span>
+                        </div>
+                        ${pace.weeklyNeeded ? `<div style="margin-top:10px;font-size:12px;color:rgba(255,255,255,0.5);">Need ${formatMoney(pace.weeklyNeeded)}/week (${pace.weeksLeft} weeks left). Recent avg: ${formatMoney(pace.avgRecent || 0)}/week.</div>` : ''}
+                    </div>
+
+                    <!-- Investments -->
+                    <div class="money-card">
+                        <div class="money-card-head">
+                            <div>
+                                <div class="money-card-title">Investments</div>
+                                <div class="money-card-sub">${invGoal && invGoalAmount > 0 ? `Target ${formatMoney(invGoalAmount)} by ${invGoal.targetDate ? new Date(invGoal.targetDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '—'}` : 'Log every contribution. Stocks, crypto, or reinvesting in your business.'}</div>
+                            </div>
+                            <button class="money-btn-primary" onclick="openAddInvestmentModal()">+ Add entry</button>
+                        </div>
+                        ${invGoal && invGoalAmount > 0 ? `
+                        <div class="money-progress-track">
+                            <div class="money-progress-fill" style="width:${invGoalPct}%;"></div>
+                        </div>
+                        <div class="money-progress-row" style="margin-bottom:14px;">
+                            <span><strong>${formatMoney(invested)}</strong> invested</span>
+                            <span>${formatMoney(Math.max(0, invGoalAmount - invested))} to go</span>
+                        </div>` : ''}
+                        ${invEntries.length === 0
+                            ? `<div class="money-empty">No investments logged yet. Click <strong>+ Add entry</strong> when you put money into stocks, crypto, or your business.</div>`
+                            : invEntries.map(e => {
+                                const cat = e.category && INV_CATEGORIES.includes(e.category) ? e.category : null;
+                                const catLabel = cat ? INV_CATEGORY_LABELS[cat] : 'Other';
+                                const dateStr = e.date ? new Date(e.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '';
+                                const note = (e.note || '').replace(/</g, '&lt;') || '<span style="color:rgba(255,255,255,0.4);">No note</span>';
+                                return `<div class="money-investment-row">
+                                    <span class="money-investment-cat ${cat || ''}">${catLabel}</span>
+                                    <div>
+                                        <div class="money-investment-note">${note}</div>
+                                        <div class="money-investment-date">${dateStr}</div>
+                                    </div>
+                                    <div class="money-investment-amount">${formatMoney(e.amount)}</div>
+                                    <button class="money-btn-ghost" onclick="deleteInvestmentEntry('${e.id}')" title="Delete">&times;</button>
+                                </div>`;
+                            }).join('')}
+                    </div>
+
+                    <div class="money-cta-row" style="margin-top:8px;">
+                        <button class="money-btn-secondary" onclick="setPage('numbers')">Log this week's numbers &rarr;</button>
+                        <button class="money-btn-ghost" onclick="openMoneySettings()">Adjust % or goals</button>
+                    </div>
+                </div>
+            `;
+        };
+
+        // Save setup form
+        window.saveMoneySetup = async () => {
+            const pctInput = parseFloat(document.getElementById('moneySetupPct').value);
+            const goalLabel = document.getElementById('moneySetupGoalLabel').value.trim();
+            const goalAmount = parseFloat(document.getElementById('moneySetupGoalAmount').value);
+            const goalDate = document.getElementById('moneySetupGoalDate').value;
+            const invLabel = document.getElementById('moneySetupInvGoalLabel').value.trim();
+            const invAmount = parseFloat(document.getElementById('moneySetupInvGoalAmount').value);
+            const invDate = document.getElementById('moneySetupInvGoalDate').value;
+
+            if (isNaN(pctInput) || pctInput < 0 || pctInput > 50) {
+                toast.error('Savings % must be between 0 and 50');
+                return;
+            }
+            if (!goalLabel || isNaN(goalAmount) || goalAmount <= 0 || !goalDate) {
+                toast.error('Set a savings goal label, amount, and date');
+                return;
+            }
+
+            const uid = currentUser.uid;
+            try {
+                await db.ref('portal/savings/' + uid + '/settings').set({
+                    savingsPct: pctInput / 100,
+                    setupComplete: true,
+                    updatedAt: new Date().toISOString(),
+                });
+                await db.ref('portal/savings/' + uid + '/goal').set({
+                    label: goalLabel,
+                    targetAmount: goalAmount,
+                    targetDate: goalDate,
+                    startDate: new Date().toISOString().slice(0, 10),
+                });
+                if (invLabel && !isNaN(invAmount) && invAmount > 0 && invDate) {
+                    await db.ref('portal/investments/' + uid + '/goal').set({
+                        label: invLabel,
+                        targetAmount: invAmount,
+                        targetDate: invDate,
+                    });
+                } else {
+                    await db.ref('portal/investments/' + uid + '/goal').remove();
+                }
+                toast.success('Money plan saved');
+                setPage('money');
+            } catch (err) {
+                toast.error('Could not save: ' + err.message);
+            }
+        };
+
+        // Open settings (re-show setup form to allow editing)
+        window.openMoneySettings = async () => {
+            const uid = currentUser.uid;
+            // Mark setup as incomplete temporarily? No — just show setup form via a flag.
+            // Simpler: just mark setupComplete=false, let setup re-render, then it sets it true on save.
+            await db.ref('portal/savings/' + uid + '/settings/setupComplete').set(false);
+            setPage('money');
+        };
+
+        // Add investment modal
+        window.openAddInvestmentModal = () => {
+            const container = document.getElementById('confirmModalContainer');
+            if (!container) return;
+            const today = new Date().toISOString().slice(0, 10);
+            container.innerHTML = `
+                <div class="confirm-modal-overlay" onclick="if(event.target===this) closeAddInvestmentModal()">
+                    <div class="confirm-modal" style="max-width:480px;">
+                        <div class="confirm-modal-title">Log an investment</div>
+                        <div class="confirm-modal-message">Quick record of money you put in. No fancy maths.</div>
+                        <div style="margin-bottom:14px;">
+                            <div class="form-label" style="margin-bottom:6px;">Amount</div>
+                            <input type="number" id="invModalAmount" class="form-input" min="0" step="1" placeholder="100">
+                        </div>
+                        <div style="margin-bottom:14px;">
+                            <div class="form-label" style="margin-bottom:6px;">Date</div>
+                            <input type="date" id="invModalDate" class="form-input" value="${today}">
+                        </div>
+                        <div style="margin-bottom:14px;">
+                            <div class="form-label" style="margin-bottom:6px;">Category &mdash; optional</div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                ${INV_CATEGORIES.map(c => `<button type="button" class="money-btn-secondary inv-cat-btn" data-cat="${c}" onclick="selectInvCategory('${c}')" style="flex:1;min-width:90px;font-size:12px;padding:8px 10px;">${INV_CATEGORY_LABELS[c]}</button>`).join('')}
+                            </div>
+                            <input type="hidden" id="invModalCategory" value="">
+                        </div>
+                        <div style="margin-bottom:18px;">
+                            <div class="form-label" style="margin-bottom:6px;">Note &mdash; optional</div>
+                            <input type="text" id="invModalNote" class="form-input" placeholder="e.g. Vanguard S&P 500">
+                        </div>
+                        <div class="confirm-modal-actions">
+                            <button class="confirm-btn confirm-btn-cancel" onclick="closeAddInvestmentModal()">Cancel</button>
+                            <button class="confirm-btn confirm-btn-confirm" onclick="saveInvestmentEntry()">Add entry</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            setTimeout(() => { const a = document.getElementById('invModalAmount'); if (a) a.focus(); }, 50);
+        };
+
+        window.closeAddInvestmentModal = () => {
+            const c = document.getElementById('confirmModalContainer');
+            if (c) c.innerHTML = '';
+        };
+
+        window.selectInvCategory = (cat) => {
+            const hidden = document.getElementById('invModalCategory');
+            if (hidden) hidden.value = cat;
+            document.querySelectorAll('.inv-cat-btn').forEach(b => {
+                if (b.dataset.cat === cat) {
+                    b.style.background = 'var(--accent)';
+                    b.style.color = '#000';
+                    b.style.borderColor = 'var(--accent)';
+                } else {
+                    b.style.background = 'rgba(255,255,255,0.06)';
+                    b.style.color = 'rgba(255,255,255,0.85)';
+                    b.style.borderColor = 'rgba(255,255,255,0.1)';
+                }
+            });
+        };
+
+        window.saveInvestmentEntry = async () => {
+            const amount = parseFloat(document.getElementById('invModalAmount').value);
+            const date = document.getElementById('invModalDate').value;
+            const category = document.getElementById('invModalCategory').value || null;
+            const note = (document.getElementById('invModalNote').value || '').trim();
+            if (isNaN(amount) || amount <= 0) { toast.error('Enter a valid amount'); return; }
+            if (!date) { toast.error('Pick a date'); return; }
+            const uid = currentUser.uid;
+            try {
+                const id = db.ref('portal/investments/' + uid + '/entries').push().key;
+                await db.ref('portal/investments/' + uid + '/entries/' + id).set({
+                    amount, date, category, note: note || null,
+                    createdAt: new Date().toISOString(),
+                });
+                closeAddInvestmentModal();
+                toast.success('Investment logged');
+                setPage('money');
+            } catch (err) {
+                toast.error('Could not save: ' + err.message);
+            }
+        };
+
+        window.deleteInvestmentEntry = async (id) => {
+            const ok = await confirmAsync({ title: 'Delete this entry?', message: 'This investment record will be removed.', confirmLabel: 'Delete', danger: true });
+            if (!ok) return;
+            try {
+                await db.ref('portal/investments/' + currentUser.uid + '/entries/' + id).remove();
+                toast.success('Entry deleted');
+                setPage('money');
+            } catch (err) {
+                toast.error('Could not delete: ' + err.message);
+            }
+        };
+
+        // Mark this week's transfer as done. Auto-calculates from current week's revenue × pct.
+        window.markWeeklyTransfer = async (weekKey) => {
+            const uid = currentUser.uid;
+            const wk = weekKey || getWeekKey();
+            try {
+                const [savingsSnap, entrySnap] = await Promise.all([
+                    db.ref('portal/savings/' + uid).once('value'),
+                    db.ref('portal/entries/' + uid + '/' + wk).once('value'),
+                ]);
+                const savings = savingsSnap.val() || {};
+                const settings = savings.settings || {};
+                if (!settings.setupComplete) {
+                    toast.error('Set up your savings plan first');
+                    setPage('money');
+                    return;
+                }
+                const pct = settings.savingsPct || SAVINGS_DEFAULT_PCT;
+                const totals = getWeeklyTotals(entrySnap.val() || {});
+                const revenue = totals.revenue || 0;
+                const amount = Math.round(revenue * pct * 100) / 100;
+                await db.ref('portal/savings/' + uid + '/transfers/' + wk).set({
+                    amount, revenue, pct,
+                    transferredAt: new Date().toISOString(),
+                    source: 'auto',
+                });
+                toast.success('Transfer logged: ' + formatMoney(amount));
+                setPage(currentPage);
+            } catch (err) {
+                toast.error('Could not log transfer: ' + err.message);
+            }
+        };
+
+        // Edit/override transfer amount
+        window.editWeeklyTransfer = async (weekKey) => {
+            const uid = currentUser.uid;
+            const wk = weekKey || getWeekKey();
+            const snap = await db.ref('portal/savings/' + uid + '/transfers/' + wk).once('value');
+            const existing = snap.val() || {};
+            const container = document.getElementById('confirmModalContainer');
+            if (!container) return;
+            container.innerHTML = `
+                <div class="confirm-modal-overlay" onclick="if(event.target===this) document.getElementById('confirmModalContainer').innerHTML='';">
+                    <div class="confirm-modal" style="max-width:420px;">
+                        <div class="confirm-modal-title">Override transfer amount</div>
+                        <div class="confirm-modal-message">Different amount this week? Enter what you actually transferred.</div>
+                        <div style="margin-bottom:18px;">
+                            <div class="form-label" style="margin-bottom:6px;">Amount transferred (£)</div>
+                            <input type="number" id="editTransferAmount" class="form-input" min="0" step="1" value="${existing.amount || ''}">
+                        </div>
+                        <div class="confirm-modal-actions">
+                            <button class="confirm-btn confirm-btn-cancel" onclick="document.getElementById('confirmModalContainer').innerHTML='';">Cancel</button>
+                            <button class="confirm-btn confirm-btn-confirm" onclick="saveOverriddenTransfer('${wk}')">Save</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            setTimeout(() => { const a = document.getElementById('editTransferAmount'); if (a) { a.focus(); a.select(); } }, 50);
+        };
+
+        window.saveOverriddenTransfer = async (weekKey) => {
+            const amount = parseFloat(document.getElementById('editTransferAmount').value);
+            if (isNaN(amount) || amount < 0) { toast.error('Enter a valid amount'); return; }
+            const uid = currentUser.uid;
+            try {
+                const entrySnap = await db.ref('portal/entries/' + uid + '/' + weekKey).once('value');
+                const totals = getWeeklyTotals(entrySnap.val() || {});
+                await db.ref('portal/savings/' + uid + '/transfers/' + weekKey).set({
+                    amount,
+                    revenue: totals.revenue || 0,
+                    pct: 0,
+                    transferredAt: new Date().toISOString(),
+                    source: 'manual',
+                });
+                document.getElementById('confirmModalContainer').innerHTML = '';
+                toast.success('Saved');
+                setPage(currentPage);
+            } catch (err) {
+                toast.error('Could not save: ' + err.message);
+            }
+        };
+
         // ── SCALO INTELLIGENCE ──
         // Feature flag: flip to true when ready to ship the Intelligence tab to clients.
         // When false, the nav item is hidden and the /intelligence route is blocked.
@@ -5702,6 +6437,7 @@ const renderAdminClientDetail = async (uid) => {
                 { page: 'icp', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><circle cx="8" cy="8" r="4" opacity="0.6"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/></svg>', label: 'Your ICP' },
                 { page: 'numbers', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><text x="3" y="12.5" font-size="13" font-weight="700" fill="currentColor" stroke="none" font-family="sans-serif">$</text></svg>', label: 'Business' },
                 { page: 'businessReport', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h6l3 3V14a0.5 0.5 0 0 1-0.5 0.5h-8.5A0.5 0.5 0 0 1 3 14V2a0.5 0.5 0 0 1 0.5-0.5Z"/><path d="M9.5 1.5v3h3"/><path d="M5.5 11v-1M8 11V8.5M10.5 11V6.5"/></svg>', label: 'Business Report' },
+                { page: 'money', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4.5" width="12" height="8" rx="1.4"/><circle cx="8" cy="8.5" r="1.7"/><path d="M4.6 7v3M11.4 7v3"/></svg>', label: 'Money' },
                 { page: 'tasks', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5L6.5 12L13 4"/></svg>', label: 'Tasks' },
                 { page: 'content', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>', label: 'Content' },
                 { page: 'inspo', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 11C2 11 3 6 8 6C13 6 14 11 14 11"/><path d="M8 6V3"/><path d="M5.5 3.5C5.5 2 8 1 8 3"/><path d="M10.5 3.5C10.5 2 8 1 8 3"/></svg>', label: 'Inspo' },
@@ -5751,7 +6487,7 @@ const renderAdminClientDetail = async (uid) => {
                 </div>
             `;
 
-            const pageTitles = { hub:'Overview', implementation:'The Roadmap', businessReport:'Business Report', numbers:'Log Your Numbers', tasks:'Your Tasks', content:'Content Library', inspo:'Inspo Feed', social:'Social Profiles', progress:'Analytics', scaleSignal:'The Scale Signal', intelligence:'SCALO Intelligence', clients:'Your Clients', addClient:'Add New Client', crm:'Client CRM', clientDetail:'Client Detail' };
+            const pageTitles = { hub:'Overview', implementation:'The Roadmap', businessReport:'Business Report', numbers:'Log Your Numbers', money:'Your Money', tasks:'Your Tasks', content:'Content Library', inspo:'Inspo Feed', social:'Social Profiles', progress:'Analytics', scaleSignal:'The Scale Signal', intelligence:'SCALO Intelligence', clients:'Your Clients', addClient:'Add New Client', crm:'Client CRM', clientDetail:'Client Detail' };
 
             let pageContent = '';
             try {
@@ -5768,6 +6504,7 @@ const renderAdminClientDetail = async (uid) => {
                     else if (currentPage === 'implementation') pageContent = await renderClientImplementation();
                     else if (currentPage === 'businessReport') pageContent = await renderClientBusinessReport();
                     else if (currentPage === 'numbers') pageContent = await renderClientNumbers();
+                    else if (currentPage === 'money') pageContent = await renderClientMoney();
                     else if (currentPage === 'tasks') pageContent = await renderClientTasks();
                     else if (currentPage === 'icp') pageContent = await renderClientICP();
                     else if (currentPage === 'content') pageContent = await renderClientContent();

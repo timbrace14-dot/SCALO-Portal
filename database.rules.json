@@ -75,6 +75,18 @@
           ".write": "auth != null && auth.uid === $uid"
         }
       },
+      "savings": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      },
+      "investments": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      },
       "os_users": {
         ".read": "auth != null",
         "$uid": {
