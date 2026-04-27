@@ -1513,7 +1513,7 @@
         .money-card-sub { font-size: 12px; color: rgba(255,255,255,0.45); font-weight: 500; }
 
         .money-progress-track { height: 8px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; margin: 12px 0 8px; }
-        .money-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent) 0%, #8FD17A 100%); border-radius: 999px; transition: width 0.6s cubic-bezier(0.34, 1.4, 0.64, 1); }
+        .money-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent) 0%, #8FD17A 100%); border-radius: 999px; transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1); box-shadow: 0 0 12px rgba(184,233,134,0.3); }
         .money-progress-row { display: flex; justify-content: space-between; font-size: 12px; color: rgba(255,255,255,0.55); font-weight: 600; }
         .money-progress-row strong { color: #fff; font-weight: 700; }
 
@@ -2513,7 +2513,7 @@
                         </div>
                     </div>
                     <div class="money-progress-track" style="margin-bottom:24px;">
-                        <div class="money-progress-fill" style="width:${hubGoalPct}%;"></div>
+                        <div class="money-progress-fill" data-progress="${hubGoalPct}" style="width:0%;"></div>
                     </div>` : ''}
 
                     <!-- GOALS SECTION -->
@@ -2876,44 +2876,98 @@
             modal.style.display = 'flex';
         };
 
+        // Lighter shade for the left end of the donut ring's left-to-right gradient
+        const RING_GRADIENT_LIGHT = {
+            '#4ADE80': '#A6F0B9',
+            '#22C55E': '#7BE0A2',
+            '#16A34A': '#62D087',
+            '#FBBF24': '#FCD976',
+            '#D97706': '#EBA559',
+            '#FF4533': '#FF8C7E',
+            '#DC2626': '#EE6F75',
+        };
+        const makeRingGradient = (canvas, color) => {
+            if (!canvas || !canvas.getContext) return color;
+            const ctx = canvas.getContext('2d');
+            const lighter = RING_GRADIENT_LIGHT[color] || color;
+            // Left-to-right horizontal gradient on the canvas — Chart.js paints the ring with this
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+            gradient.addColorStop(0, lighter);
+            gradient.addColorStop(1, color);
+            return gradient;
+        };
+
         const renderHubCharts = () => {
             if (!hubChartData) return;
+            const ringColor = (v) => isLightMode() ? (v >= 75 ? '#16A34A' : v >= 50 ? '#D97706' : '#DC2626') : (v >= 75 ? '#4ADE80' : v >= 50 ? '#FBBF24' : '#FF4533');
+
+            // Each donut is created paused at 0%; an IntersectionObserver kicks off the spin when it enters viewport.
+            // `delay` is the cascade offset within a group (Profit Margin → Occupancy → Rebook).
             const makeDonut = (id, value, color, delay) => {
                 const canvas = document.getElementById(id);
                 if (!canvas) return;
                 const pct = Math.min(Math.max(value, 0), 100);
-                // Stagger the entrance: empty data first, then animate to actual value after delay
+                const ringFill = makeRingGradient(canvas, color);
+                const trackColor = isLightMode() ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
+
+                // Initial render: empty ring, no animation
                 const chart = new Chart(canvas, {
                     type: 'doughnut',
-                    data: { datasets: [{ data: [0, 100], backgroundColor: [color, isLightMode()?'rgba(0,0,0,0.05)':'rgba(255,255,255,0.05)'], borderWidth: 0, hoverOffset: 0 }] },
+                    data: { datasets: [{ data: [0, 100], backgroundColor: [ringFill, trackColor], borderWidth: 0, hoverOffset: 0 }] },
                     options: {
                         cutout: '75%',
                         responsive: false,
-                        animation: { duration: 0 },  // initial render with no animation
-                        plugins: { legend: { display: false }, tooltip: { enabled: false } }
+                        animation: { duration: 0 },
+                        plugins: { legend: { display: false }, tooltip: { enabled: false } },
                     }
                 });
-                // After the configured delay, animate from 0 -> pct over a longer, smoother duration
-                setTimeout(() => {
-                    chart.options.animation = { duration: 1400, easing: 'easeInOutCubic' };
-                    chart.data.datasets[0].data = [pct, 100 - pct];
-                    chart.update();
-                }, delay);
+
+                let triggered = false;
+                const trigger = () => {
+                    if (triggered) return;
+                    triggered = true;
+                    setTimeout(() => {
+                        // Spin clockwise to the target percentage with a long, smooth ease
+                        chart.options.animation = {
+                            animateRotate: true,
+                            animateScale: false,
+                            duration: 1500,
+                            easing: 'easeOutQuart',
+                        };
+                        chart.data.datasets[0].data = [pct, 100 - pct];
+                        chart.update();
+                    }, delay);
+                };
+
+                if ('IntersectionObserver' in window) {
+                    const obs = new IntersectionObserver((entries) => {
+                        entries.forEach(e => {
+                            if (e.isIntersecting) {
+                                obs.unobserve(canvas);
+                                trigger();
+                            }
+                        });
+                    }, { threshold: 0.35 });
+                    obs.observe(canvas);
+                    // Fallback: kick off after 1.8s if the observer never fires
+                    setTimeout(trigger, 1800);
+                } else {
+                    trigger();
+                }
             };
-            const ringColor = (v) => isLightMode() ? (v >= 75 ? '#16A34A' : v >= 50 ? '#D97706' : '#DC2626') : (v >= 75 ? '#4ADE80' : v >= 50 ? '#FBBF24' : '#FF4533');
             const tm = hubChartData.trueMargin;
             const oc = hubChartData.occupancy;
             const rb = hubChartData.rebook;
             const apm = hubChartData.allTrueProfitMargin || 0;
             const aoc = hubChartData.allOccupancy || 0;
             const arb = hubChartData.allRebook || 0;
-            // Stagger the donuts so they sweep in sequence — premium feel
-            makeDonut('chartAllTimeProfitMargin', apm, ringColor(apm), 80);
+            // Cascade within each group: Profit Margin → Occupancy → Rebook (200ms apart, left to right)
+            makeDonut('chartAllTimeProfitMargin', apm, ringColor(apm), 0);
             makeDonut('chartAllTimeOccupancy', aoc, ringColor(aoc), 200);
-            makeDonut('chartAllTimeRebook', arb, ringColor(arb), 320);
-            makeDonut('chartProfitMargin', tm, ringColor(tm), 440);
-            makeDonut('chartOccupancy', oc, ringColor(oc), 560);
-            makeDonut('chartRebook', rb, ringColor(rb), 680);
+            makeDonut('chartAllTimeRebook', arb, ringColor(arb), 400);
+            makeDonut('chartProfitMargin', tm, ringColor(tm), 0);
+            makeDonut('chartOccupancy', oc, ringColor(oc), 200);
+            makeDonut('chartRebook', rb, ringColor(rb), 400);
         };
 
         // ── NUMBERS ──
@@ -6151,6 +6205,42 @@ const renderAdminClientDetail = async (uid) => {
             return c.symbol + (Math.round((Number(n) || 0) * 100) / 100).toLocaleString(c.locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
         };
 
+        // ── PROGRESS BAR ANIMATION ──
+        // Any element with data-progress="<percent>" starts at 0% and animates to that width via CSS transition.
+        // Triggered when the element enters the viewport, so it feels alive on scroll.
+        window.animateProgressBars = () => {
+            document.querySelectorAll('[data-progress]').forEach(el => {
+                if (el.dataset.progressDone === '1') return;
+                const target = parseFloat(el.dataset.progress) || 0;
+                el.dataset.progressDone = '1';
+                // Force initial 0% to be rendered before changing — ensures the CSS transition fires
+                el.style.width = '0%';
+                const trigger = () => {
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            el.style.width = target + '%';
+                        });
+                    });
+                };
+                // Use IntersectionObserver so off-screen bars animate when scrolled into view
+                if ('IntersectionObserver' in window) {
+                    const obs = new IntersectionObserver((entries) => {
+                        entries.forEach(e => {
+                            if (e.isIntersecting) {
+                                obs.unobserve(el);
+                                trigger();
+                            }
+                        });
+                    }, { threshold: 0.3 });
+                    obs.observe(el);
+                    // Fallback: trigger anyway after 1.5s if observer never fires
+                    setTimeout(() => { if (el.style.width === '0%') trigger(); }, 1500);
+                } else {
+                    setTimeout(trigger, 100);
+                }
+            });
+        };
+
         // ── COUNT-UP ANIMATION ──
         // Apply data-countup="<targetNumber>" data-countup-prefix="£" to any element to animate it on render.
         window.animateCountUps = () => {
@@ -6430,7 +6520,7 @@ const renderAdminClientDetail = async (uid) => {
                             <span class="money-pace-pill ${pace.state}">${pace.label}</span>
                         </div>
                         <div class="money-progress-track">
-                            <div class="money-progress-fill" style="width:${goalPct}%;"></div>
+                            <div class="money-progress-fill" data-progress="${goalPct}" style="width:0%;"></div>
                         </div>
                         <div class="money-progress-row">
                             <span><strong>${formatMoney(saved)}</strong> saved</span>
@@ -6450,7 +6540,7 @@ const renderAdminClientDetail = async (uid) => {
                         </div>
                         ${invGoal && invGoalAmount > 0 ? `
                         <div class="money-progress-track">
-                            <div class="money-progress-fill" style="width:${invGoalPct}%;"></div>
+                            <div class="money-progress-fill" data-progress="${invGoalPct}" style="width:0%;"></div>
                         </div>
                         <div class="money-progress-row" style="margin-bottom:14px;">
                             <span><strong>${formatMoney(invested)}</strong> invested</span>
@@ -7122,8 +7212,8 @@ const renderAdminClientDetail = async (uid) => {
                 <div id="avatarModalContainer"></div>
                 <div id="botModalContainer"></div>
             `;
-            // Trigger count-up animations on freshly-rendered numbers
-            setTimeout(animateCountUps, 30);
+            // Trigger count-up + progress-bar animations on freshly-rendered content
+            setTimeout(() => { animateCountUps(); animateProgressBars(); }, 30);
 
             if (currentPage === 'progress' && !isAdmin) setTimeout(renderProgressCharts, 50);
             if (currentPage === 'hub' && !isAdmin) setTimeout(renderHubCharts, 50);
