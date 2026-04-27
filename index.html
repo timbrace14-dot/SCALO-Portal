@@ -2013,8 +2013,11 @@
                 <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.65);margin-bottom:8px;">💡 Ways to improve:</div>
                 ${tips.map(t => `<div style="font-size:12px;color:rgba(255,255,255,0.65);font-weight:400;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);">• ${t}</div>`).join('')}`;
             }
-            document.getElementById('donutModalContent').innerHTML = html;
-            document.getElementById('donutModal').style.display = 'flex';
+            const modalContent = document.getElementById('donutModalContent');
+            const modal = document.getElementById('donutModal');
+            if (!modalContent || !modal) return;
+            modalContent.innerHTML = html;
+            modal.style.display = 'flex';
         };
 
         const renderHubCharts = () => {
@@ -3468,7 +3471,11 @@
                 await db.ref(`portal/users/${cred.user.uid}`).set({ firstName, lastName, email, role: 'client', createdAt: new Date().toISOString() });
                 secondaryAuth.signOut();
                 secondaryApp.delete();
-                errorDiv.innerHTML = `<span style="color:#4ADE80;">&#x2713; Account created! Email: ${email} / Password: ${password}</span>`;
+                errorDiv.innerHTML = '';
+                const successSpan = document.createElement('span');
+                successSpan.style.color = '#4ADE80';
+                successSpan.textContent = '✓ Account created! Email: ' + email + ' / Password: ' + password;
+                errorDiv.appendChild(successSpan);
                 setTimeout(() => {
                     ['newClientFirstName','newClientLastName','newClientEmail','newClientPassword'].forEach(id => document.getElementById(id).value = '');
                     errorDiv.textContent = '';
@@ -3900,162 +3907,6 @@
             await db.ref(`portal/inspo_creators/${currentUser.uid}/${id}`).remove();
             setPage('inspo');
         };
-
-        // ── SEED DEMO DATA (removed — was temporary) ──
-        /* seedDemoData removed for production
-        window.seedDemoData = async () => {
-            if (!currentUser) { alert('Please log in first'); return; }
-            const uid = currentUser.uid;
-            const btn = document.getElementById('seedBtn');
-            if (btn) { btn.textContent = 'Seeding...'; btn.disabled = true; }
-            let supabaseError = '';
-
-            // 1. Social profiles
-            await db.ref(`portal/social_profiles/${uid}`).set({
-                instagramUrl: 'https://www.instagram.com/' + (currentUser.instagramHandle || 'timbracehair'),
-                tiktokUrl: 'https://www.tiktok.com/@timbracehair',
-                updatedAt: new Date().toISOString()
-            });
-
-            // 2. Social history — 10 weeks of growing IG + TikTok data
-            const socialHistory = {};
-            const baseIG = { followers: 2800, views: 18000, posts: 42 };
-            const baseTT = { followers: 1200, views: 9500, posts: 28 };
-            for (let i = 9; i >= 0; i--) {
-                const d = new Date(); d.setDate(d.getDate() - i * 7);
-                const s = new Date(d.getFullYear(), 0, 1);
-                const week = Math.ceil(((d - s) / 86400000 + s.getDay() + 1) / 7);
-                const wk = `${d.getFullYear()}_W${String(week).padStart(2, '0')}`;
-                const weekIdx = 10 - i;
-                socialHistory[wk] = {
-                    igFollowers: baseIG.followers + weekIdx * Math.floor(180 + Math.random() * 120),
-                    igViews: baseIG.views + weekIdx * Math.floor(2200 + Math.random() * 1800),
-                    igPosts: baseIG.posts + weekIdx * Math.floor(2 + Math.random() * 3),
-                    ttFollowers: baseTT.followers + weekIdx * Math.floor(90 + Math.random() * 80),
-                    ttViews: baseTT.views + weekIdx * Math.floor(1500 + Math.random() * 1200),
-                    ttPosts: baseTT.posts + weekIdx * Math.floor(1 + Math.random() * 3)
-                };
-            }
-            await db.ref(`portal/social_history/${uid}`).set(socialHistory);
-
-            // 3. Inspo creators
-            const inspoCreators = {};
-            const creators = [
-                { handle: 'dillonfield.hair' },
-                { handle: 'barbershopconnect' },
-                { handle: 'thebarberpost' }
-            ];
-            const creatorIds = [];
-            creators.forEach(c => {
-                const id = db.ref(`portal/inspo_creators/${uid}`).push().key;
-                creatorIds.push(id);
-                inspoCreators[id] = { handle: c.handle, addedAt: new Date().toISOString() };
-            });
-            await db.ref(`portal/inspo_creators/${uid}`).set(inspoCreators);
-
-            // 4. Inspo videos — current week + last week (real reel URLs from each creator)
-            const inspoVideos = {};
-            const reelData = [
-                { creatorHandle: 'dillonfield.hair', caption: 'Sections by section. Is your graduation being worked round and finger-tight?', views: 1370592, likes: 23011, comments: 151, link: 'https://www.instagram.com/reel/DIuPqwVslE7/', thumbnail: 'https://placehold.co/120x120/1a1a2e/ffffff?text=Sections', analysis: 'Educational breakdown content showing technique step-by-step. High save rate because barbers bookmark it for reference. The question hook in the caption drives comments.' },
-                { creatorHandle: 'dillonfield.hair', caption: 'Talk-through video explaining my thought process when creating graduation', views: 336708, likes: 10041, comments: 125, link: 'https://www.instagram.com/reel/DOX-rr3DKoT/', thumbnail: 'https://placehold.co/120x120/2d1b69/ffffff?text=Thought', analysis: 'Voiceover talk-through format builds trust and authority. Viewers feel like they are learning from a mentor, driving high watch time and shares.' },
-                { creatorHandle: 'dillonfield.hair', caption: 'Something classic while still adding some sauce', views: 11192, likes: 314, comments: 27, link: 'https://www.instagram.com/reel/DWKIyQijFs-/', thumbnail: 'https://placehold.co/120x120/0d3b66/ffffff?text=Classic', analysis: 'Classic meets modern approach resonates with a wide audience. Short and punchy caption with personality drives engagement.' },
-                { creatorHandle: 'dillonfield.hair', caption: 'Soft shapes + hard lines. The contrast is everything.', views: 29616, likes: 579, comments: 20, link: 'https://www.instagram.com/reel/DWI7ZRFjMYB/', thumbnail: 'https://placehold.co/120x120/4a0e0e/ffffff?text=Contrast', analysis: 'Contrast-focused content highlights technical skill. The visual before/after effect keeps viewers watching until the end.' },
-                { creatorHandle: 'barbershopconnect', caption: 'Insane blending work. This level of precision takes years of practice.', views: 29436, likes: 224, comments: 16, link: 'https://www.instagram.com/reel/DWJgTLmjSEO/', thumbnail: 'https://placehold.co/120x120/065f46/ffffff?text=Blend', analysis: 'Feature-page repost with aspirational framing. Barbers tag themselves hoping to be featured, which drives organic reach through comments.' },
-                { creatorHandle: 'barbershopconnect', caption: 'Clean work from start to finish. Every detail matters.', views: 12504, likes: 61, comments: 3, link: 'https://www.instagram.com/reel/DWHrJ_TDywp/', thumbnail: 'https://placehold.co/120x120/7c2d12/ffffff?text=Detail', analysis: 'Full process videos have high completion rates. Viewers want to see the entire transformation unfold from start to finish.' },
-                { creatorHandle: 'barbershopconnect', caption: 'Satisfying fade compilation. Turn the sound up for this one.', views: 16448, likes: 299, comments: 12, link: 'https://www.instagram.com/reel/DV9l6T-DyYi/', thumbnail: 'https://placehold.co/120x120/1e3a5f/ffffff?text=Satisfy', analysis: 'Compilation format keeps viewers watching longer. ASMR audio elements drive replays and shares among the barber community.' },
-                { creatorHandle: 'barbershopconnect', caption: 'Rate this transformation 1-10. Before vs after speaks for itself.', views: 8072, likes: 67, comments: 1, link: 'https://www.instagram.com/reel/DV6D_7AjbAp/', thumbnail: 'https://placehold.co/120x120/44403c/ffffff?text=Rate', analysis: 'Rating prompts are engagement gold. Every comment with a number counts as engagement, and the before/after format creates visual impact.' },
-                { creatorHandle: 'thebarberpost', caption: 'Parrot barber bird goes viral. This is amazing.', views: 949330, likes: 8098, comments: 122, link: 'https://www.instagram.com/reel/DWHruiNkhSk/', thumbnail: 'https://placehold.co/120x120/831843/ffffff?text=Viral', analysis: 'Unexpected and humorous content massively outperforms typical posts. This kind of shareable moment gets sent to friends, driving organic virality.' },
-                { creatorHandle: 'thebarberpost', caption: 'Fast fade technique that is absolutely insane. Watch till the end.', views: 473380, likes: 1488, comments: 65, link: 'https://www.instagram.com/reel/DWERB_3kXwR/', thumbnail: 'https://placehold.co/120x120/4c1d95/ffffff?text=Fast', analysis: 'Speed and skill combined create hypnotic content. The watch till the end hook keeps completion rates high, which the algorithm rewards.' },
-                { creatorHandle: 'thebarberpost', caption: 'This level of precision deserves recognition. Incredible work.', views: 1102573, likes: 7377, comments: 759, link: 'https://www.instagram.com/reel/DV5Gy8_Ebfc/', thumbnail: 'https://placehold.co/120x120/0c4a6e/ffffff?text=Precise', analysis: 'Recognition-style posts drive massive comments as barbers tag others and debate technique. The high comment count fuels algorithm distribution.' },
-                { creatorHandle: 'thebarberpost', caption: 'Skin fade masterclass. Every barber needs to see this technique.', views: 1239386, likes: 9185, comments: 165, link: 'https://www.instagram.com/reel/DVHVj3PEsZ4/', thumbnail: 'https://placehold.co/120x120/92400e/ffffff?text=Master', analysis: 'Aspirational masterclass framing positions the content as must-watch education. High save rates from barbers bookmarking for later reference.' }
-            ];
-
-            // Current week
-            const now = new Date();
-            const s = new Date(now.getFullYear(), 0, 1);
-            const cwk = Math.ceil(((now - s) / 86400000 + s.getDay() + 1) / 7);
-            const currentWk = `${now.getFullYear()}_W${String(cwk).padStart(2, '0')}`;
-            const lastWkDate = new Date(); lastWkDate.setDate(lastWkDate.getDate() - 7);
-            const ls = new Date(lastWkDate.getFullYear(), 0, 1);
-            const lwk = Math.ceil(((lastWkDate - ls) / 86400000 + ls.getDay() + 1) / 7);
-            const lastWk = `${lastWkDate.getFullYear()}_W${String(lwk).padStart(2, '0')}`;
-
-            const weekVids = {};
-            reelData.forEach((r, i) => {
-                const id = db.ref().push().key;
-                weekVids[id] = r;
-            });
-            await db.ref(`portal/inspo_videos/${uid}/${currentWk}`).set(weekVids);
-
-            // Last week with slightly different data
-            const lastWeekVids = {};
-            reelData.slice(0, 8).forEach((r, i) => {
-                const id = db.ref().push().key;
-                lastWeekVids[id] = { ...r, views: Math.floor(r.views * 0.7), likes: Math.floor(r.likes * 0.7), comments: Math.floor(r.comments * 0.7) };
-            });
-            await db.ref(`portal/inspo_videos/${uid}/${lastWk}`).set(lastWeekVids);
-
-            // 5. Seed Supabase videos for Content Library
-            if (sbClient) {
-                const handle = currentUser.instagramHandle || 'timbracehair';
-                const userName = currentUser.displayName || currentUser.name || 'Demo Student';
-                const userEmail = currentUser.email || 'demo@scalo.com';
-
-                // First: upsert student in Supabase students table to get a UUID
-                let supaStudentId = null;
-                // Check if student already exists by instagram_handle
-                const existingStudent = await sbClient.from('students').select('id').eq('instagram_handle', handle).limit(1).single();
-                if (!existingStudent.error && existingStudent.data) {
-                    supaStudentId = existingStudent.data.id;
-                } else {
-                    // Create new student
-                    const newStudent = await sbClient.from('students').insert([{
-                        name: userName,
-                        email: userEmail,
-                        instagram_handle: handle
-                    }]).select().single();
-                    if (!newStudent.error && newStudent.data) {
-                        supaStudentId = newStudent.data.id;
-                    } else {
-                        supabaseError = 'Failed to create Supabase student: ' + (newStudent.error?.message || 'Unknown error');
-                    }
-                }
-
-                if (supaStudentId) {
-                    // Store the Supabase student UUID in Firebase for future lookups
-                    await db.ref(`portal/users/${uid}/supabaseStudentId`).set(supaStudentId);
-
-                    // Real timbracehair reel URLs for content library
-                    const contentVids = [
-                        { student_id: supaStudentId, caption: 'This haircut was fire. Join our community of like minded individuals.', views: 4037339, plays: 4037339, likes: 40570, comments: 213, video_url: 'https://www.instagram.com/reel/DCmlYsBIUEm/', posted_at: '2026-03-22', thumbnail_url: 'https://placehold.co/120x120/1a1a2e/ffffff?text=Fire', scraped_at: '2026-03-24T08:00:00Z' },
-                        { student_id: supaStudentId, caption: 'GRADUATION X TAPER! If you are looking for a high end tailored haircut.', views: 4857597, plays: 4857597, likes: 79370, comments: 690, video_url: 'https://www.instagram.com/reel/DAWTx9eozPx/', posted_at: '2026-03-20', thumbnail_url: 'https://placehold.co/120x120/2d1b69/ffffff?text=Grad', scraped_at: '2026-03-24T08:00:00Z' },
-                        { student_id: supaStudentId, caption: 'NICE AND SOFT slick back. If you want to learn how to build their brand.', views: 3486869, plays: 3486869, likes: 34548, comments: 155, video_url: 'https://www.instagram.com/reel/DBJxO02ogGD/', posted_at: '2026-03-18', thumbnail_url: 'https://placehold.co/120x120/065f46/ffffff?text=Slick', scraped_at: '2026-03-24T08:00:00Z' },
-                        { student_id: supaStudentId, caption: 'Low taper fade blending into a textured fringe. Perfect for the spring season.', views: 47171, plays: 47171, likes: 378, comments: 5, video_url: 'https://www.instagram.com/reel/DV6TijcCp1I/', posted_at: '2026-03-16', thumbnail_url: 'https://placehold.co/120x120/7c2d12/ffffff?text=Taper', scraped_at: '2026-03-24T08:00:00Z' },
-                        { student_id: supaStudentId, caption: 'Quick 60 second tutorial on my go-to blending technique for seamless fades.', views: 25985, plays: 25985, likes: 301, comments: 5, video_url: 'https://www.instagram.com/reel/DWE1HOXDPcs/', posted_at: '2026-03-14', thumbnail_url: 'https://placehold.co/120x120/4c1d95/ffffff?text=Blend', scraped_at: '2026-03-24T08:00:00Z' },
-                        { student_id: supaStudentId, caption: 'My morning routine. Starting the day right before clients.', views: 22743, plays: 22743, likes: 270, comments: 7, video_url: 'https://www.instagram.com/reel/DWPHp2cqynp/', posted_at: '2026-03-12', thumbnail_url: 'https://placehold.co/120x120/0d3b66/ffffff?text=Morning', scraped_at: '2026-03-24T08:00:00Z' },
-                        { student_id: supaStudentId, caption: 'Keeping clients sharp and full of confidence.', views: 973, plays: 973, likes: 14, comments: 0, video_url: 'https://www.instagram.com/reel/DWSC0VOjIMq/', posted_at: '2026-03-10', thumbnail_url: 'https://placehold.co/120x120/831843/ffffff?text=Sharp', scraped_at: '2026-03-24T08:00:00Z' },
-                        { student_id: supaStudentId, caption: 'Love working with curls. Understanding the natural fall and working with it.', views: 9443, plays: 9443, likes: 159, comments: 8, video_url: 'https://www.instagram.com/reel/DV_qz7oigzl/', posted_at: '2026-03-08', thumbnail_url: 'https://placehold.co/120x120/44403c/ffffff?text=Curls', scraped_at: '2026-03-24T08:00:00Z' },
-                        { student_id: supaStudentId, caption: 'Clean work from start to finish. Every detail matters in this craft.', views: 9115, plays: 9115, likes: 57, comments: 11, video_url: 'https://www.instagram.com/reel/DWJ9AzZjE1b/', posted_at: '2026-03-06', thumbnail_url: 'https://placehold.co/120x120/1e3a5f/ffffff?text=Detail', scraped_at: '2026-03-24T08:00:00Z' },
-                        { student_id: supaStudentId, caption: 'Sometimes the simplest cuts look the best. Classic taper with natural parting.', views: 8486, plays: 8486, likes: 82, comments: 3, video_url: 'https://www.instagram.com/reel/DVjXXr0jI9a/', posted_at: '2026-03-04', thumbnail_url: 'https://placehold.co/120x120/92400e/ffffff?text=Classic', scraped_at: '2026-03-24T08:00:00Z' },
-                        { student_id: supaStudentId, caption: 'Soft shapes and hard lines. The contrast is everything in this cut.', views: 6455, plays: 6455, likes: 104, comments: 19, video_url: 'https://www.instagram.com/reel/DVwOHTJir0c/', posted_at: '2026-03-02', thumbnail_url: 'https://placehold.co/120x120/4a0e0e/ffffff?text=Shape', scraped_at: '2026-03-24T08:00:00Z' },
-                        { student_id: supaStudentId, caption: 'Fresh skin fade with textured top. Client wanted something different this time.', views: 6308, plays: 6308, likes: 96, comments: 8, video_url: 'https://www.instagram.com/reel/DVrHMG2sonM/', posted_at: '2026-02-28', thumbnail_url: 'https://placehold.co/120x120/0c4a6e/ffffff?text=Fresh', scraped_at: '2026-03-24T08:00:00Z' }
-                    ];
-
-                    // Delete existing videos for this student first
-                    await sbClient.from('videos').delete().eq('student_id', supaStudentId);
-                    // Insert videos
-                    let { error } = await sbClient.from('videos').insert(contentVids);
-                    if (error) {
-                        supabaseError = 'Content Library seed failed: ' + error.message;
-                        console.warn('Supabase video insert failed:', error.message);
-                    }
-                }
-            }
-
-            alert('Demo data seeded!' + (supabaseError ? '\\n\\n⚠️ ' + supabaseError : '') + '\\n\\nRefreshing...');
-            setPage(currentPage);
-        };
-        */
 
         // ── SOCIAL TRACKER ──
         const renderClientSocial = async () => {
