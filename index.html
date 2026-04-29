@@ -1513,6 +1513,137 @@
         .money-card-title { font-size: 14px; font-weight: 700; color: #fff; letter-spacing: -0.01em; }
         .money-card-sub { font-size: 12px; color: rgba(255,255,255,0.45); font-weight: 500; }
 
+        /* Critical Numbers */
+        .critical-period-select {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 7px 30px 7px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23ffffff88' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            transition: border-color 0.15s, background-color 0.15s;
+        }
+        .critical-period-select:hover { border-color: rgba(255,255,255,0.2); background-color: rgba(255,255,255,0.08); }
+        .critical-period-select option { background: #0f0f0f; color: #fff; }
+
+        .critical-stat-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .critical-stat-tile {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 18px 16px;
+            position: relative;
+            overflow: hidden;
+            aspect-ratio: 1.05 / 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .critical-stat-tile::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(184,233,134,0.08) 0%, transparent 65%);
+            pointer-events: none;
+        }
+        .critical-stat-tile > * { position: relative; z-index: 1; }
+        .critical-stat-label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.55);
+        }
+        .critical-stat-value {
+            font-size: 30px;
+            font-weight: 800;
+            color: var(--accent);
+            letter-spacing: -0.02em;
+            line-height: 1.05;
+            word-break: break-word;
+        }
+        .critical-stat-unit {
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.4);
+            margin-left: 3px;
+            letter-spacing: 0;
+        }
+        .critical-stat-sub {
+            font-size: 11px;
+            font-weight: 500;
+            color: rgba(255,255,255,0.45);
+            line-height: 1.4;
+        }
+
+        .critical-chart-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .critical-chart-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.7);
+            letter-spacing: 0.02em;
+        }
+        .critical-chart-legend {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.55);
+            font-weight: 600;
+        }
+        .critical-legend-dot {
+            display: inline-block;
+            width: 10px;
+            height: 2px;
+            border-radius: 2px;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        .critical-legend-dot.you { background: var(--accent); box-shadow: 0 0 6px rgba(184,233,134,0.6); }
+        .critical-legend-dot.infl { background: rgba(255,255,255,0.4); }
+        .critical-chart-wrap {
+            position: relative;
+            height: 220px;
+            width: 100%;
+        }
+        .critical-chart-empty {
+            background: rgba(255,255,255,0.03);
+            border: 1px dashed rgba(255,255,255,0.1);
+            border-radius: 14px;
+            padding: 28px 20px;
+            text-align: center;
+        }
+        .critical-chart-empty-icon { color: rgba(184,233,134,0.5); margin-bottom: 8px; display: inline-flex; }
+        .critical-chart-empty-title { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+        .critical-chart-empty-sub { font-size: 12px; color: rgba(255,255,255,0.5); line-height: 1.5; max-width: 380px; margin: 0 auto; }
+
+        @media (max-width: 480px) {
+            .critical-stat-tile { aspect-ratio: auto; padding: 16px 14px; }
+            .critical-stat-value { font-size: 24px; }
+            .critical-stat-row { gap: 10px; }
+        }
+
         .money-progress-track { height: 8px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; margin: 12px 0 8px; }
         .money-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent) 0%, #8FD17A 100%); border-radius: 999px; transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1); box-shadow: 0 0 12px rgba(184,233,134,0.3); }
         .money-progress-row { display: flex; justify-content: space-between; font-size: 12px; color: rgba(255,255,255,0.55); font-weight: 600; }
@@ -2974,9 +3105,10 @@
         let selectedWeekKey = null;
         let selectedDayIndex = null; // 0=Mon, 1=Tue, ..., 6=Sun
 
-        const FIELD_KEYS = ['appointmentsAvailable','appointmentsFilled','newClients','rebookings','noShows','avgTicketPrice','revenue','businessExpenses','personalExpenses'];
-        const FIELD_LABELS = ['Appts Available','Appts Filled','New Clients','Rebookings','No Shows','Avg Ticket Price','Revenue','Business Expenses','Personal Expenses'];
+        const FIELD_KEYS = ['appointmentsAvailable','appointmentsFilled','newClients','rebookings','noShows','hoursWorked','avgTicketPrice','revenue','businessExpenses','personalExpenses'];
+        const FIELD_LABELS = ['Appts Available','Appts Filled','New Clients','Rebookings','No Shows','Hours Worked','Avg Ticket Price','Revenue','Business Expenses','Personal Expenses'];
         const CURRENCY_FIELDS = ['avgTicketPrice','revenue','businessExpenses','personalExpenses'];
+        const HOUR_FIELDS = ['hoursWorked'];
         const DAY_NAMES = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
         // Helper: get Monday date of a week key like "2026_W13"
@@ -3007,10 +3139,10 @@
 
         // Helper: normalize entry data — returns weekly totals from either old (flat) or new (days) format
         const getWeeklyTotals = (entry) => {
-            if (!entry) return { appointmentsAvailable:0, appointmentsFilled:0, newClients:0, rebookings:0, noShows:0, avgTicketPrice:0, revenue:0, businessExpenses:0, personalExpenses:0, expenses:0 };
+            if (!entry) return { appointmentsAvailable:0, appointmentsFilled:0, newClients:0, rebookings:0, noShows:0, hoursWorked:0, avgTicketPrice:0, revenue:0, businessExpenses:0, personalExpenses:0, expenses:0 };
             // New format: has a "days" property
             if (entry.days) {
-                const totals = { appointmentsAvailable:0, appointmentsFilled:0, newClients:0, rebookings:0, noShows:0, avgTicketPrice:0, revenue:0, businessExpenses:0, personalExpenses:0 };
+                const totals = { appointmentsAvailable:0, appointmentsFilled:0, newClients:0, rebookings:0, noShows:0, hoursWorked:0, avgTicketPrice:0, revenue:0, businessExpenses:0, personalExpenses:0 };
                 let avgTicketSum = 0, avgTicketCount = 0;
                 for (let i = 0; i < 7; i++) {
                     const day = entry.days[i];
@@ -3227,12 +3359,20 @@
 
                 const fields = FIELD_KEYS.map((key, fi) => {
                     const isCurrency = CURRENCY_FIELDS.includes(key);
+                    const isHour = HOUR_FIELDS.includes(key);
                     const val = dayData[key] !== undefined && dayData[key] !== null ? dayData[key] : '';
+                    let inputHtml;
+                    if (isCurrency) {
+                        inputHtml = `<div style="position:relative;"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.45);font-size:14px;">${currencySymbol()}</span>
+                        <input type="number" class="num-field day-field-${idx}" data-key="${key}" data-day="${idx}" value="${val}" inputmode="decimal" step="0.01" style="padding-left:28px;" placeholder="${FIELD_LABELS[fi]}"></div>`;
+                    } else if (isHour) {
+                        inputHtml = `<div style="position:relative;"><input type="number" class="num-field day-field-${idx}" data-key="${key}" data-day="${idx}" value="${val}" inputmode="decimal" step="0.25" min="0" max="24" style="padding-right:36px;" placeholder="0"><span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.45);font-size:12px;font-weight:600;pointer-events:none;">hrs</span></div>`;
+                    } else {
+                        inputHtml = `<input type="number" class="num-field day-field-${idx}" data-key="${key}" data-day="${idx}" value="${val}" inputmode="numeric" placeholder="${FIELD_LABELS[fi]}">`;
+                    }
                     return `<div>
                         <div class="form-label" style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:6px;letter-spacing:0.05em;">${FIELD_LABELS[fi]}</div>
-                        ${isCurrency ? `<div style="position:relative;"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.45);font-size:14px;">${currencySymbol()}</span>
-                        <input type="number" class="num-field day-field-${idx}" data-key="${key}" data-day="${idx}" value="${val}" inputmode="numeric" style="padding-left:28px;" placeholder="${FIELD_LABELS[fi]}"></div>`
-                        : `<input type="number" class="num-field day-field-${idx}" data-key="${key}" data-day="${idx}" value="${val}" inputmode="numeric" placeholder="${FIELD_LABELS[fi]}">`}
+                        ${inputHtml}
                     </div>`;
                 }).join('');
 
@@ -3322,7 +3462,11 @@
                     ${FIELD_KEYS.map((key, fi) => {
                         const val = totals[key] || 0;
                         const isCurrency = CURRENCY_FIELDS.includes(key);
-                        const display = isCurrency ? currencySymbol() + parseFloat(val).toLocaleString(getCurrency().locale, {minimumFractionDigits:0, maximumFractionDigits:2}) : Math.round(val).toLocaleString('en-GB');
+                        const isHour = HOUR_FIELDS.includes(key);
+                        let display;
+                        if (isCurrency) display = currencySymbol() + parseFloat(val).toLocaleString(getCurrency().locale, {minimumFractionDigits:0, maximumFractionDigits:2});
+                        else if (isHour) display = (Math.round(val * 10) / 10).toLocaleString('en-GB') + ' hrs';
+                        else display = Math.round(val).toLocaleString('en-GB');
                         return `<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;text-align:center;">
                             <div style="font-size:9px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">${FIELD_LABELS[fi]}${key === 'avgTicketPrice' ? ' (avg)' : ''}</div>
                             <div style="font-size:16px;font-weight:700;color:${key === 'revenue' ? '#4ADE80' : key === 'expenses' ? '#FF4533' : '#fff'};">${display}</div>
@@ -6446,6 +6590,338 @@ const renderAdminClientDetail = async (uid) => {
             previewEl.innerHTML = `Saving <strong>${formatMoney(weekly)}/week</strong>, you'll hit <strong>${formatMoney(target)}</strong> in <strong>${timeLabel}</strong> &mdash; ${dateLabel}`;
         };
 
+        // ── CRITICAL NUMBERS ──
+        // Aggregates revenue + hours worked across the user's logged entries to surface:
+        //   1) Income per minute (revenue ÷ minutes worked) for a chosen period
+        //   2) Daily average revenue for that same period
+        //   3) A monthly trend line vs. a 7%/yr inflation baseline anchored to the user's first month
+        const INFLATION_RATE = 0.07; // 7% annual
+        let criticalPeriod = 'month'; // 'today' | 'week' | 'month' | 'all'
+
+        // Convert a weekKey like "2026_W17" + day index (0=Mon..6=Sun) into a JS Date at local midnight
+        const dateForWeekDay = (weekKey, dayIdx) => {
+            const monday = getMondayOfWeek(weekKey);
+            const d = new Date(monday);
+            d.setDate(monday.getDate() + dayIdx);
+            d.setHours(0, 0, 0, 0);
+            return d;
+        };
+
+        // Flatten every logged day across all weeks into a sorted timeline of { date, revenue, hoursWorked }
+        const buildDailyTimeline = (entries) => {
+            const out = [];
+            Object.entries(entries || {}).forEach(([weekKey, entry]) => {
+                if (!entry || !weekKey.includes('_W')) return;
+                if (entry.days) {
+                    for (let i = 0; i < 7; i++) {
+                        const day = entry.days[i];
+                        if (!day) continue;
+                        const revenue = parseFloat(day.revenue) || 0;
+                        const hoursWorked = parseFloat(day.hoursWorked) || 0;
+                        const hasAnyData = FIELD_KEYS.some(k => day[k] !== undefined && day[k] !== null && day[k] !== '');
+                        if (!hasAnyData) continue;
+                        out.push({ date: dateForWeekDay(weekKey, i), revenue, hoursWorked });
+                    }
+                } else {
+                    // Old flat-week format: spread across the 7 days of that week
+                    const totals = getWeeklyTotals(entry);
+                    if (!(totals.revenue || totals.appointmentsFilled || totals.hoursWorked)) return;
+                    for (let i = 0; i < 7; i++) {
+                        out.push({
+                            date: dateForWeekDay(weekKey, i),
+                            revenue: totals.revenue / 7,
+                            hoursWorked: totals.hoursWorked / 7,
+                        });
+                    }
+                }
+            });
+            out.sort((a, b) => a.date - b.date);
+            return out;
+        };
+
+        // Filter the timeline to entries inside the selected period (today/week/month/all)
+        const filterTimelineByPeriod = (timeline, period) => {
+            const now = new Date();
+            now.setHours(0, 0, 0, 0);
+            if (period === 'today') {
+                return timeline.filter(d => d.date.getTime() === now.getTime());
+            }
+            if (period === 'week') {
+                const dow = now.getDay() || 7; // Mon=1..Sun=7
+                const monday = new Date(now);
+                monday.setDate(now.getDate() - (dow - 1));
+                return timeline.filter(d => d.date >= monday && d.date <= now);
+            }
+            if (period === 'month') {
+                const first = new Date(now.getFullYear(), now.getMonth(), 1);
+                return timeline.filter(d => d.date >= first && d.date <= now);
+            }
+            return timeline; // all time
+        };
+
+        // Compute the two card metrics for the selected period
+        const computeCriticalMetrics = (timeline, period) => {
+            const slice = filterTimelineByPeriod(timeline, period);
+            const totalRevenue = slice.reduce((s, d) => s + d.revenue, 0);
+            const totalHours = slice.reduce((s, d) => s + d.hoursWorked, 0);
+            const dayCount = slice.length;
+            const incomePerMinute = totalHours > 0 ? totalRevenue / (totalHours * 60) : null;
+            const dailyAverage = dayCount > 0 ? totalRevenue / dayCount : null;
+            return { incomePerMinute, dailyAverage, totalHours, dayCount, totalRevenue };
+        };
+
+        // Bucket the timeline into calendar months: returns sorted [{ key:'YYYY-MM', label:'Mar 26', dailyAvg }, ...]
+        const buildMonthlyBuckets = (timeline) => {
+            const buckets = {}; // 'YYYY-MM' → { revenue, days, year, month }
+            timeline.forEach(d => {
+                const y = d.date.getFullYear();
+                const m = d.date.getMonth();
+                const key = y + '-' + String(m + 1).padStart(2, '0');
+                if (!buckets[key]) buckets[key] = { revenue: 0, days: 0, year: y, month: m };
+                buckets[key].revenue += d.revenue;
+                buckets[key].days += 1;
+            });
+            const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            return Object.keys(buckets).sort().map(key => {
+                const b = buckets[key];
+                return {
+                    key,
+                    label: MONTH_NAMES[b.month] + ' ' + String(b.year).slice(-2),
+                    fullLabel: MONTH_NAMES[b.month] + ' ' + b.year,
+                    dailyAvg: b.days > 0 ? b.revenue / b.days : 0,
+                    days: b.days,
+                };
+            });
+        };
+
+        // Build the inflation-projection line: starting at month[0].dailyAvg, compounding 7%/yr
+        const buildInflationLine = (monthlyBuckets) => {
+            if (!monthlyBuckets.length) return [];
+            const baseline = monthlyBuckets[0].dailyAvg;
+            const monthlyMultiplier = Math.pow(1 + INFLATION_RATE, 1 / 12);
+            return monthlyBuckets.map((_, i) => baseline * Math.pow(monthlyMultiplier, i));
+        };
+
+        // Re-render only the Critical Numbers tiles when the dropdown changes — avoids a full page reload
+        window.setCriticalPeriod = (period) => {
+            criticalPeriod = period;
+            const timeline = window.__criticalTimeline || [];
+            const m = computeCriticalMetrics(timeline, period);
+            const sym = currencySymbol();
+            const fmt = (n) => sym + (Math.round(n * 100) / 100).toLocaleString(getCurrency().locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+            const ipmStr = m.incomePerMinute === null ? '—' : fmt(m.incomePerMinute);
+            const ipmSub = m.incomePerMinute === null
+                ? (timeline.length === 0 ? 'Log a day to see' : 'Log hours worked')
+                : 'on ' + (Math.round(m.totalHours * 10) / 10) + ' hrs worked';
+            const daStr = m.dailyAverage === null ? '—' : fmt(m.dailyAverage);
+            const daSub = m.dailyAverage === null ? 'No revenue logged' : 'across ' + m.dayCount + ' day' + (m.dayCount === 1 ? '' : 's');
+            const periodLabel = { today: 'today', week: 'this week', month: 'this month', all: 'all time' }[period];
+            const row = document.getElementById('criticalStatRow');
+            if (!row) return;
+            row.innerHTML = `
+                <div class="critical-stat-tile">
+                    <div class="critical-stat-label">Income per minute</div>
+                    <div class="critical-stat-value">${ipmStr}<span class="critical-stat-unit">/min</span></div>
+                    <div class="critical-stat-sub">${ipmSub} · ${periodLabel}</div>
+                </div>
+                <div class="critical-stat-tile">
+                    <div class="critical-stat-label">Daily Average</div>
+                    <div class="critical-stat-value">${daStr}<span class="critical-stat-unit">/day</span></div>
+                    <div class="critical-stat-sub">${daSub} · ${periodLabel}</div>
+                </div>`;
+        };
+
+        // Build / re-build the Chart.js line graph for Critical Numbers
+        let criticalChartInstance = null;
+        const renderCriticalChart = () => {
+            const canvas = document.getElementById('criticalChart');
+            if (!canvas || typeof Chart === 'undefined') return;
+            const timeline = window.__criticalTimeline || [];
+            const monthly = buildMonthlyBuckets(timeline);
+            if (monthly.length < 2) return;
+            const inflation = buildInflationLine(monthly);
+            const sym = currencySymbol();
+            const locale = getCurrency().locale;
+            const fmtMoney = (n) => sym + Math.round(n).toLocaleString(locale);
+
+            if (criticalChartInstance) { criticalChartInstance.destroy(); criticalChartInstance = null; }
+
+            const ctx = canvas.getContext('2d');
+            const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#B8E986';
+            const accentRgba = (a) => `rgba(184,233,134,${a})`;
+            const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+            gradient.addColorStop(0, accentRgba(0.28));
+            gradient.addColorStop(1, accentRgba(0));
+
+            criticalChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: monthly.map(b => b.label),
+                    datasets: [
+                        {
+                            label: 'Your daily avg',
+                            data: monthly.map(b => Math.round(b.dailyAvg * 100) / 100),
+                            borderColor: accent,
+                            backgroundColor: gradient,
+                            borderWidth: 2.5,
+                            tension: 0.35,
+                            fill: true,
+                            pointRadius: 0,
+                            pointHoverRadius: 5,
+                            pointHoverBackgroundColor: accent,
+                            pointHoverBorderColor: '#000',
+                            pointHoverBorderWidth: 2,
+                        },
+                        {
+                            label: 'Inflation (7%/yr)',
+                            data: inflation.map(v => Math.round(v * 100) / 100),
+                            borderColor: 'rgba(255,255,255,0.35)',
+                            borderWidth: 1.5,
+                            borderDash: [5, 5],
+                            tension: 0.2,
+                            fill: false,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            pointHoverBackgroundColor: 'rgba(255,255,255,0.7)',
+                            pointHoverBorderColor: '#000',
+                            pointHoverBorderWidth: 2,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(15,15,15,0.98)',
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderWidth: 1,
+                            titleColor: '#fff',
+                            titleFont: { size: 12, weight: '700' },
+                            bodyColor: 'rgba(255,255,255,0.85)',
+                            bodyFont: { size: 12 },
+                            padding: 12,
+                            cornerRadius: 10,
+                            displayColors: true,
+                            boxWidth: 10,
+                            boxHeight: 10,
+                            usePointStyle: true,
+                            callbacks: {
+                                title: (items) => {
+                                    const idx = items[0].dataIndex;
+                                    return monthly[idx].fullLabel;
+                                },
+                                label: (item) => {
+                                    return ' ' + item.dataset.label + ': ' + fmtMoney(item.parsed.y) + '/day';
+                                },
+                                afterBody: (items) => {
+                                    const idx = items[0].dataIndex;
+                                    const you = monthly[idx].dailyAvg;
+                                    const infl = inflation[idx];
+                                    if (!infl) return '';
+                                    const delta = ((you - infl) / infl) * 100;
+                                    const sign = delta >= 0 ? '+' : '';
+                                    return ['', (delta >= 0 ? '✓ Beating inflation by ' : '✗ Trailing inflation by ') + sign + delta.toFixed(1) + '%'];
+                                },
+                            },
+                        },
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false, drawBorder: false },
+                            ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 11, weight: '600' }, maxRotation: 0, autoSkipPadding: 16 },
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+                            ticks: {
+                                color: 'rgba(255,255,255,0.4)',
+                                font: { size: 11 },
+                                callback: (v) => fmtMoney(v),
+                                maxTicksLimit: 5,
+                            },
+                        },
+                    },
+                    animation: { duration: 800, easing: 'easeOutCubic' },
+                },
+            });
+        };
+
+        const renderClientCriticalNumbers = async () => {
+            const uid = currentUser.uid;
+            const entriesSnap = await db.ref('portal/entries/' + uid).once('value');
+            const entries = entriesSnap.val() || {};
+            const timeline = buildDailyTimeline(entries);
+            window.__criticalTimeline = timeline;
+            const monthly = buildMonthlyBuckets(timeline);
+            const m = computeCriticalMetrics(timeline, criticalPeriod);
+            const sym = currencySymbol();
+            const fmt = (n) => sym + (Math.round(n * 100) / 100).toLocaleString(getCurrency().locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+            const ipmStr = m.incomePerMinute === null ? '—' : fmt(m.incomePerMinute);
+            const ipmSub = m.incomePerMinute === null
+                ? (timeline.length === 0 ? 'Log a day to see' : 'Log hours worked')
+                : 'on ' + (Math.round(m.totalHours * 10) / 10) + ' hrs worked';
+            const daStr = m.dailyAverage === null ? '—' : fmt(m.dailyAverage);
+            const daSub = m.dailyAverage === null ? 'No revenue logged' : 'across ' + m.dayCount + ' day' + (m.dayCount === 1 ? '' : 's');
+            const periodLabel = { today: 'today', week: 'this week', month: 'this month', all: 'all time' }[criticalPeriod];
+            const showChart = monthly.length >= 2;
+            return `
+                <div>
+                    <h2 class="page-title">Critical Numbers</h2>
+                    <p class="page-subtitle">The pulse of your business — auto-calculated from what you log on the Business page.</p>
+
+                    <div class="money-card critical-card">
+                        <div class="money-card-head">
+                            <div>
+                                <div class="money-card-title">Performance snapshot</div>
+                                <div class="money-card-sub">Pick a window to see how your numbers stack up.</div>
+                            </div>
+                            <select class="critical-period-select" onchange="setCriticalPeriod(this.value)">
+                                <option value="today" ${criticalPeriod==='today'?'selected':''}>Today</option>
+                                <option value="week" ${criticalPeriod==='week'?'selected':''}>This week</option>
+                                <option value="month" ${criticalPeriod==='month'?'selected':''}>This month</option>
+                                <option value="all" ${criticalPeriod==='all'?'selected':''}>All time</option>
+                            </select>
+                        </div>
+                        <div class="critical-stat-row" id="criticalStatRow">
+                            <div class="critical-stat-tile">
+                                <div class="critical-stat-label">Income per minute</div>
+                                <div class="critical-stat-value">${ipmStr}<span class="critical-stat-unit">/min</span></div>
+                                <div class="critical-stat-sub">${ipmSub} · ${periodLabel}</div>
+                            </div>
+                            <div class="critical-stat-tile">
+                                <div class="critical-stat-label">Daily Average</div>
+                                <div class="critical-stat-value">${daStr}<span class="critical-stat-unit">/day</span></div>
+                                <div class="critical-stat-sub">${daSub} · ${periodLabel}</div>
+                            </div>
+                        </div>
+                        ${showChart ? `
+                        <div class="critical-chart-head">
+                            <div class="critical-chart-title">Monthly daily-average vs. inflation</div>
+                            <div class="critical-chart-legend">
+                                <span class="critical-legend-dot you"></span>You
+                                <span class="critical-legend-dot infl"></span>Inflation (7%/yr)
+                            </div>
+                        </div>
+                        <div class="critical-chart-wrap"><canvas id="criticalChart"></canvas></div>
+                        ` : `
+                        <div class="critical-chart-empty">
+                            <div class="critical-chart-empty-icon">${IC.chart}</div>
+                            <div class="critical-chart-empty-title">Track 2+ months to unlock your growth chart</div>
+                            <div class="critical-chart-empty-sub">Once you've logged numbers across two calendar months, you'll see your daily-average climb against the 7% inflation line.</div>
+                        </div>
+                        `}
+                    </div>
+
+                    <div class="money-cta-row" style="margin-top:8px;">
+                        <button class="money-btn-secondary" onclick="setPage('numbers')">Log this week's numbers &rarr;</button>
+                    </div>
+                </div>
+            `;
+        };
+
         const renderClientMoneyDashboard = (data) => {
             const savings = data.savings;
             const investments = data.investments;
@@ -7136,6 +7612,7 @@ const renderAdminClientDetail = async (uid) => {
             const ICON_BUSINESS = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><text x="3" y="12.5" font-size="13" font-weight="700" fill="currentColor" stroke="none" font-family="sans-serif">$</text></svg>';
             const ICON_BIZREPORT = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h6l3 3V14a0.5 0.5 0 0 1-0.5 0.5h-8.5A0.5 0.5 0 0 1 3 14V2a0.5 0.5 0 0 1 0.5-0.5Z"/><path d="M9.5 1.5v3h3"/><path d="M5.5 11v-1M8 11V8.5M10.5 11V6.5"/></svg>';
             const ICON_INVESTMENTS = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4.5" width="12" height="8" rx="1.4"/><circle cx="8" cy="8.5" r="1.7"/><path d="M4.6 7v3M11.4 7v3"/></svg>';
+            const ICON_CRITICAL = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12.5L5.5 8.5L8.5 11L13.5 4.5"/><path d="M10.5 4.5h3v3"/><circle cx="2" cy="12.5" r="0.6" fill="currentColor"/><circle cx="5.5" cy="8.5" r="0.6" fill="currentColor"/><circle cx="8.5" cy="11" r="0.6" fill="currentColor"/></svg>';
             const ICON_CONTENT = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>';
             const ICON_INSPO = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 11C2 11 3 6 8 6C13 6 14 11 14 11"/><path d="M8 6V3"/><path d="M5.5 3.5C5.5 2 8 1 8 3"/><path d="M10.5 3.5C10.5 2 8 1 8 3"/></svg>';
             const ICON_SOCIAL = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2a6 6 0 0 1 0 12"/><path d="M8 2a6 6 0 0 0 0 12"/><path d="M8 14V8"/><path d="M5 5L8 8L11 5"/></svg>';
@@ -7157,6 +7634,7 @@ const renderAdminClientDetail = async (uid) => {
                     { page: 'numbers', icon: ICON_BUSINESS, label: 'Business' },
                     { page: 'businessReport', icon: ICON_BIZREPORT, label: 'Business Report' },
                     { page: 'money', icon: ICON_INVESTMENTS, label: 'Investments' },
+                    { page: 'criticalNumbers', icon: ICON_CRITICAL, label: 'Critical Numbers' },
                 ]},
                 { type: 'section', id: 'content', icon: ICON_CONTENT_GROUP, label: 'Content', items: [
                     { page: 'content', icon: ICON_CONTENT, label: 'Content' },
@@ -7258,7 +7736,7 @@ const renderAdminClientDetail = async (uid) => {
                 </div>
             `;
 
-            const pageTitles = { hub:'Overview', implementation:'The Roadmap', businessReport:'Business Report', numbers:'Log Your Numbers', money:'Investments', tasks:'Your Tasks', content:'Content Library', inspo:'Inspo Feed', social:'Social Profiles', progress:'Analytics', scaleSignal:'The Scale Signal', intelligence:'SCALO Intelligence', clients:'Your Clients', addClient:'Add New Client', crm:'Client CRM', clientDetail:'Client Detail' };
+            const pageTitles = { hub:'Overview', implementation:'The Roadmap', businessReport:'Business Report', numbers:'Log Your Numbers', money:'Investments', criticalNumbers:'Critical Numbers', tasks:'Your Tasks', content:'Content Library', inspo:'Inspo Feed', social:'Social Profiles', progress:'Analytics', scaleSignal:'The Scale Signal', intelligence:'SCALO Intelligence', clients:'Your Clients', addClient:'Add New Client', crm:'Client CRM', clientDetail:'Client Detail' };
 
             let pageContent = '';
             try {
@@ -7276,6 +7754,7 @@ const renderAdminClientDetail = async (uid) => {
                     else if (currentPage === 'businessReport') pageContent = await renderClientBusinessReport();
                     else if (currentPage === 'numbers') pageContent = await renderClientNumbers();
                     else if (currentPage === 'money') pageContent = await renderClientMoney();
+                    else if (currentPage === 'criticalNumbers') pageContent = await renderClientCriticalNumbers();
                     else if (currentPage === 'tasks') pageContent = await renderClientTasks();
                     else if (currentPage === 'icp') pageContent = await renderClientICP();
                     else if (currentPage === 'content') pageContent = await renderClientContent();
@@ -7323,6 +7802,7 @@ const renderAdminClientDetail = async (uid) => {
             if (currentPage === 'hub' && !isAdmin) setTimeout(renderHubCharts, 50);
             if (currentPage === 'social' && !isAdmin) setTimeout(renderSocialCharts, 50);
             if (currentPage === 'businessReport' && !isAdmin) setTimeout(animateBusinessReportChart, 60);
+            if (currentPage === 'criticalNumbers' && !isAdmin) setTimeout(renderCriticalChart, 60);
 
             // Event listeners
             if (isAdmin) {
