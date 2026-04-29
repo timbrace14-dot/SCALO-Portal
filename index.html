@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SCALO Client Portal</title>
+    <link rel="icon" type="image/png" href="scalo v3.png">
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -6516,7 +6517,13 @@ const renderAdminClientDetail = async (uid) => {
                                 <div class="money-card-title">${goal.label ? goal.label.replace(/</g, '&lt;') : 'Savings goal'}</div>
                                 <div class="money-card-sub">Target ${formatMoney(goalAmount)} · ${formatMoney(weeklyTarget)}/week</div>
                             </div>
-                            <span class="money-pace-pill ${pace.state}">${pace.label}</span>
+                            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                                <span class="money-pace-pill ${pace.state}">${pace.label}</span>
+                                <button class="money-btn-ghost" onclick="openEditSavingsGoalModal()" title="Edit goal" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:6px 10px;">
+                                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 2.5l2 2L5 13H3v-2z"/></svg>
+                                    Edit
+                                </button>
+                            </div>
                         </div>
                         <div class="money-progress-track">
                             <div class="money-progress-fill" data-progress="${goalPct}" style="width:0%;"></div>
@@ -6629,6 +6636,104 @@ const renderAdminClientDetail = async (uid) => {
             // Simpler: just mark setupComplete=false, let setup re-render, then it sets it true on save.
             await db.ref('portal/savings/' + uid + '/settings/setupComplete').set(false);
             setPage('money');
+        };
+
+        // Inline edit of the savings goal — name, target, weekly amount
+        window.openEditSavingsGoalModal = async () => {
+            const container = document.getElementById('confirmModalContainer');
+            if (!container) return;
+            const uid = currentUser.uid;
+            const snap = await db.ref('portal/savings/' + uid).once('value');
+            const savings = snap.val() || {};
+            const goal = savings.goal || {};
+            const settings = savings.settings || {};
+            const label = (goal.label || '').replace(/"/g, '&quot;');
+            const target = Number(goal.targetAmount) || 0;
+            const weekly = Number(settings.weeklyTarget) || 0;
+            const sym = currencySymbol();
+            container.innerHTML = `
+                <div class="confirm-modal-overlay" onclick="if(event.target===this) closeEditSavingsGoalModal()">
+                    <div class="confirm-modal" style="max-width:480px;">
+                        <div class="confirm-modal-title">Edit savings goal</div>
+                        <div class="confirm-modal-message">Change the name, target, or how much you save each week.</div>
+                        <div style="margin-bottom:14px;">
+                            <div class="form-label" style="margin-bottom:6px;">Goal name</div>
+                            <input type="text" id="editGoalLabel" class="form-input" placeholder="e.g. House deposit" value="${label}">
+                        </div>
+                        <div style="margin-bottom:14px;">
+                            <div class="form-label" style="margin-bottom:6px;">Target amount (${sym})</div>
+                            <input type="number" id="editGoalAmount" class="form-input" min="0" step="100" value="${target || ''}" oninput="updateEditGoalPreview()">
+                        </div>
+                        <div style="margin-bottom:14px;">
+                            <div class="form-label" style="margin-bottom:6px;">Weekly saving (${sym})</div>
+                            <input type="number" id="editGoalWeekly" class="form-input" min="0" step="10" value="${weekly || ''}" oninput="updateEditGoalPreview()">
+                        </div>
+                        <div id="editGoalPreview" style="background:rgba(184,233,134,0.06);border:1px solid rgba(184,233,134,0.2);border-radius:10px;padding:12px 14px;text-align:center;margin-bottom:18px;font-size:13px;color:rgba(255,255,255,0.85);line-height:1.4;">Enter both numbers to see the timeline</div>
+                        <div class="confirm-modal-actions">
+                            <button class="confirm-btn confirm-btn-cancel" onclick="closeEditSavingsGoalModal()">Cancel</button>
+                            <button class="confirm-btn confirm-btn-confirm" onclick="saveEditedSavingsGoal()">Save</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            setTimeout(() => {
+                const a = document.getElementById('editGoalLabel');
+                if (a) a.focus();
+                updateEditGoalPreview();
+            }, 50);
+        };
+
+        window.closeEditSavingsGoalModal = () => {
+            const c = document.getElementById('confirmModalContainer');
+            if (c) c.innerHTML = '';
+        };
+
+        window.updateEditGoalPreview = () => {
+            const target = parseFloat(document.getElementById('editGoalAmount')?.value);
+            const weekly = parseFloat(document.getElementById('editGoalWeekly')?.value);
+            const previewEl = document.getElementById('editGoalPreview');
+            if (!previewEl) return;
+            if (isNaN(target) || target <= 0 || isNaN(weekly) || weekly <= 0) {
+                previewEl.textContent = 'Enter both numbers to see the timeline';
+                return;
+            }
+            const weeks = Math.ceil(target / weekly);
+            const months = Math.round(weeks / 4.345);
+            const years = (weeks / 52).toFixed(1);
+            const dateLabel = futureDateLabel(weeks);
+            const timeLabel = weeks < 8 ? `${weeks} week${weeks === 1 ? '' : 's'}`
+                : weeks < 78 ? `${months} month${months === 1 ? '' : 's'}`
+                : `${years} years`;
+            previewEl.innerHTML = `Saving <strong>${formatMoney(weekly)}/week</strong>, you'll hit <strong>${formatMoney(target)}</strong> in <strong>${timeLabel}</strong> &mdash; ${dateLabel}`;
+        };
+
+        window.saveEditedSavingsGoal = async () => {
+            const label = (document.getElementById('editGoalLabel').value || '').trim();
+            const amount = parseFloat(document.getElementById('editGoalAmount').value);
+            const weekly = parseFloat(document.getElementById('editGoalWeekly').value);
+            if (!label) { toast.error('Add a goal name'); return; }
+            if (isNaN(amount) || amount <= 0) { toast.error('Enter a target amount'); return; }
+            if (isNaN(weekly) || weekly <= 0) { toast.error('Enter a weekly saving amount'); return; }
+            const uid = currentUser.uid;
+            try {
+                const weeks = Math.ceil(amount / weekly);
+                const projectedDate = new Date(Date.now() + weeks * 7 * 86400000).toISOString().slice(0, 10);
+                await db.ref('portal/savings/' + uid + '/goal').update({
+                    label,
+                    targetAmount: amount,
+                    targetDate: projectedDate,
+                });
+                await db.ref('portal/savings/' + uid + '/settings').update({
+                    weeklyTarget: weekly,
+                    setupComplete: true,
+                    updatedAt: new Date().toISOString(),
+                });
+                closeEditSavingsGoalModal();
+                toast.success('Goal updated');
+                setPage('money');
+            } catch (err) {
+                toast.error('Could not save: ' + err.message);
+            }
         };
 
         // Add investment modal
