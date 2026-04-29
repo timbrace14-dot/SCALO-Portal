@@ -1540,18 +1540,18 @@
             grid-template-columns: 1fr 1fr;
             gap: 12px;
             margin-bottom: 18px;
+            max-width: 520px;
         }
         .critical-stat-tile {
             background: rgba(255,255,255,0.04);
             border: 1px solid rgba(255,255,255,0.08);
             border-radius: 14px;
-            padding: 18px 16px;
+            padding: 16px 18px;
             position: relative;
             overflow: hidden;
-            aspect-ratio: 1.05 / 1;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            gap: 8px;
         }
         .critical-stat-tile::before {
             content: '';
@@ -1569,19 +1569,22 @@
             color: rgba(255,255,255,0.55);
         }
         .critical-stat-value {
-            font-size: 30px;
+            font-size: 26px;
             font-weight: 800;
             color: var(--accent);
             letter-spacing: -0.02em;
-            line-height: 1.05;
-            word-break: break-word;
+            line-height: 1;
+            white-space: nowrap;
+            display: flex;
+            align-items: baseline;
+            gap: 3px;
         }
         .critical-stat-unit {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             color: rgba(255,255,255,0.4);
-            margin-left: 3px;
             letter-spacing: 0;
+            white-space: nowrap;
         }
         .critical-stat-sub {
             font-size: 11px;
@@ -1639,9 +1642,9 @@
         .critical-chart-empty-sub { font-size: 12px; color: rgba(255,255,255,0.5); line-height: 1.5; max-width: 380px; margin: 0 auto; }
 
         @media (max-width: 480px) {
-            .critical-stat-tile { aspect-ratio: auto; padding: 16px 14px; }
-            .critical-stat-value { font-size: 24px; }
-            .critical-stat-row { gap: 10px; }
+            .critical-stat-tile { padding: 14px 14px; gap: 6px; }
+            .critical-stat-value { font-size: 22px; }
+            .critical-stat-row { gap: 10px; max-width: none; }
         }
 
         .money-progress-track { height: 8px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; margin: 12px 0 8px; }
@@ -6764,12 +6767,15 @@ const renderAdminClientDetail = async (uid) => {
                             borderColor: accent,
                             backgroundColor: gradient,
                             borderWidth: 2.5,
-                            tension: 0.35,
+                            tension: 0.4,
                             fill: true,
-                            pointRadius: 0,
-                            pointHoverRadius: 5,
+                            pointRadius: 5,
+                            pointBackgroundColor: accent,
+                            pointBorderColor: '#0f0f0f',
+                            pointBorderWidth: 2,
+                            pointHoverRadius: 7,
                             pointHoverBackgroundColor: accent,
-                            pointHoverBorderColor: '#000',
+                            pointHoverBorderColor: '#fff',
                             pointHoverBorderWidth: 2,
                         },
                         {
@@ -6778,13 +6784,16 @@ const renderAdminClientDetail = async (uid) => {
                             borderColor: 'rgba(255,255,255,0.35)',
                             borderWidth: 1.5,
                             borderDash: [5, 5],
-                            tension: 0.2,
+                            tension: 0.4,
                             fill: false,
-                            pointRadius: 0,
-                            pointHoverRadius: 4,
+                            pointRadius: 3,
+                            pointBackgroundColor: 'rgba(255,255,255,0.35)',
+                            pointBorderColor: '#0f0f0f',
+                            pointBorderWidth: 1.5,
+                            pointHoverRadius: 5,
                             pointHoverBackgroundColor: 'rgba(255,255,255,0.7)',
-                            pointHoverBorderColor: '#000',
-                            pointHoverBorderWidth: 2,
+                            pointHoverBorderColor: '#fff',
+                            pointHoverBorderWidth: 1.5,
                         },
                     ],
                 },
