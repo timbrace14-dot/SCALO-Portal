@@ -2199,7 +2199,12 @@
                 { id: 'l4_implementation', title: 'The Authority Flywheel (Implementation)', url: 'https://www.skool.com/scalo-6527/classroom/8edc27c1?md=41817332e2c94ec285a616617c6d98cd' },
                 { id: 'l4_momentum', title: 'Authority Flywheel Momentum Engine', url: 'https://www.skool.com/scalo-6527/classroom/8edc27c1?md=cc468839c29344a4b9c76f0e30712ae5' },
             ]},
-            { level: 5, title: 'Level Five: Story to Status', items: [] },
+            { level: 5, title: 'Level Five: Story to Status', items: [
+                { id: 'l5_walkthrough', title: 'Story to Status Module Walkthrough', url: 'https://www.skool.com/scalo-6527/classroom/3c96ca08?md=446412a601a344ab9e5d3f37c4a1ec2e' },
+                { id: 'l5_packaging', title: 'Story Packaging', url: 'https://www.skool.com/scalo-6527/classroom/3c96ca08?md=7cee49e8ddb24d06b094748d71b4a6b0' },
+                { id: 'l5_framework', title: 'S.T.O.R.Y Framework', url: 'https://www.skool.com/scalo-6527/classroom/3c96ca08?md=d96b171f02434498b1080effd5b7a2e3' },
+                { id: 'l5_templates', title: 'Plug and Play Templates', url: 'https://www.skool.com/scalo-6527/classroom/3c96ca08?md=900d030e815240ea8b19f9326b38e44c' },
+            ]},
             { level: 6, title: 'Level Six: Content to Cash', items: [] },
             { level: 7, title: 'Level Seven: Price Ascension', items: [
                 { id: 'l7_walkthrough', title: 'Price Ascension Walkthrough', url: 'https://www.skool.com/scalo-6527/classroom/7eda51fb?md=0f286d4030034c52b09e10570145adc8' },
@@ -2233,11 +2238,17 @@
         };
 
         // ── AUTO-SCRAPE: trigger Supabase Edge Functions when data is stale ──
+        // Returns the current user's Firebase ID token so edge functions can verify them.
+        const getIdToken = async () => {
+            try { return await auth.currentUser?.getIdToken(); } catch(e) { return null; }
+        };
+
         const triggerScrapeReels = async (uid) => {
             if (!sbClient) return;
             try {
+                const idToken = await getIdToken();
                 const { data, error } = await sbClient.functions.invoke('scrape-reels', {
-                    body: uid ? { uid } : {}
+                    body: { uid: uid || (currentUser && currentUser.uid), idToken }
                 });
                 if (error) console.warn('scrape-reels error:', error);
                 else console.log('scrape-reels result:', data);
@@ -4566,25 +4577,31 @@
         const renderAdminAddClient = () => `
             <div style="max-width:480px;">
                 <h2 class="page-title">Add New Client</h2>
-                <p class="page-subtitle">Create a new client account</p>
+                <p class="page-subtitle">Creates the account and emails the student a link to set their own password.</p>
                 <div class="card">
                     <div class="form-group"><label class="form-label">First Name</label><input type="text" id="newClientFirstName" class="form-input" placeholder="John"></div>
                     <div class="form-group"><label class="form-label">Last Name</label><input type="text" id="newClientLastName" class="form-input" placeholder="Doe"></div>
                     <div class="form-group"><label class="form-label">Email</label><input type="email" id="newClientEmail" class="form-input" placeholder="john@example.com"></div>
-                    <div class="form-group"><label class="form-label">Temporary Password</label><input type="text" id="newClientPassword" class="form-input" placeholder="Scalo2024!"></div>
                     <div class="error-message" id="addClientError"></div>
-                    <button class="btn-primary" id="createClientBtn">Create Account &#x2192;</button>
+                    <button class="btn-primary" id="createClientBtn">Create Account & Send Setup Email &#x2192;</button>
                 </div>
             </div>
         `;
 
+        // Generates a 32-char random password the admin never sees. Student sets their own via the reset email.
+        const generateRandomPassword = () => {
+            const bytes = new Uint8Array(24);
+            crypto.getRandomValues(bytes);
+            return btoa(String.fromCharCode(...bytes)).replace(/[+/=]/g, '').slice(0, 32) + '!9Aa';
+        };
+
         const handleCreateClient = async () => {
-            const firstName = document.getElementById('newClientFirstName').value;
-            const lastName = document.getElementById('newClientLastName').value;
-            const email = document.getElementById('newClientEmail').value;
-            const password = document.getElementById('newClientPassword').value;
+            const firstName = document.getElementById('newClientFirstName').value.trim();
+            const lastName = document.getElementById('newClientLastName').value.trim();
+            const email = document.getElementById('newClientEmail').value.trim();
             const errorDiv = document.getElementById('addClientError');
-            if (!firstName || !lastName || !email || !password) { errorDiv.textContent = 'Please fill in all fields'; return; }
+            if (!firstName || !lastName || !email) { errorDiv.textContent = 'Please fill in all fields'; return; }
+            const password = generateRandomPassword();
             try {
                 errorDiv.textContent = '';
                 const secondaryApp = firebase.initializeApp(FIREBASE_CONFIG, 'secondary_' + Date.now());
@@ -4593,13 +4610,14 @@
                 await db.ref(`portal/users/${cred.user.uid}`).set({ firstName, lastName, email, role: 'client', createdAt: new Date().toISOString() });
                 secondaryAuth.signOut();
                 secondaryApp.delete();
+                await auth.sendPasswordResetEmail(email);
                 errorDiv.innerHTML = '';
                 const successSpan = document.createElement('span');
                 successSpan.style.color = '#4ADE80';
-                successSpan.textContent = '✓ Account created! Email: ' + email + ' / Password: ' + password;
+                successSpan.textContent = '✓ Account created. Setup email sent to ' + email + '.';
                 errorDiv.appendChild(successSpan);
                 setTimeout(() => {
-                    ['newClientFirstName','newClientLastName','newClientEmail','newClientPassword'].forEach(id => document.getElementById(id).value = '');
+                    ['newClientFirstName','newClientLastName','newClientEmail'].forEach(id => document.getElementById(id).value = '');
                     errorDiv.textContent = '';
                 }, 4000);
             } catch (err) { errorDiv.textContent = err.message || 'Error creating client'; }
@@ -6329,7 +6347,13 @@ const renderAdminClientDetail = async (uid) => {
                     btn.innerHTML = spinIcon + ' Scraping profiles... (30-60s)';
                 }
                 try {
-                    const res = await sbClient.functions.invoke('scrape-profiles', { body: { uid: currentUser.uid } });
+                    const idToken = await getIdToken();
+                    const res = await sbClient.functions.invoke('scrape-profiles', { body: { uid: currentUser.uid, idToken } });
+                    if (res && res.data && res.data.error === 'Cooldown') {
+                        toast.error(res.data.message || 'You can refresh once a week.');
+                        if (btn) { btn.disabled = false; btn.innerHTML = refreshIcon + ' Refresh'; }
+                        return;
+                    }
                     if (btn) btn.innerHTML = spinIcon + ' Updating...';
                     setTimeout(() => setPage('social'), 1500);
                 } catch (e) {
@@ -7947,8 +7971,14 @@ const renderAdminClientDetail = async (uid) => {
             if (btn) { btn.innerHTML = IC.refresh + ' Scraping reels... (30-60s)'; btn.disabled = true; btn.style.opacity = '0.6'; }
             try {
                 if (!sbClient) throw new Error('Supabase not connected');
-                const { data, error } = await sbClient.functions.invoke('scrape-reels', { body: { uid: currentUser.uid } });
+                const idToken = await getIdToken();
+                const { data, error } = await sbClient.functions.invoke('scrape-reels', { body: { uid: currentUser.uid, idToken } });
                 if (error) throw new Error(error.message || JSON.stringify(error));
+                if (data && data.error === 'Cooldown') {
+                    toast.error(data.message || 'You can refresh once a week.');
+                    if (btn) { btn.innerHTML = origHtml; btn.disabled = false; btn.style.opacity = '1'; }
+                    return;
+                }
                 if (btn) btn.innerHTML = IC.refresh + ' Updating...';
                 setTimeout(() => setPage('content'), 1500);
             } catch(e) {

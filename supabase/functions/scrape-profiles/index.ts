@@ -1,12 +1,19 @@
 // Supabase Edge Function: scrape-profiles
 // Scrapes Instagram & TikTok profile-level stats (followers, posts, views)
-// for all students and saves daily snapshots to Firebase.
-// Reads student handles from Firebase (not Supabase).
-// Triggered daily via pg_cron at 6:00 AM UTC.
+// for students and saves snapshots to Firebase.
 //
-// Required env vars (set in Supabase Dashboard > Edge Functions > Secrets):
-//   APIFY_API_TOKEN         — your Apify API key
-//   FIREBASE_DATABASE_URL   — e.g. https://scalo-client-portal-default-rtdb.firebaseio.com
+// Auth model:
+//   - Cron path: when called with the Supabase service-role key as Bearer (the way pg_cron
+//     calls it), the function scrapes every student. Used for the daily scheduled job.
+//   - Student path: requires `idToken` (Firebase ID token) in the body. The function verifies
+//     the token against Firebase and only scrapes the verified user's own UID. A 7-day per-user
+//     cooldown is enforced via portal/social_profiles/{uid}/lastProfilesScrapedAt.
+//
+// Required env vars (Supabase Dashboard > Edge Functions > Secrets):
+//   APIFY_API_TOKEN          — Apify API key
+//   FIREBASE_DATABASE_URL    — e.g. https://scalo-client-portal-default-rtdb.firebaseio.com
+//   FIREBASE_WEB_API_KEY     — Firebase Web API key (used to verify ID tokens)
+//   SUPABASE_SERVICE_ROLE_KEY — auto-set by Supabase; used to detect cron callers
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
@@ -15,7 +22,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Get current week key (matches portal format: YYYY_WXX)
+const COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
+
 function getWeekKey(): string {
   const now = new Date()
   const jan1 = new Date(now.getFullYear(), 0, 1)
@@ -24,7 +32,6 @@ function getWeekKey(): string {
   return `${now.getFullYear()}_W${String(week).padStart(2, '0')}`
 }
 
-// Firebase REST helpers
 async function firebaseGet(dbUrl: string, path: string) {
   const res = await fetch(`${dbUrl}/${path}.json`)
   if (!res.ok) return null
@@ -40,6 +47,29 @@ async function firebaseSet(dbUrl: string, path: string, data: any) {
   return res.ok
 }
 
+async function verifyFirebaseIdToken(idToken: string, apiKey: string): Promise<string> {
+  const res = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken }),
+    }
+  )
+  if (!res.ok) throw new Error('Invalid auth token')
+  const data = await res.json()
+  const uid = data?.users?.[0]?.localId
+  if (!uid) throw new Error('Invalid auth token')
+  return uid
+}
+
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -48,11 +78,37 @@ serve(async (req) => {
     if (!APIFY_TOKEN) throw new Error('APIFY_API_TOKEN not configured')
 
     const FB_URL = Deno.env.get('FIREBASE_DATABASE_URL') || 'https://scalo-client-portal-default-rtdb.firebaseio.com'
+    const FB_API_KEY = Deno.env.get('FIREBASE_WEB_API_KEY')
+    const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
-    // Optional: target a specific user
-    const { uid: targetUid } = await req.json().catch(() => ({}))
+    const authHeader = req.headers.get('Authorization') || ''
+    const bearer = authHeader.replace(/^Bearer\s+/i, '').trim()
+    const isCron = !!SERVICE_ROLE && bearer === SERVICE_ROLE
 
-    // Read all users and their social profiles from Firebase
+    const { uid: requestedUid, idToken } = await req.json().catch(() => ({} as any))
+
+    let targetUids: string[] | null = null
+    if (!isCron) {
+      if (!FB_API_KEY) throw new Error('FIREBASE_WEB_API_KEY not configured')
+      if (!idToken) return jsonResponse({ error: 'Authentication required' }, 401)
+      const verifiedUid = await verifyFirebaseIdToken(idToken, FB_API_KEY)
+      if (requestedUid && requestedUid !== verifiedUid) {
+        return jsonResponse({ error: 'Cannot scrape another user' }, 403)
+      }
+      targetUids = [verifiedUid]
+
+      const last = await firebaseGet(FB_URL, `portal/social_profiles/${verifiedUid}/lastProfilesScrapedAt`)
+      if (typeof last === 'number' && Date.now() - last < COOLDOWN_MS) {
+        const nextAt = last + COOLDOWN_MS
+        const daysLeft = Math.ceil((nextAt - Date.now()) / 86400000)
+        return jsonResponse({
+          error: 'Cooldown',
+          message: `You can refresh once a week. Try again in ${daysLeft} day${daysLeft === 1 ? '' : 's'}.`,
+          nextAvailableAt: nextAt,
+        }, 429)
+      }
+    }
+
     const [users, profiles] = await Promise.all([
       firebaseGet(FB_URL, 'portal/users'),
       firebaseGet(FB_URL, 'portal/social_profiles'),
@@ -60,11 +116,10 @@ serve(async (req) => {
 
     if (!users) throw new Error('No users found in Firebase')
 
-    // Build list of students with social profiles
     const students: { uid: string; igHandle: string | null; tiktokUrl: string | null }[] = []
     for (const [fbUid, userData] of Object.entries(users as Record<string, any>)) {
       if (userData.role === 'admin' || userData.disabled) continue
-      if (targetUid && fbUid !== targetUid) continue
+      if (targetUids && !targetUids.includes(fbUid)) continue
 
       const profile = profiles?.[fbUid]
       if (!profile) continue
@@ -85,9 +140,7 @@ serve(async (req) => {
     }
 
     if (students.length === 0) {
-      return new Response(JSON.stringify({ message: 'No students with social profiles found' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return jsonResponse({ message: 'No students with social profiles found' })
     }
 
     const weekKey = getWeekKey()
@@ -95,11 +148,8 @@ serve(async (req) => {
 
     for (const student of students) {
       const snapshot: any = { scrapedAt: new Date().toISOString() }
-
-      // Get previous data to calculate new followers
       const prevData = await firebaseGet(FB_URL, `portal/social_history/${student.uid}/${weekKey}`)
 
-      // ── INSTAGRAM ──
       if (student.igHandle) {
         try {
           const runRes = await fetch(
@@ -119,14 +169,12 @@ serve(async (req) => {
               snapshot.igPosts = p.postsCount || p.mediaCount || 0
               snapshot.igViews = p.profileViewsCount || 0
 
-              // Also get total views from content library if available
               const contentLib = await firebaseGet(FB_URL, `portal/content_library/${student.uid}`)
               if (contentLib) {
                 const totalViews = Object.values(contentLib).reduce((sum: number, v: any) => sum + (v?.views || 0), 0)
                 if (totalViews > 0) snapshot.igViews = totalViews
               }
 
-              // Calculate new followers
               const prevFollowers = prevData?.igFollowers || 0
               snapshot.igNewFollowers = prevFollowers > 0 ? snapshot.igFollowers - prevFollowers : 0
             }
@@ -138,7 +186,6 @@ serve(async (req) => {
         }
       }
 
-      // ── TIKTOK ──
       if (student.tiktokUrl) {
         try {
           const ttMatch = student.tiktokUrl.match(/@([\w.]+)/)
@@ -168,7 +215,6 @@ serve(async (req) => {
                 snapshot.ttPosts = p.authorMeta?.video || p.videoCount || 0
                 snapshot.ttViews = p.authorMeta?.heart || p.heartCount || p.totalLikes || 0
 
-                // Calculate new followers
                 const prevFollowers = prevData?.ttFollowers || 0
                 snapshot.ttNewFollowers = prevFollowers > 0 ? snapshot.ttFollowers - prevFollowers : 0
               }
@@ -181,18 +227,15 @@ serve(async (req) => {
         }
       }
 
-      // Save to Firebase (overwrite current week with latest data)
       const saved = await firebaseSet(FB_URL, `portal/social_history/${student.uid}/${weekKey}`, snapshot)
+      if (saved) {
+        await firebaseSet(FB_URL, `portal/social_profiles/${student.uid}/lastProfilesScrapedAt`, Date.now())
+      }
       results.push({ uid: student.uid, weekKey, saved, snapshot })
     }
 
-    return new Response(JSON.stringify({ success: true, weekKey, results }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return jsonResponse({ success: true, weekKey, results })
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return jsonResponse({ error: (err as Error).message }, 500)
   }
 })
