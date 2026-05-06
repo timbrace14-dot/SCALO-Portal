@@ -2569,7 +2569,7 @@
 
         const renderClientHub = async () => {
             const weekKey = getOffsetWeekKey(hubWeekOffset);
-            const [entriesSnap, tasksSnap, socialHistSnap, socialProfileSnap, goalsSnap, savingsSnap, investmentsSnap] = await Promise.all([
+            const [entriesSnap, tasksSnap, socialHistSnap, socialProfileSnap, goalsSnap, savingsSnap, investmentsSnap, , dfData] = await Promise.all([
                 db.ref(`portal/entries/${currentUser.uid}`).once('value'),
                 db.ref(`portal/tasks/${currentUser.uid}`).once('value'),
                 db.ref(`portal/social_history/${currentUser.uid}`).once('value'),
@@ -2578,6 +2578,7 @@
                 db.ref(`portal/savings/${currentUser.uid}`).once('value'),
                 db.ref(`portal/investments/${currentUser.uid}`).once('value'),
                 loadLeaveDates(),
+                df_load(),
             ]);
             const goals = goalsSnap.val() || {};
             const goalsComplete = !!(goals.why && goals.how && goals.goal90 && goals.goal6m);
@@ -2586,6 +2587,17 @@
             // It just goes quieter (small green chips) once both are complete.
             const bothSetupComplete = goalsComplete && icpComplete;
             const entries = entriesSnap.val() || {};
+
+            // Daily Five widget: computed from entries (for auto-tick) + dfData
+            const dfTodayStr = df_iso(new Date());
+            const dfActive = dfData && dfData.startDate && dfData.mode;
+            const dfStats = dfActive ? df_computeStats(dfData, entries, dfTodayStr) : null;
+            const dfTodayItems = dfStats ? (() => {
+                const todayData = (dfData.days || {})[dfTodayStr] || {};
+                const auto = df_hasNumbersFor(entries, dfTodayStr);
+                const ticked = DF_ITEMS.filter(it => it.key === 'numbers' ? auto : !!todayData[it.key]).length;
+                return { ticked, total: DF_ITEMS.length };
+            })() : null;
             const tasks = tasksSnap.val() || {};
             const socialHistory = socialHistSnap.val() || {};
             const socialProfile = socialProfileSnap.val() || {};
@@ -2764,6 +2776,25 @@
                             <span style="font-size:11px;font-weight:600;color:${icpComplete ? 'rgba(74,222,128,0.7)' : 'rgba(245,200,66,0.7)'};">${icpComplete ? 'Complete' : 'Set up'}</span>
                         </button>
                     </div>`}
+
+                    ${dfActive ? (() => {
+                        const todayDone = dfTodayItems.ticked === dfTodayItems.total;
+                        const ringColor = todayDone ? '#4ADE80' : (dfTodayItems.ticked > 0 ? '#f5c842' : 'rgba(255,255,255,0.25)');
+                        const dayClamped = Math.min(dfStats.dayNumber, DF_LENGTH);
+                        return `
+                    <!-- DAILY FIVE STREAK WIDGET -->
+                    <div onclick="setPage('dailyfive')" style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:linear-gradient(135deg,rgba(245,200,66,0.06),rgba(184,233,134,0.06));border:1px solid rgba(245,200,66,0.22);border-radius:14px;margin-bottom:16px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='linear-gradient(135deg,rgba(245,200,66,0.1),rgba(184,233,134,0.1))'" onmouseout="this.style.background='linear-gradient(135deg,rgba(245,200,66,0.06),rgba(184,233,134,0.06))'">
+                        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:46px;height:46px;border-radius:50%;background:rgba(0,0,0,0.3);border:2px solid ${ringColor};flex-shrink:0;">
+                            <div style="font-size:18px;font-weight:900;color:${ringColor};line-height:1;">${dfTodayItems.ticked}</div>
+                            <div style="font-size:8px;color:rgba(255,255,255,0.45);font-weight:700;letter-spacing:0.05em;">/ ${dfTodayItems.total}</div>
+                        </div>
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-size:13px;font-weight:800;color:#fff;letter-spacing:0.02em;">The Daily Five &middot; Day ${dayClamped} of ${DF_LENGTH}</div>
+                            <div style="font-size:11px;color:rgba(255,255,255,0.55);margin-top:2px;font-weight:500;">${todayDone ? '&#x2713; Done for today &mdash; nice.' : `${dfTodayItems.total - dfTodayItems.ticked} left to tick &middot; ${dfStats.currentStreak}-day streak${dfStats.bestStreak > dfStats.currentStreak ? ' (best ' + dfStats.bestStreak + ')' : ''}`}</div>
+                        </div>
+                        <div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(245,200,66,0.12);border:1px solid rgba(245,200,66,0.28);border-radius:20px;font-size:11px;color:#f5c842;font-weight:800;letter-spacing:0.05em;">🔥 ${dfStats.currentStreak}</div>
+                    </div>`;
+                    })() : ''}
 
                     ${showTransferNudge ? `
                     <!-- WEEKLY TRANSFER NUDGE -->
@@ -3601,6 +3632,355 @@
                     </div>
                 </div>
             `;
+        };
+
+        // ── DAILY FIVE CHALLENGE ──
+        const DF_LENGTH = 90;
+        const DF_ITEMS = [
+            { key: 'content',    label: 'Posted one piece of content',           detail: 'A reel or post — anything that goes on the grid.' },
+            { key: 'ctaStories', label: 'Posted 3 CTA stories',                  detail: 'Drive booking traffic — DM "fade", link in bio, polls.' },
+            { key: 'numbers',    label: "Logged today's numbers",                detail: 'Auto-ticks once you fill in today on the Daily Log.' },
+            { key: 'followUps',  label: 'Followed up with 5 rebook-due clients', detail: 'Voice note, DM, anything that asks for the rebook.' },
+            { key: 'roadmap',    label: 'Watched 20 min of a Roadmap step',      detail: 'Stay sharp. Stay learning.' },
+        ];
+        const DF_MODES = {
+            hard:      { label: '75 Hard Mode',  short: 'Hard',       tagline: 'Miss one box, restart at day 1.',                       blurb: 'For students who want maximum discipline. Any missed day, no matter why, resets the entire challenge.' },
+            twostrike: { label: 'Two-Strike Mode', short: 'Two-Strike', tagline: 'Two free misses across 90 days, then restart.',          blurb: 'A bit of buffer for life. Two missed days are forgiven. The third resets you to day 1.' },
+            streak:    { label: 'Streak Mode',   short: 'Streak',     tagline: 'Miss a day → current streak resets, totals stay.',     blurb: 'Most forgiving. You never lose your total days complete or your best-ever streak — only your current run.' },
+        };
+        const DF_MODE_RANK = { hard: 3, twostrike: 2, streak: 1 };
+
+        // Helper: local-time YYYY-MM-DD for a Date
+        const df_iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+        // Helper: 1-indexed day number of the challenge (today minus startDate + 1)
+        const df_dayNumber = (startStr, todayStr) => {
+            const start = new Date(startStr + 'T00:00:00');
+            const today = new Date(todayStr + 'T00:00:00');
+            return Math.floor((today - start) / 86400000) + 1;
+        };
+
+        // Helper: list of YYYY-MM-DD strings from startDate for `count` days
+        const df_dateRange = (startStr, count) => {
+            const out = [];
+            const start = new Date(startStr + 'T00:00:00');
+            for (let i = 0; i < count; i++) {
+                const d = new Date(start);
+                d.setDate(start.getDate() + i);
+                out.push(df_iso(d));
+            }
+            return out;
+        };
+
+        // Helper: does the Daily Log have ANY data logged for this date? Used to auto-tick "numbers"
+        const df_hasNumbersFor = (entries, dateStr) => {
+            const d = new Date(dateStr + 'T00:00:00');
+            const dow = d.getDay() || 7;
+            const monday = new Date(d);
+            monday.setDate(d.getDate() - (dow - 1));
+            const yearStart = new Date(monday.getFullYear(), 0, 1);
+            const weekNum = Math.ceil(((monday - yearStart) / 86400000 + yearStart.getDay() + 1) / 7);
+            const weekKey = `${monday.getFullYear()}_W${String(weekNum).padStart(2, '0')}`;
+            const dayIdx = dow - 1;
+            const entry = entries && entries[weekKey];
+            if (!entry || !entry.days || !entry.days[dayIdx]) return false;
+            return FIELD_KEYS.some(k => entry.days[dayIdx][k] !== undefined && entry.days[dayIdx][k] !== null && entry.days[dayIdx][k] !== '');
+        };
+
+        // Helper: day is "complete" if all 5 boxes are ticked (numbers auto-derived from Daily Log)
+        const df_isDayComplete = (dayData, autoNumbers) => {
+            const d = dayData || {};
+            return !!(d.content && d.ctaStories && (autoNumbers || d.numbers) && d.followUps && d.roadmap);
+        };
+
+        // Helper: load daily-five state. Returns {} if rule not published yet (graceful fallback).
+        const df_load = async () => {
+            try {
+                const snap = await db.ref(`portal/dailyfive/${currentUser.uid}`).once('value');
+                return snap.val() || {};
+            } catch (err) {
+                console.warn('Daily Five unavailable (deploy database.rules.json?):', err.message);
+                return null; // null signals "not configured" — UI shows a hint
+            }
+        };
+
+        // Compute the rolling challenge stats from the saved data + the current Daily Log entries
+        const df_computeStats = (df, entries, todayStr) => {
+            const days = (df && df.days) || {};
+            if (!df || !df.startDate || !df.mode) return null;
+            const allDates = df_dateRange(df.startDate, DF_LENGTH);
+            let currentStreak = 0, bestStreak = 0, totalComplete = 0, missesUsed = 0, failed = false;
+            const dayStatus = {};
+            for (const dateStr of allDates) {
+                if (dateStr > todayStr) { dayStatus[dateStr] = 'future'; continue; }
+                const auto = df_hasNumbersFor(entries, dateStr);
+                const complete = df_isDayComplete(days[dateStr], auto);
+                if (complete) {
+                    dayStatus[dateStr] = (dateStr === todayStr) ? 'complete-today' : 'complete';
+                    totalComplete++;
+                    currentStreak++;
+                    if (currentStreak > bestStreak) bestStreak = currentStreak;
+                } else if (dateStr === todayStr) {
+                    dayStatus[dateStr] = 'today';
+                    // today is in-progress — doesn't break the streak yet
+                } else {
+                    dayStatus[dateStr] = 'missed';
+                    currentStreak = 0;
+                    if (df.mode === 'hard') { failed = true; }
+                    else if (df.mode === 'twostrike') { missesUsed++; if (missesUsed > 2) failed = true; }
+                }
+            }
+            const dayNumber = df_dayNumber(df.startDate, todayStr);
+            return { allDates, dayStatus, currentStreak, bestStreak, totalComplete, missesUsed, failed, dayNumber };
+        };
+
+        // ── DAILY FIVE PAGE ──
+        const renderClientDailyFive = async () => {
+            const [df, entriesSnap] = await Promise.all([
+                df_load(),
+                db.ref(`portal/entries/${currentUser.uid}`).once('value'),
+            ]);
+            const entries = entriesSnap.val() || {};
+            const today = df_iso(new Date());
+
+            // Rule not published yet → friendly hint (still show the start screen)
+            if (df === null) {
+                return `
+                <div>
+                    <h2 class="page-title">The Daily Five Challenge</h2>
+                    <p class="page-subtitle">Build the habits that grow your barbering business.</p>
+                    <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:14px;padding:20px;font-size:13px;color:#FBBF24;line-height:1.6;">
+                        Almost there — your portal needs the new <code>dailyfive</code> Firebase rule published before this can save. Ask your coach to publish the rules update, then refresh this page.
+                    </div>
+                </div>`;
+            }
+
+            // No challenge started yet → mode-selection screen
+            if (!df.startDate || !df.mode) {
+                const modeCard = (modeKey) => {
+                    const m = DF_MODES[modeKey];
+                    return `
+                        <div style="background:#0f0f0f;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px;">
+                            <div>
+                                <div style="font-size:11px;font-weight:800;color:${ACCENT};text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">${m.short}</div>
+                                <div style="font-size:18px;font-weight:800;color:#fff;">${m.label}</div>
+                                <div style="font-size:13px;color:#f5c842;font-weight:600;margin-top:4px;">${m.tagline}</div>
+                            </div>
+                            <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.6;flex:1;">${m.blurb}</div>
+                            <button onclick="dfStart('${modeKey}')" style="background:${ACCENT};color:#000;border:none;padding:11px 16px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:0.04em;text-transform:uppercase;">Start in ${m.short} mode &rarr;</button>
+                        </div>`;
+                };
+                return `
+                <div>
+                    <h2 class="page-title">The Daily Five Challenge</h2>
+                    <p class="page-subtitle">90 days. 5 things every day. Pick your difficulty.</p>
+
+                    <div style="background:#0f0f0f;border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:24px;margin-bottom:24px;">
+                        <div style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.7;">
+                            Every day for 90 days, you tick 5 boxes:<br>
+                            <strong style="color:#fff;">post a piece of content · 3 CTA stories · log your numbers · follow up with 5 rebook-due clients · 20 min of a Roadmap step</strong>.<br>
+                            How strict you want to be is your call. Pick a mode below — once you start, you can level up to a harder mode any time, but you can't downgrade.
+                        </div>
+                    </div>
+
+                    <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
+                        ${modeCard('hard')}
+                        ${modeCard('twostrike')}
+                        ${modeCard('streak')}
+                    </div>
+                </div>`;
+            }
+
+            // Active challenge state
+            const stats = df_computeStats(df, entries, today);
+            const days = df.days || {};
+            const todayData = days[today] || {};
+            const autoNumbersToday = df_hasNumbersFor(entries, today);
+            const mode = DF_MODES[df.mode] || DF_MODES.streak;
+            const challengeComplete = stats.dayNumber > DF_LENGTH;
+
+            // Today's checklist tiles
+            const checklistHtml = DF_ITEMS.map(item => {
+                const isAuto = item.key === 'numbers';
+                const ticked = isAuto ? autoNumbersToday : !!todayData[item.key];
+                const onclickAttr = isAuto ? '' : `onclick="dfToggle('${item.key}')"`;
+                const cursor = isAuto ? 'default' : 'pointer';
+                const bg = ticked ? 'rgba(74,222,128,0.08)' : '#0f0f0f';
+                const border = ticked ? 'rgba(74,222,128,0.35)' : 'rgba(255,255,255,0.08)';
+                return `
+                    <div ${onclickAttr} style="display:flex;align-items:center;gap:14px;padding:16px 18px;background:${bg};border:1px solid ${border};border-radius:14px;cursor:${cursor};transition:all 0.2s;">
+                        <div style="width:28px;height:28px;border-radius:8px;background:${ticked ? '#4ADE80' : 'rgba(255,255,255,0.06)'};display:flex;align-items:center;justify-content:center;color:${ticked ? '#0f0f0f' : 'rgba(255,255,255,0.25)'};font-size:16px;font-weight:900;flex-shrink:0;">${ticked ? '&#x2713;' : ''}</div>
+                        <div style="flex:1;">
+                            <div style="font-size:14px;font-weight:700;color:#fff;">${item.label}</div>
+                            <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:2px;font-weight:400;">${item.detail}</div>
+                        </div>
+                        ${isAuto ? `<div style="font-size:9px;font-weight:700;color:${ticked ? '#4ADE80' : 'rgba(255,255,255,0.35)'};text-transform:uppercase;letter-spacing:0.1em;">Auto</div>` : ''}
+                    </div>`;
+            }).join('');
+
+            // Compact 90-day grid (10 cols × 9 rows)
+            const gridHtml = stats.allDates.map((dateStr, i) => {
+                const status = stats.dayStatus[dateStr];
+                let bg = 'rgba(255,255,255,0.05)'; // future
+                let border = 'transparent';
+                if (status === 'complete' || status === 'complete-today') bg = '#4ADE80';
+                else if (status === 'missed') bg = 'rgba(255,69,51,0.7)';
+                if (dateStr === today) border = ACCENT;
+                return `<div title="Day ${i+1} · ${dateStr}" style="aspect-ratio:1/1;background:${bg};border:1.5px solid ${border};border-radius:3px;"></div>`;
+            }).join('');
+
+            // Mode controls — upgrade buttons (no downgrade)
+            const otherModes = Object.keys(DF_MODES).filter(k => k !== df.mode && DF_MODE_RANK[k] > DF_MODE_RANK[df.mode]);
+            const downgradeModes = Object.keys(DF_MODES).filter(k => k !== df.mode && DF_MODE_RANK[k] < DF_MODE_RANK[df.mode]);
+
+            return `
+                <div>
+                    <h2 class="page-title">The Daily Five</h2>
+                    <p class="page-subtitle">Day ${Math.min(stats.dayNumber, DF_LENGTH)} of ${DF_LENGTH} &middot; ${mode.label}</p>
+
+                    ${stats.failed ? `
+                    <div style="background:linear-gradient(135deg,#1a0808,#1a1208);border:1px solid rgba(255,69,51,0.4);border-radius:14px;padding:18px 20px;margin-bottom:18px;">
+                        <div style="font-size:13px;font-weight:800;color:#FF4533;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;">Challenge ended</div>
+                        <div style="font-size:13px;color:rgba(255,255,255,0.75);line-height:1.6;margin-bottom:12px;">You didn't hit all 5 boxes on a day — your ${mode.label.toLowerCase()} run is over. Ready to go again? You'll start day 1 fresh. Discipline is built one rep at a time.</div>
+                        <button onclick="dfRestart()" style="background:${ACCENT};color:#000;border:none;padding:10px 20px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:0.04em;text-transform:uppercase;">Start over &rarr;</button>
+                    </div>` : ''}
+
+                    ${challengeComplete && !stats.failed ? `
+                    <div style="background:linear-gradient(135deg,#0a1a0f,#0a1a12);border:1px solid rgba(74,222,128,0.45);border-radius:14px;padding:24px;margin-bottom:18px;text-align:center;">
+                        <div style="font-size:36px;margin-bottom:8px;">🏆</div>
+                        <div style="font-size:18px;font-weight:800;color:#4ADE80;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:6px;">90 days. Done.</div>
+                        <div style="font-size:13px;color:rgba(255,255,255,0.75);line-height:1.6;">You showed up every single day. Your business is bigger because of it. That's the whole point.</div>
+                    </div>` : ''}
+
+                    <!-- Stats row -->
+                    <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px;">
+                        <div style="background:#0f0f0f;border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:14px;">
+                            <div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:6px;">Current Streak</div>
+                            <div style="font-size:24px;font-weight:800;color:${ACCENT};">${stats.currentStreak}<span style="font-size:14px;color:rgba(255,255,255,0.45);font-weight:600;"> day${stats.currentStreak === 1 ? '' : 's'}</span></div>
+                        </div>
+                        <div style="background:#0f0f0f;border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:14px;">
+                            <div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:6px;">Best Streak</div>
+                            <div style="font-size:24px;font-weight:800;color:#fff;">${stats.bestStreak}<span style="font-size:14px;color:rgba(255,255,255,0.45);font-weight:600;"> day${stats.bestStreak === 1 ? '' : 's'}</span></div>
+                        </div>
+                        <div style="background:#0f0f0f;border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:14px;">
+                            <div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:6px;">Days Complete</div>
+                            <div style="font-size:24px;font-weight:800;color:#fff;">${stats.totalComplete}<span style="font-size:14px;color:rgba(255,255,255,0.45);font-weight:600;"> / ${DF_LENGTH}</span></div>
+                        </div>
+                        <div style="background:#0f0f0f;border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:14px;">
+                            <div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:6px;">${df.mode === 'twostrike' ? 'Strikes Used' : df.mode === 'hard' ? 'Mode' : 'Days Left'}</div>
+                            <div style="font-size:24px;font-weight:800;color:#fff;">${df.mode === 'twostrike' ? stats.missesUsed + ' / 2' : df.mode === 'hard' ? '<span style="font-size:18px;color:#FF4533;letter-spacing:0.04em;">HARD</span>' : Math.max(0, DF_LENGTH - stats.dayNumber + 1)}</div>
+                        </div>
+                    </div>
+
+                    <!-- Today's checklist -->
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 2px 14px;">
+                        <div style="font-size:12px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.55);">Today &middot; ${new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;">
+                        ${checklistHtml}
+                    </div>
+
+                    <!-- 90-day grid (compact) -->
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin:0 2px 12px;">
+                        <div style="font-size:12px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.55);">90-Day Progress</div>
+                        <div style="display:flex;gap:14px;font-size:10px;color:rgba(255,255,255,0.45);font-weight:600;">
+                            <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;background:#4ADE80;border-radius:2px;"></span>Done</span>
+                            <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;background:rgba(255,69,51,0.7);border-radius:2px;"></span>Missed</span>
+                            <span style="display:inline-flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;background:rgba(255,255,255,0.05);border-radius:2px;border:1.5px solid ${ACCENT};box-sizing:border-box;"></span>Today</span>
+                        </div>
+                    </div>
+                    <div style="background:#0f0f0f;border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;margin-bottom:24px;display:flex;justify-content:flex-start;">
+                        <div style="display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px;width:100%;max-width:340px;">
+                            ${gridHtml}
+                        </div>
+                    </div>
+
+                    <!-- Mode controls -->
+                    <div style="background:#0f0f0f;border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:18px;margin-bottom:24px;">
+                        <div style="font-size:12px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-bottom:8px;">Difficulty</div>
+                        <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.6;margin-bottom:14px;">You're locked in to <strong style="color:#fff;">${mode.label}</strong>. ${otherModes.length > 0 ? 'You can level up to a harder mode (resets your day count to 1).' : 'You\'re already on the hardest mode — eat up.'}</div>
+                        ${otherModes.length > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:8px;">${otherModes.map(k => `<button onclick="dfUpgrade('${k}')" style="background:transparent;border:1px solid rgba(255,69,51,0.4);color:#FF4533;padding:8px 14px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:0.05em;text-transform:uppercase;">Level up to ${DF_MODES[k].short} &rarr;</button>`).join('')}</div>` : ''}
+                        ${downgradeModes.length > 0 ? `<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;">${downgradeModes.map(k => `<button onclick="dfBlockDowngrade()" style="background:transparent;border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.35);padding:8px 14px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:0.02em;">Drop to ${DF_MODES[k].short}</button>`).join('')}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        };
+
+        // Save handlers — exposed on window for inline onclick
+        window.dfStart = async (mode) => {
+            if (!DF_MODES[mode]) return;
+            const today = df_iso(new Date());
+            try {
+                await db.ref(`portal/dailyfive/${currentUser.uid}`).set({
+                    startDate: today,
+                    mode,
+                    days: {},
+                });
+                toast.success(`${DF_MODES[mode].label} — locked in. Day 1.`);
+                setPage('dailyfive');
+            } catch (err) { toast.error('Could not start: ' + err.message); }
+        };
+
+        window.dfToggle = async (itemKey) => {
+            if (itemKey === 'numbers') return; // auto-derived
+            const today = df_iso(new Date());
+            const ref = db.ref(`portal/dailyfive/${currentUser.uid}/days/${today}/${itemKey}`);
+            try {
+                const snap = await ref.once('value');
+                await ref.set(!snap.val());
+                setPage('dailyfive');
+            } catch (err) { toast.error('Could not save: ' + err.message); }
+        };
+
+        window.dfUpgrade = async (newMode) => {
+            if (!DF_MODES[newMode]) return;
+            if (!confirm(`Level up to ${DF_MODES[newMode].label}? Your day count resets to 1.`)) return;
+            const today = df_iso(new Date());
+            try {
+                await db.ref(`portal/dailyfive/${currentUser.uid}`).set({
+                    startDate: today,
+                    mode: newMode,
+                    days: {},
+                });
+                toast.success(`Locked in to ${DF_MODES[newMode].label}. Day 1.`);
+                setPage('dailyfive');
+            } catch (err) { toast.error('Could not save: ' + err.message); }
+        };
+
+        window.dfRestart = async () => {
+            if (!confirm('Restart The Daily Five Challenge from day 1?')) return;
+            const today = df_iso(new Date());
+            try {
+                const snap = await db.ref(`portal/dailyfive/${currentUser.uid}`).once('value');
+                const cur = snap.val() || {};
+                await db.ref(`portal/dailyfive/${currentUser.uid}`).set({
+                    startDate: today,
+                    mode: cur.mode || 'streak',
+                    days: {},
+                });
+                toast.success('Restarted. Day 1.');
+                setPage('dailyfive');
+            } catch (err) { toast.error('Could not save: ' + err.message); }
+        };
+
+        // Motivational interrupt when student tries to drop to an easier mode
+        window.dfBlockDowngrade = () => {
+            const existing = document.getElementById('dfDowngradeModal');
+            if (existing) existing.remove();
+            const modal = document.createElement('div');
+            modal.id = 'dfDowngradeModal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:2000;display:flex;align-items:center;justify-content:center;padding:24px;';
+            modal.innerHTML = `
+                <div style="background:linear-gradient(135deg,#1a1308,#1a1508);border:1px solid rgba(245,200,66,0.45);border-radius:18px;padding:36px 32px;max-width:440px;width:100%;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,0.6);">
+                    <div style="font-size:48px;margin-bottom:14px;">🔒</div>
+                    <div style="font-size:18px;font-weight:900;color:#f5c842;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:18px;">Lock in.</div>
+                    <div style="font-size:14px;color:rgba(255,255,255,0.85);line-height:1.75;margin-bottom:28px;">No, you chose this. You can do it. You're just having a hard day. There's always tomorrow. Lock in for the rest of today and just get through it.</div>
+                    <button onclick="document.getElementById('dfDowngradeModal').remove()" style="background:#f5c842;color:#0f0f0f;border:none;padding:12px 36px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:900;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;">I'm staying in</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            // Click outside the inner card to dismiss
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
         };
 
         // ── ICP PAGE ──
@@ -8164,9 +8544,12 @@ const renderAdminClientDetail = async (uid) => {
             const ICON_BRIEFCASE = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="12" height="9" rx="1.5"/><path d="M5.5 5V3.5h5V5"/><path d="M2 9h12"/></svg>';
             const ICON_CONTENT_GROUP = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="1.4"/><circle cx="6" cy="7" r="1"/><path d="M3 12.5L6.5 9 9 11 13 6"/></svg>';
 
+            const ICON_DAILYFIVE = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5C8 1.5 5 4 5 7c0 1.7 1.3 3 3 3s3-1.3 3-3c0-1.5-1-2.5-1-2.5s0 1.2-1 1.2c-.5 0-.8-.4-.8-.8C8.2 3.5 9 2.4 8 1.5z" fill="currentColor" stroke="none"/><path d="M4 9.5C4 12 6 14.5 8 14.5s4-2.5 4-5c0-1.6-.9-2.5-.9-2.5s.4 1-.5 1.7c-.7.5-1.4-.1-1.4-1 0-1.3 1.2-2.7 0-3.7"/></svg>';
+
             const clientNavStructure = [
                 { type: 'item', page: 'hub', icon: ICON_OVERVIEW, label: 'Overview' },
                 { type: 'item', page: 'implementation', icon: ICON_ROADMAP, label: 'The Roadmap' },
+                { type: 'item', page: 'dailyfive', icon: ICON_DAILYFIVE, label: 'The Daily Five' },
                 { type: 'item', page: 'numbers', icon: ICON_BUSINESS, label: 'Daily Log' },
                 { type: 'section', id: 'reports', icon: ICON_BIZREPORT, label: 'Reports', items: [
                     { page: 'businessReport', icon: ICON_BIZREPORT, label: 'Business Report' },
@@ -8274,7 +8657,7 @@ const renderAdminClientDetail = async (uid) => {
                 </div>
             `;
 
-            const pageTitles = { hub:'Overview', implementation:'The Roadmap', businessReport:'Business Report', numbers:'Log Your Numbers', money:'Investments', criticalNumbers:'Critical Numbers', tasks:'Your Tasks', content:'Content Library', inspo:'Inspo Feed', social:'Social Profiles', progress:'Analytics', scaleSignal:'The Scale Signal', intelligence:'SCALO Intelligence', clients:'Your Clients', addClient:'Add New Client', crm:'Client CRM', clientDetail:'Client Detail' };
+            const pageTitles = { hub:'Overview', implementation:'The Roadmap', dailyfive:'The Daily Five', businessReport:'Business Report', numbers:'Log Your Numbers', money:'Investments', criticalNumbers:'Critical Numbers', tasks:'Your Tasks', content:'Content Library', inspo:'Inspo Feed', social:'Social Profiles', progress:'Analytics', scaleSignal:'The Scale Signal', intelligence:'SCALO Intelligence', goals:'Your Goals', icp:'Your ICP', clients:'Your Clients', addClient:'Add New Client', crm:'Client CRM', clientDetail:'Client Detail' };
 
             let pageContent = '';
             try {
@@ -8296,6 +8679,7 @@ const renderAdminClientDetail = async (uid) => {
                     else if (currentPage === 'tasks') pageContent = await renderClientTasks();
                     else if (currentPage === 'icp') pageContent = await renderClientICP();
                     else if (currentPage === 'goals') pageContent = await renderClientGoals();
+                    else if (currentPage === 'dailyfive') pageContent = await renderClientDailyFive();
                     else if (currentPage === 'content') pageContent = await renderClientContent();
                     else if (currentPage === 'inspo') pageContent = await renderClientInspo();
                     else if (currentPage === 'social') pageContent = await renderClientSocial();

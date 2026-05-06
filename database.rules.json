@@ -33,6 +33,12 @@
           ".write": "auth != null && auth.uid === $uid"
         }
       },
+      "dailyfive": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      },
       "implementation": {
         "$uid": {
           ".read": "auth != null && auth.uid === $uid",
