@@ -2569,9 +2569,8 @@
 
         const renderClientHub = async () => {
             const weekKey = getOffsetWeekKey(hubWeekOffset);
-            const [entriesSnap, tasksSnap, socialHistSnap, socialProfileSnap, goalsSnap, savingsSnap, investmentsSnap, , dfData] = await Promise.all([
+            const [entriesSnap, socialHistSnap, socialProfileSnap, goalsSnap, savingsSnap, investmentsSnap, , dfData] = await Promise.all([
                 db.ref(`portal/entries/${currentUser.uid}`).once('value'),
-                db.ref(`portal/tasks/${currentUser.uid}`).once('value'),
                 db.ref(`portal/social_history/${currentUser.uid}`).once('value'),
                 db.ref(`portal/social_profiles/${currentUser.uid}`).once('value'),
                 db.ref(`portal/goals/${currentUser.uid}`).once('value'),
@@ -2598,7 +2597,6 @@
                 const ticked = DF_ITEMS.filter(it => it.key === 'numbers' ? auto : !!todayData[it.key]).length;
                 return { ticked, total: DF_ITEMS.length };
             })() : null;
-            const tasks = tasksSnap.val() || {};
             const socialHistory = socialHistSnap.val() || {};
             const socialProfile = socialProfileSnap.val() || {};
             const hubSavings = savingsSnap.val() || {};
@@ -2722,17 +2720,6 @@
             const showInvestmentsSummary = hubSavingsSetup; // only show if they've set up
 
             hubChartData = { trueMargin, occupancy, rebook, allTrueProfitMargin, allOccupancy, allRebook, revenue, expenses, lossOfEarnings, trueProfit, noShows, avgTicket, appointmentsAvailable: currentEntry.appointmentsAvailable||0, appointmentsFilled: currentEntry.appointmentsFilled||0, rebookings: currentEntry.rebookings||0 };
-
-            const incompleteTasks = Object.entries(tasks).filter(([, task]) => {
-                const checklist = task.checklist || {};
-                return Object.values(checklist).some(item => !item.done);
-            }).slice(0, 3);
-
-            const totalTasks = Object.keys(tasks).length;
-            const completedTasks = Object.entries(tasks).filter(([, task]) => {
-                const items = Object.values(task.checklist || {});
-                return items.length > 0 && items.every(i => i.done);
-            }).length;
 
             const hour = new Date().getHours();
             const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -3131,47 +3118,6 @@
                         </div>
                     </div>` : ''}
                     ` : ''}
-
-                    <div class="card">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                            <div class="section-header" style="margin-bottom:0;">🎯 Your Tasks</div>
-                            ${totalTasks > 0 ? `<div style="font-size:12px;color:rgba(255,255,255,0.45);font-weight:500;">${completedTasks}/${totalTasks} complete</div>` : ''}
-                        </div>
-                        ${incompleteTasks.length === 0 && totalTasks === 0 ? `
-                            <div style="text-align:center;padding:24px 16px;">
-                                <div style="font-size:32px;margin-bottom:8px;">🎉</div>
-                                <div style="font-size:14px;color:rgba(255,255,255,0.45);font-weight:400;">No tasks yet — your coach will assign some soon</div>
-                            </div>` : ''}
-                        ${incompleteTasks.length === 0 && totalTasks > 0 ? `
-                            <div style="text-align:center;padding:24px 16px;">
-                                <div style="font-size:32px;margin-bottom:8px;">🏆</div>
-                                <div style="font-size:15px;color:#4ADE80;font-weight:700;">All tasks complete!</div>
-                                <div style="font-size:13px;color:rgba(255,255,255,0.45);font-weight:400;margin-top:4px;">Incredible work this week</div>
-                            </div>` : ''}
-                        ${incompleteTasks.map(([taskId, task]) => {
-                            const checklist = task.checklist || {};
-                            const items = Object.values(checklist);
-                            const doneCount = items.filter(i => i.done).length;
-                            const pct = items.length > 0 ? Math.round(doneCount/items.length*100) : 0;
-                            const isUrgent = task.dueDate && daysUntilDate(task.dueDate).includes('ago');
-                            return `<div class="task-item">
-                                <div class="task-header">
-                                    <div style="flex:1;">
-                                        <div class="task-title">${task.title}</div>
-                                        ${task.description ? `<div class="task-description">${task.description}</div>` : ''}
-                                    </div>
-                                    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-                                        ${task.dueDate ? `<div class="task-due" style="background:${isUrgent?'#FEE2E2':''};color:${isUrgent?'#FF4533':''}">${daysUntilDate(task.dueDate)}</div>` : ''}
-                                        <div style="font-size:13px;font-weight:700;color:${pct===100?'#4ADE80':pct>0?'#FBBF24':'#BBB'};">${pct}%</div>
-                                    </div>
-                                </div>
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width:${pct}%;background:${pct===100?'#4ADE80':pct>50?'#FBBF24':'#FF4533'};"></div>
-                                </div>
-                                <div style="font-size:11px;color:rgba(255,255,255,0.45);font-weight:400;margin-top:6px;">${doneCount} of ${items.length} steps done — <span onclick="setPage('tasks')" style="color:${ACCENT};cursor:pointer;">complete now →</span></div>
-                            </div>`;
-                        }).join('')}
-                    </div>
                     </section>
 
                     <!-- Donut Breakdown Modal -->
@@ -4617,138 +4563,6 @@
         };
         window.exportSocialPDF = exportSocialPDF;
 
-        // ── TASKS ──
-        const renderClientTasks = async () => {
-            const snap = await db.ref(`portal/tasks/${currentUser.uid}`).once('value');
-            const tasks = snap.val() || {};
-            const taskList = Object.entries(tasks);
-            const totalItems = taskList.reduce((sum, [, t]) => sum + Object.keys(t.checklist||{}).length, 0);
-            const doneItems = taskList.reduce((sum, [, t]) => sum + Object.values(t.checklist||{}).filter(i=>i.done).length, 0);
-            const overallPct = totalItems > 0 ? Math.round(doneItems / totalItems * 100) : 0;
-            const allDone = taskList.length > 0 && overallPct === 100;
-            const motivational = overallPct === 100 ? ['Champion!', 'Every task done. You\'re unstoppable.'] :
-                overallPct >= 75 ? ['Almost there!', 'You\'re crushing it \u2014 finish strong.'] :
-                overallPct >= 50 ? ['Halfway done!', 'Great momentum \u2014 keep pushing.'] :
-                overallPct >= 25 ? ['Getting started!', 'You\'ve made a start \u2014 now build on it.'] :
-                ['Let\'s go!', 'Your coach set these to help you grow. Start now.'];
-
-            return `
-                <div>
-                    <h2 class="page-title">Your Tasks</h2>
-                    ${taskList.length > 0 ? `
-                    <div id="taskBanner" class="card" style="margin-bottom:16px;background:linear-gradient(135deg,#1a0a0a,#0a0a1a);color:#fff;border:none;">
-                        <div style="display:flex;justify-content:space-between;align-items:center;">
-                            <div>
-                                <div style="font-size:22px;font-weight:700;">${motivational[0]}</div>
-                                <div style="font-size:13px;color:rgba(255,255,255,0.65);font-weight:400;margin-top:2px;">${motivational[1]}</div>
-                            </div>
-                            <div style="text-align:right;">
-                                <div class="banner-pct" style="font-size:36px;font-weight:700;color:${overallPct===100?'#4ade80':'#FF4533'};">${overallPct}%</div>
-                                <div class="banner-steps" style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:400;">${doneItems}/${totalItems} steps</div>
-                            </div>
-                        </div>
-                        <div style="margin-top:14px;height:6px;background:rgba(255,255,255,0.15);border-radius:3px;">
-                            <div class="banner-fill" style="height:100%;width:${overallPct}%;background:${overallPct===100?'#4ade80':'#FF4533'};border-radius:3px;transition:width 0.5s;"></div>
-                        </div>
-                    </div>` : ''}
-
-                    ${allDone ? `<div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2);border-radius:14px;padding:24px;margin-bottom:16px;text-align:center;">
-                        <div style="font-size:18px;font-weight:700;color:#4ADE80;margin-bottom:6px;">Well done for completing all tasks!</div>
-                        <p style="font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:14px;">Please now get in contact with Tim to figure out any more bottlenecks and get the next steps moving forward.</p>
-                        <a href="https://wa.me/447736312475?text=Hey%20Tim%20I%27ve%20completed%20all%20my%20tasks%20and%20want%20to%20discuss%20next%20steps" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#25D366;color:#fff;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.47 3.53a9.96 9.96 0 0 0-7.06-2.93C5.56.6 1.34 4.8 1.32 9.65c0 1.58.42 3.13 1.2 4.5L1.2 19.2l5.16-1.35a9.6 9.6 0 0 0 4.04.91h.01c4.85 0 9.07-4.2 9.09-9.06a9.94 9.94 0 0 0-2.03-5.17z"/></svg>
-                            Message Tim
-                        </a>
-                    </div>` : ''}
-
-                    ${taskList.length === 0 ? `<div style="text-align:center;padding:60px 20px;">
-                        <div style="font-size:48px;margin-bottom:12px;">${IC.clipboard}</div>
-                        <div style="font-size:16px;font-weight:700;color:rgba(255,255,255,0.65);">No tasks yet</div>
-                        <div style="font-size:13px;color:rgba(255,255,255,0.45);font-weight:400;margin-top:6px;">Your coach will assign tasks to help you grow</div>
-                    </div>` : ''}
-
-                    ${taskList.map(([taskId, task]) => {
-                        const checklist = task.checklist || {};
-                        const items = Object.entries(checklist);
-                        const doneCount = items.filter(([, item]) => item.done).length;
-                        const pct = items.length > 0 ? Math.round(doneCount / items.length * 100) : 0;
-                        const isComplete = pct === 100;
-                        const isUrgent = task.dueDate && daysUntilDate(task.dueDate).includes('ago');
-                        return `<div class="task-item" data-task-id="${taskId}" style="${isComplete?'opacity:0.75;':''}">
-                            <div class="task-header">
-                                <div style="flex:1;">
-                                    <div style="display:flex;align-items:center;gap:8px;">
-                                        <div class="task-title" style="${isComplete?'text-decoration:line-through;color:rgba(255,255,255,0.45);':''}">${task.title}</div>
-                                        ${isComplete ? '<span style="font-size:11px;background:rgba(74,222,128,0.15);color:#4ADE80;padding:2px 8px;border-radius:20px;font-weight:700;">✓ Done</span>' : ''}
-                                    </div>
-                                    ${task.description ? `<div class="task-description">${task.description}</div>` : ''}
-                                </div>
-                                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
-                                    ${task.dueDate ? `<div class="task-due" style="${isUrgent?'background:rgba(255,69,51,0.12);color:#FF4533;':''}">${daysUntilDate(task.dueDate)}</div>` : ''}
-                                    <div class="task-pct-label" style="font-size:15px;font-weight:700;color:${isComplete?'#4ADE80':pct>50?'#FBBF24':'#FF4533'};">${pct}%</div>
-                                </div>
-                            </div>
-                            <div class="checklist">
-                                ${items.map(([itemId, item]) => `
-                                    <div class="checklist-item" style="${item.done?'opacity:0.6;':''}">
-                                        <input type="checkbox" class="checklist-checkbox" data-task-id="${taskId}" data-item-id="${itemId}" ${item.done ? 'checked' : ''}>
-                                        <span class="checklist-text ${item.done ? 'done' : ''}">${item.text}</span>
-                                        ${item.done && item.doneAt ? `<span style="font-size:10px;color:rgba(255,255,255,0.45);font-weight:400;margin-left:auto;">✓ done</span>` : ''}
-                                    </div>
-                                `).join('')}
-                            </div>
-                            <div style="margin-top:10px;">
-                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                                    <span class="task-step-label" style="font-size:11px;color:rgba(255,255,255,0.45);font-weight:500;">${doneCount} of ${items.length} steps complete</span>
-                                </div>
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width:${pct}%;background:${isComplete?'#4ADE80':pct>50?'#FBBF24':'#FF4533'};"></div>
-                                </div>
-                            </div>
-                        </div>`;
-                    }).join('')}
-                </div>
-            `;
-        };
-
-        const handleTaskChecklistChange = async (taskId, itemId, checked) => {
-            try {
-                await db.ref(`portal/tasks/${currentUser.uid}/${taskId}/checklist/${itemId}/done`).set(checked);
-                if (checked) await db.ref(`portal/tasks/${currentUser.uid}/${taskId}/checklist/${itemId}/doneAt`).set(new Date().toISOString());
-
-                // Real-time DOM update — no page reload
-                const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
-                if (!taskCard) return;
-                const checkboxes = taskCard.querySelectorAll('.checklist-checkbox');
-                const total = checkboxes.length;
-                const done = Array.from(checkboxes).filter(c => c.checked).length;
-                const pct = total > 0 ? Math.round(done / total * 100) : 0;
-                const isComplete = pct === 100;
-                const fill = taskCard.querySelector('.progress-fill');
-                const pctLabel = taskCard.querySelector('.task-pct-label');
-                const stepLabel = taskCard.querySelector('.task-step-label');
-                const bar = taskCard.querySelector('.progress-bar');
-                if (fill) { fill.style.width = pct + '%'; fill.style.background = isComplete ? '#4ADE80' : pct > 50 ? '#FBBF24' : '#FF4533'; }
-                if (pctLabel) { pctLabel.textContent = pct + '%'; pctLabel.style.color = isComplete ? '#4ADE80' : pct > 50 ? '#FBBF24' : '#FF4533'; }
-                if (stepLabel) stepLabel.textContent = done + ' of ' + total + ' steps complete';
-                taskCard.style.borderColor = isComplete ? 'rgba(74,222,128,0.25)' : pct > 0 ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.1)';
-
-                // Update overall banner
-                const allCheckboxes = document.querySelectorAll('.checklist-checkbox');
-                const totalAll = allCheckboxes.length;
-                const doneAll = Array.from(allCheckboxes).filter(c => c.checked).length;
-                const overallPct = totalAll > 0 ? Math.round(doneAll / totalAll * 100) : 0;
-                const banner = document.getElementById('taskBanner');
-                if (banner) {
-                    const bannerFill = banner.querySelector('.banner-fill');
-                    const bannerPct = banner.querySelector('.banner-pct');
-                    const bannerSteps = banner.querySelector('.banner-steps');
-                    if (bannerFill) { bannerFill.style.width = overallPct + '%'; bannerFill.style.background = overallPct === 100 ? '#4ade80' : '#FF4533'; }
-                    if (bannerPct) { bannerPct.textContent = overallPct + '%'; bannerPct.style.color = overallPct === 100 ? '#4ade80' : '#FF4533'; }
-                    if (bannerSteps) bannerSteps.textContent = doneAll + '/' + totalAll + ' steps';
-                }
-            } catch (err) { console.error('Error updating task:', err); }
-        };
 
         // ── CLIENT: IMPLEMENTATION CHECKLIST ──
         const renderClientImplementation = async () => {
@@ -5699,76 +5513,6 @@
             } catch (err) { toast.error('Error removing photo: ' + err.message); }
         };
 
-        // ── ADMIN: TASKS ──
-        const renderAdminTasks = async () => {
-            const snap = await db.ref('portal/users').once('value');
-            const users = snap.val() || {};
-            const clientUsers = Object.entries(users).filter(([, u]) => u.role === 'client' && !u.disabled);
-            return `
-                <div>
-                    <h2 class="page-title">Manage Tasks</h2>
-                    <p class="page-subtitle">Assign and track client tasks</p>
-                    <div class="card">
-                        <div class="section-header">Assign New Task</div>
-                        <div class="form-group"><label class="form-label">Select Client</label>
-                            <select id="taskClientSelect" class="form-input" style="cursor:pointer;">
-                                <option value="">Choose a client...</option>
-                                ${clientUsers.map(([uid, u]) => `<option value="${uid}">${u.firstName} ${u.lastName}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div class="form-group"><label class="form-label">Task Title</label><input type="text" id="taskTitle" class="form-input" placeholder="Complete meal prep"></div>
-                        <div class="form-group"><label class="form-label">Description</label><textarea id="taskDescription" class="textarea" placeholder="Details about this task..."></textarea></div>
-                        <div class="form-group"><label class="form-label">Due Date</label><input type="date" id="taskDueDate" class="form-input"></div>
-                        <div id="checklistItemsContainer">
-                            <div class="form-group" style="margin-bottom:8px;">
-                                <label class="form-label">Checklist Items</label>
-                                <button class="btn-secondary" id="addChecklistItem" style="width:auto;margin-top:8px;">+ Add Item</button>
-                            </div>
-                        </div>
-                        <button class="btn-primary" id="assignTaskBtn" style="margin-top:16px;">Assign Task &#x2192;</button>
-                    </div>
-                    <div id="allTasksList" style="margin-top:24px;"></div>
-                </div>
-            `;
-        };
-
-        const handleAddChecklistItem = () => {
-            const container = document.getElementById('checklistItemsContainer');
-            const itemCount = container.querySelectorAll('.checklist-item-input').length;
-            const newItem = document.createElement('div');
-            newItem.className = 'form-group checklist-item-input';
-            newItem.style.marginBottom = '8px';
-            newItem.innerHTML = `<div style="display:flex;gap:8px;align-items:flex-end;">
-                <input type="text" class="form-input" placeholder="Item ${itemCount + 1}" style="flex:1;">
-                <button style="background:${ACCENT};border:none;color:#000;padding:12px 14px;border-radius:8px;cursor:pointer;font-weight:700;" onclick="this.parentElement.parentElement.remove();">&#x00D7;</button>
-            </div>`;
-            container.appendChild(newItem);
-        };
-
-        const handleAssignTask = async () => {
-            const clientId = document.getElementById('taskClientSelect').value;
-            const title = document.getElementById('taskTitle').value;
-            const description = document.getElementById('taskDescription').value;
-            const dueDate = document.getElementById('taskDueDate').value;
-            if (!clientId || !title) { toast.error('Please select a client and enter a title'); return; }
-            const checklist = {};
-            document.querySelectorAll('.checklist-item-input input').forEach((input, i) => {
-                if (input.value) checklist[`item_${i}`] = { text: input.value, done: false };
-            });
-            try {
-                const taskId = db.ref(`portal/tasks/${clientId}`).push().key;
-                await db.ref(`portal/tasks/${clientId}/${taskId}`).set({ title, description, dueDate, createdAt: new Date().toISOString(), createdBy: currentUser.uid, checklist: Object.keys(checklist).length > 0 ? checklist : { item_0: { text: 'Complete task', done: false } } });
-                toast.success('Task assigned');
-                document.getElementById('taskTitle').value = '';
-                document.getElementById('taskDescription').value = '';
-                document.getElementById('taskDueDate').value = '';
-                document.getElementById('taskClientSelect').value = '';
-                document.querySelectorAll('.checklist-item-input').forEach(el => el.remove());
-            } catch (err) { toast.error('Error: ' + err.message); }
-        };
-
-        // ── ADMIN: CLIENT DETAIL — see full tabbed version near PDF EXPORT section ──
-
         // ── CONTENT INSPO ──
         let inspoSelectedWeek = null;
 
@@ -6355,10 +6099,9 @@ const weekKeyToDateRange = (key) => {
 };
 
 const renderAdminClientDetail = async (uid) => {
-    const [userSnap, entriesSnap, tasksSnap, socialSnap, socialProfileSnap, inspoCreatorsSnap, inspoVideosSnap, goalsSnap, implSnap] = await Promise.all([
+    const [userSnap, entriesSnap, socialSnap, socialProfileSnap, inspoCreatorsSnap, inspoVideosSnap, goalsSnap, implSnap] = await Promise.all([
         db.ref(`portal/users/${uid}`).once('value'),
         db.ref(`portal/entries/${uid}`).once('value'),
-        db.ref(`portal/tasks/${uid}`).once('value'),
         db.ref(`portal/social_history/${uid}`).once('value'),
         db.ref(`portal/social_profiles/${uid}`).once('value'),
         db.ref(`portal/inspo_creators/${uid}`).once('value'),
@@ -6369,7 +6112,6 @@ const renderAdminClientDetail = async (uid) => {
     const clientGoals = goalsSnap.val()||{};
     const user = userSnap.val()||{};
     const entries = entriesSnap.val()||{};
-    const tasks = tasksSnap.val()||{};
     const socialRaw = socialSnap.val()||{};
     const socialProfile = socialProfileSnap.val()||{};
     const inspoCreators = Object.values(inspoCreatorsSnap.val()||{});
@@ -6399,7 +6141,6 @@ const renderAdminClientDetail = async (uid) => {
     const occupancy = currentEntry.appointmentsAvailable>0?currentEntry.appointmentsFilled/currentEntry.appointmentsAvailable*100:0;
     const rebook = currentEntry.appointmentsFilled>0?currentEntry.rebookings/currentEntry.appointmentsFilled*100:0;
     const initials = ((user.firstName||'?')[0]+((user.lastName||'?')[0])).toUpperCase();
-    const taskList = Object.entries(tasks);
     const lastLogin = user.lastLogin?new Date(user.lastLogin).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'Never';
     const daysSince = user.lastLogin?Math.floor((new Date()-new Date(user.lastLogin))/86400000):null;
     const loginColor = daysSince===null?'#CCC':daysSince<=3?'#4ADE80':daysSince<=7?'#FBBF24':'#FF4533';
@@ -6424,9 +6165,6 @@ const renderAdminClientDetail = async (uid) => {
     const allApptsFilled = allTotalsAdmin.reduce((s,e) => s+e.appointmentsFilled, 0);
     const allOccupancy = allApptsAvailable > 0 ? (allApptsFilled / allApptsAvailable * 100) : 0;
     const allRebook = allApptsFilled > 0 ? (allRebookings / allApptsFilled * 100) : 0;
-    const totalTasks = taskList.length;
-    const completedTasks = taskList.filter(([,task]) => { const items = Object.values(task.checklist||{}); return items.length > 0 && items.every(i => i.done); }).length;
-    const incompleteTasks = taskList.filter(([,task]) => { const checklist = task.checklist||{}; return Object.values(checklist).some(item => !item.done); }).slice(0, 3);
 
     // Overview tab — mirrors client hub
     const overviewTab = `
@@ -6537,34 +6275,6 @@ const renderAdminClientDetail = async (uid) => {
         </div>` : ''}
         ` : ''}
 
-        <div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                <div class="section-header" style="margin-bottom:0;">\uD83C\uDFAF Tasks</div>
-                ${totalTasks > 0 ? `<div style="font-size:12px;color:rgba(255,255,255,0.45);font-weight:500;">${completedTasks}/${totalTasks} complete</div>` : ''}
-            </div>
-            ${incompleteTasks.length === 0 && totalTasks === 0 ? '<div style="text-align:center;padding:24px 16px;"><div style="font-size:32px;margin-bottom:8px;">\uD83C\uDF89</div><div style="font-size:14px;color:rgba(255,255,255,0.45);font-weight:400;">No tasks assigned yet</div></div>' : ''}
-            ${incompleteTasks.length === 0 && totalTasks > 0 ? '<div style="text-align:center;padding:24px 16px;"><div style="font-size:32px;margin-bottom:8px;">\uD83C\uDFC6</div><div style="font-size:15px;color:#4ADE80;font-weight:700;">All tasks complete!</div></div>' : ''}
-            ${incompleteTasks.map(([,task]) => {
-                const items = Object.values(task.checklist||{});
-                const doneCount = items.filter(i=>i.done).length;
-                const pct = items.length > 0 ? Math.round(doneCount/items.length*100) : 0;
-                const isUrgent = task.dueDate && daysUntilDate(task.dueDate).includes('ago');
-                return `<div class="task-item">
-                    <div class="task-header">
-                        <div style="flex:1;">
-                            <div class="task-title">${task.title}</div>
-                            ${task.description ? `<div class="task-description">${task.description}</div>` : ''}
-                        </div>
-                        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-                            ${task.dueDate ? `<div class="task-due" style="background:${isUrgent?'#FEE2E2':''};color:${isUrgent?'#FF4533':''}">${daysUntilDate(task.dueDate)}</div>` : ''}
-                            <div style="font-size:13px;font-weight:700;color:${pct===100?'#4ADE80':pct>0?'#FBBF24':'#BBB'};">${pct}%</div>
-                        </div>
-                    </div>
-                    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${pct===100?'#4ADE80':pct>50?'#FBBF24':'#FF4533'};"></div></div>
-                    <div style="font-size:11px;color:rgba(255,255,255,0.45);font-weight:400;margin-top:6px;">${doneCount} of ${items.length} steps done</div>
-                </div>`;
-            }).join('')}
-        </div>
     `;
 
     // Business tab — date ranges + per-week PDF export
@@ -6790,459 +6500,6 @@ const renderAdminClientDetail = async (uid) => {
     `;
 };
 
-        // ── SCALE SIGNAL ──
-            const SCALE_SIGNAL_SECTIONS = [
-                {
-                    key: 'identity',
-                    title: 'Identity Infrastructure',
-                    subtitle: 'Direction',
-                    icon: '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2.5 14c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/></svg>',
-                    items: [
-                        'My profile clearly communicates who I help, where I am, and what I do',
-                        'My content speaks directly to a specific type of client (not everyone)',
-                        'I have a clear niche or positioning (not just "barber")',
-                        'My pinned content tells my story and builds authority',
-                        'My page looks premium and aligned with higher-paying clients',
-                        'I know exactly what type of client I want more of'
-                    ],
-                    lowMsg: "Your positioning is unclear \u2014 you're attracting low-quality clients and seeing inconsistent growth.",
-                    action: 'Go complete: Identity & Positioning Module \u2014 clarify who you help and how you stand out.'
-                },
-                {
-                    key: 'visual',
-                    title: 'Visual Architecture',
-                    subtitle: 'Content Quality',
-                    icon: '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>',
-                    items: [
-                        'I consistently post content (minimum 3\u20135 times per week)',
-                        'My videos have strong visual hooks in the first 3 seconds',
-                        'I use multiple angles, zooms, or movement in my edits',
-                        'My content is edited to music and feels engaging',
-                        'My videos are clean, sharp, and visually appealing',
-                        'I batch content instead of filming randomly'
-                    ],
-                    lowMsg: "Your content isn't grabbing attention \u2014 no attention means no growth.",
-                    action: 'Go complete: Content Quality Module \u2014 fix your hooks, editing, and visual standards.'
-                },
-                {
-                    key: 'authority',
-                    title: 'Authority Flywheel',
-                    subtitle: 'Content Strategy',
-                    icon: '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12L6 4L10 9L14 2"/><circle cx="6" cy="4" r="1.2" fill="currentColor"/><circle cx="10" cy="9" r="1.2" fill="currentColor"/></svg>',
-                    items: [
-                        'I create content that attracts attention (viral/top of funnel)',
-                        'I create content that builds trust (education/authority)',
-                        'I create content that shows transformation/results',
-                        'I speak directly to client pain points in my content',
-                        'My content leads people toward booking (not just views)',
-                        'I understand what content is actually converting vs just performing'
-                    ],
-                    lowMsg: "Your content isn't converting into clients. You're getting views but no money.",
-                    action: 'Go complete: Content Strategy Module + LTTP Framework.'
-                },
-                {
-                    key: 'business',
-                    title: 'Business Mechanics',
-                    subtitle: 'Systems',
-                    icon: '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><text x="3" y="12.5" font-size="13" font-weight="700" fill="currentColor" stroke="none" font-family="sans-serif">$</text></svg>',
-                    items: [
-                        'I track my numbers (revenue, clients, rebooking, etc.) weekly',
-                        'I know my rebooking rate',
-                        'I aim for at least 70\u201380% occupancy',
-                        'I have systems for bringing in new clients',
-                        'I actively push rebooking during appointments',
-                        'I have some form of outreach (content, DMs, referrals, email)'
-                    ],
-                    lowMsg: "You're stuck trading time for money \u2014 no systems means no scale.",
-                    action: 'Go complete: Business Systems Module \u2014 set up tracking, rebooking, and outreach.'
-                },
-                {
-                    key: 'conversion',
-                    title: 'Conversion',
-                    subtitle: 'Turning Attention into Cash',
-                    icon: '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="9" width="3" height="5" rx="0.5" fill="currentColor" opacity="0.4"/><rect x="6.5" y="5" width="3" height="9" rx="0.5" fill="currentColor" opacity="0.6"/><rect x="11.5" y="2" width="3" height="12" rx="0.5" fill="currentColor" opacity="0.9"/></svg>',
-                    items: [
-                        'My booking link is easy to use and converts well',
-                        'My pricing reflects the level of service I provide',
-                        'I confidently recommend services during consultations',
-                        'I position myself as the expert, not just "another barber"',
-                        'I use clear CTAs in my content (book now, link in bio, etc.)',
-                        "I don't rely on walk-ins or random bookings"
-                    ],
-                    lowMsg: "You're busy but broke \u2014 attention without conversion is wasted.",
-                    action: 'Go complete: Conversion & Pricing Module \u2014 fix your booking flow, pricing, and CTAs.'
-                },
-                {
-                    key: 'execution',
-                    title: 'Execution & Discipline',
-                    subtitle: 'Consistency',
-                    icon: '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5L6.5 12L13 4"/></svg>',
-                    items: [
-                        'I follow a structured weekly plan for content and business',
-                        "I don't rely on motivation, I rely on systems",
-                        'I complete what I say I\'m going to do each week',
-                        'I review what\'s working and adjust accordingly',
-                        'I stay consistent even when results are slow'
-                    ],
-                    lowMsg: "Inconsistency is killing your compounding \u2014 without discipline, nothing stacks.",
-                    action: 'Go complete: Weekly Planning Framework \u2014 build a system you follow every week.'
-                }
-            ];
-
-            const SIGNAL_COLORS = {
-                brightGreen: { bg: '#064E3B', border: '#4ADE80', text: '#4ADE80', label: 'Bright Green' },
-                green: { bg: '#14532D', border: '#22C55E', text: '#22C55E', label: 'Green' },
-                orange: { bg: '#431407', border: '#FBBF24', text: '#FBBF24', label: 'Orange' },
-                red: { bg: '#450A0A', border: '#FF4533', text: '#FF4533', label: 'Red' }
-            };
-
-            function getOverallRating(scores) {
-                const total = Object.values(scores).reduce((a,b) => a+b, 0);
-                const max = SCALE_SIGNAL_SECTIONS.reduce((a,s) => a + s.items.length * 4, 0);
-                const pct = max > 0 ? (total / max) * 100 : 0;
-                if (pct >= 85) return 'brightGreen';
-                if (pct >= 65) return 'green';
-                if (pct >= 40) return 'orange';
-                return 'red';
-            }
-
-            async function renderClientScaleSignal() {
-                const uid = currentUser.uid;
-                const snap = await firebase.database().ref('portal/scale_signal/' + uid).once('value');
-                const saved = snap.val();
-
-                // 6-week timer lock logic
-                const programmeStart = currentUser.programmeStart || null;
-                let isLocked = false;
-                let daysUntilUnlock = 0;
-                let currentBlock = 0;
-
-                if (programmeStart) {
-                    const startDate = new Date(programmeStart);
-                    const now = Date.now();
-                    const weeksSinceStart = Math.floor((now - startDate.getTime()) / (7 * 86400000));
-                    currentBlock = Math.floor(weeksSinceStart / 6);
-
-                    // Scale Signal unlocks at week 6, 12, 18, 24, 30, 36 (every 6 weeks)
-                    if (weeksSinceStart < 6) {
-                        // Before first unlock window
-                        isLocked = true;
-                        const firstUnlockDate = new Date(startDate.getTime() + 6 * 7 * 86400000);
-                        daysUntilUnlock = Math.ceil((firstUnlockDate.getTime() - now) / 86400000);
-                    } else if (saved && saved.submittedAt) {
-                        // Check if already submitted for current block
-                        const blockStartDate = new Date(startDate.getTime() + currentBlock * 6 * 7 * 86400000);
-                        const submittedDate = new Date(saved.submittedAt);
-                        if (submittedDate >= blockStartDate) {
-                            // Already submitted for this block
-                            isLocked = true;
-                            const nextBlockStart = new Date(startDate.getTime() + (currentBlock + 1) * 6 * 7 * 86400000);
-                            daysUntilUnlock = Math.ceil((nextBlockStart.getTime() - now) / 86400000);
-                        }
-                    }
-                }
-
-                // If locked, show last results + countdown
-                if (isLocked && saved && saved.scores) {
-                    const scores = saved.scores;
-                    const overall = getOverallRating(scores);
-                    const color = SIGNAL_COLORS[overall];
-                    const total = Object.values(scores).reduce((a,b) => a+b, 0);
-                    const max = SCALE_SIGNAL_SECTIONS.reduce((a,s) => a + s.items.length * 4, 0);
-
-                    return `<div>
-                        <h2 class="page-title">Your Scale Signal</h2>
-                        <p class="page-subtitle">Here are your latest results</p>
-
-                        <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:24px;margin-bottom:24px;text-align:center;">
-                            <div style="margin-bottom:12px;">${IC.lock}</div>
-                            <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:6px;">Your next Scale Signal opens in ${daysUntilUnlock} day${daysUntilUnlock !== 1 ? 's' : ''}</div>
-                            <div style="font-size:12px;color:rgba(255,255,255,0.45);">Scale Signals unlock every 6 weeks to track meaningful progress</div>
-                        </div>
-
-                        <div style="background:${color.bg};border:2px solid ${color.border};border-radius:16px;padding:24px;margin-bottom:24px;text-align:center;">
-                            <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Last Result</div>
-                            <div style="font-size:48px;font-weight:800;color:${color.text};margin-bottom:4px;">${color.label}</div>
-                            <div style="font-size:14px;color:rgba(255,255,255,0.5);">${total} / ${max} points</div>
-                        </div>
-
-                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;">
-                            ${SCALE_SIGNAL_SECTIONS.map(sec => {
-                                const s = scores[sec.key] || 0;
-                                const m = sec.items.length;
-                                const p = m > 0 ? (s/(m*4))*100 : 0;
-                                const c = p >= 85 ? SIGNAL_COLORS.brightGreen : p >= 65 ? SIGNAL_COLORS.green : p >= 40 ? SIGNAL_COLORS.orange : SIGNAL_COLORS.red;
-                                const itemResponses = saved.responses && saved.responses[sec.key] ? saved.responses[sec.key] : [];
-                                const valToColor = (v) => v >= 4 ? '#4ADE80' : v >= 3 ? '#22C55E' : v >= 2 ? '#FBBF24' : '#FF4533';
-                                return '<div style="background:#111;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">' +
-                                    '<div style="background:#1a1a1a;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;">' +
-                                    '<div style="display:flex;align-items:center;gap:8px;"><span style="color:' + c.text + ';">' + sec.icon + '</span>' +
-                                    '<span style="font-size:12px;font-weight:700;color:#fff;">' + sec.title + '</span></div>' +
-                                    '<span style="font-size:13px;font-weight:800;color:' + c.text + ';">' + s + '/' + (m*4) + '</span></div>' +
-                                    '<div style="padding:8px 14px;">' +
-                                    sec.items.map((item, idx) => {
-                                        const v = itemResponses[idx] || 0;
-                                        const dotColor = valToColor(v);
-                                        return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">' +
-                                            '<span style="width:10px;height:10px;border-radius:50%;background:' + dotColor + ';flex-shrink:0;"></span>' +
-                                            '<span style="font-size:11px;color:rgba(255,255,255,0.6);line-height:1.3;">' + item + '</span></div>';
-                                    }).join('') +
-                                    '</div></div>';
-                            }).join('')}
-                        </div>
-                    </div>`;
-                }
-
-                // If locked but no previous results, show lock screen only
-                if (isLocked) {
-                    return `<div>
-                        <h2 class="page-title">The Scale Signal</h2>
-                        <p class="page-subtitle">Your personalised growth diagnostic</p>
-                        <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:40px 24px;text-align:center;">
-                            <div style="font-size:32px;margin-bottom:16px;">${IC.lock}</div>
-                            <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:8px;">Opens in ${daysUntilUnlock} day${daysUntilUnlock !== 1 ? 's' : ''}</div>
-                            <div style="font-size:13px;color:rgba(255,255,255,0.45);max-width:320px;margin:0 auto;">Scale Signals unlock every 6 weeks so you can track meaningful progress over time.</div>
-                        </div>
-                    </div>`;
-                }
-
-                if (saved && saved.scores) {
-                    // Show results
-                    const scores = saved.scores;
-                    const overall = getOverallRating(scores);
-                    const color = SIGNAL_COLORS[overall];
-
-                    // Find weakest section
-                    let weakest = SCALE_SIGNAL_SECTIONS[0];
-                    let weakestPct = 100;
-                    SCALE_SIGNAL_SECTIONS.forEach(sec => {
-                        const pct = sec.items.length > 0 ? ((scores[sec.key]||0) / (sec.items.length * 4)) * 100 : 100;
-                        if (pct < weakestPct) { weakestPct = pct; weakest = sec; }
-                    });
-
-                    const total = Object.values(scores).reduce((a,b) => a+b, 0);
-                    const max = SCALE_SIGNAL_SECTIONS.reduce((a,s) => a + s.items.length * 4, 0);
-
-                    return `<div>
-                        <h2 class="page-title">Your Scale Signal</h2>
-                        <p class="page-subtitle">Here's where you stand right now</p>
-
-                        <div style="background:${color.bg};border:2px solid ${color.border};border-radius:16px;padding:24px;margin-bottom:24px;text-align:center;">
-                            <div style="font-size:48px;font-weight:800;color:${color.text};margin-bottom:4px;">${color.label}</div>
-                            <div style="font-size:14px;color:rgba(255,255,255,0.5);">${total} / ${max} points</div>
-                        </div>
-
-                        <div class="card" style="margin-bottom:24px;border-left:3px solid ${SIGNAL_COLORS[weakestPct < 40 ? 'red' : 'orange'].border};">
-                            <div style="font-size:13px;font-weight:700;color:${SIGNAL_COLORS[weakestPct < 40 ? 'red' : 'orange'].text};text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Weakest Area: ${weakest.title}</div>
-                            <p style="font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:8px;">${weakest.lowMsg}</p>
-                            <p style="font-size:13px;font-weight:600;color:var(--accent);">${weakest.action}</p>
-                        </div>
-
-                        <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:12px;">Section Breakdown</div>
-                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;">
-                            ${SCALE_SIGNAL_SECTIONS.map(sec => {
-                                const s = scores[sec.key] || 0;
-                                const m = sec.items.length;
-                                const p = m > 0 ? (s/(m*4))*100 : 0;
-                                const c = p >= 85 ? SIGNAL_COLORS.brightGreen : p >= 65 ? SIGNAL_COLORS.green : p >= 40 ? SIGNAL_COLORS.orange : SIGNAL_COLORS.red;
-                                const itemResponses = saved.responses && saved.responses[sec.key] ? saved.responses[sec.key] : [];
-                                const valToColor = (v) => v >= 4 ? '#4ADE80' : v >= 3 ? '#22C55E' : v >= 2 ? '#FBBF24' : '#FF4533';
-                                return '<div style="background:#111;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">' +
-                                    '<div style="background:#1a1a1a;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;">' +
-                                    '<div style="display:flex;align-items:center;gap:8px;"><span style="color:' + c.text + ';">' + sec.icon + '</span>' +
-                                    '<span style="font-size:12px;font-weight:700;color:#fff;">' + sec.title + '</span></div>' +
-                                    '<span style="font-size:13px;font-weight:800;color:' + c.text + ';">' + s + '/' + (m*4) + '</span></div>' +
-                                    '<div style="padding:8px 14px;">' +
-                                    sec.items.map((item, idx) => {
-                                        const v = itemResponses[idx] || 0;
-                                        const dotColor = valToColor(v);
-                                        return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">' +
-                                            '<span style="width:10px;height:10px;border-radius:50%;background:' + dotColor + ';flex-shrink:0;"></span>' +
-                                            '<span style="font-size:11px;color:rgba(255,255,255,0.6);line-height:1.3;">' + item + '</span></div>';
-                                    }).join('') +
-                                    '</div></div>';
-                            }).join('')}
-                        </div>
-
-                        <div style="display:flex;gap:10px;">
-                            <a href="https://wa.me/447736312475?text=Hey%20Tim%20I%20just%20saw%20your%20content%20and%20want%20help%20scaling%20my%20barber%20business" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;background:#25D366;color:#fff;border-radius:12px;font-size:14px;font-weight:700;text-decoration:none;cursor:pointer;">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.47 3.53a9.96 9.96 0 0 0-7.06-2.93C5.56.6 1.34 4.8 1.32 9.65c0 1.58.42 3.13 1.2 4.5L1.2 19.2l5.16-1.35a9.6 9.6 0 0 0 4.04.91h.01c4.85 0 9.07-4.2 9.09-9.06a9.94 9.94 0 0 0-2.03-5.17zM10.41 17.2a7.56 7.56 0 0 1-3.87-1.06l-.28-.16-2.88.76.77-2.82-.18-.29a7.54 7.54 0 0 1-1.16-4.01c0-4.06 3.3-7.37 7.37-7.37a7.3 7.3 0 0 1 5.21 2.17 7.35 7.35 0 0 1 2.15 5.22c-.01 4.06-3.31 7.37-7.37 7.37zm4.04-5.52c-.22-.11-1.3-.64-1.5-.72-.21-.07-.36-.11-.51.11-.15.22-.58.72-.72.87-.13.15-.26.17-.49.06-.22-.11-.93-.34-1.78-1.1-.66-.58-1.1-1.3-1.23-1.52-.13-.22-.01-.34.1-.45.1-.1.22-.26.33-.39.11-.13.15-.22.22-.37.07-.15.04-.28-.02-.39-.06-.11-.51-1.24-.7-1.69-.18-.45-.37-.38-.51-.39h-.44c-.15 0-.39.06-.6.28-.2.22-.78.76-.78 1.86s.8 2.16.91 2.31c.11.15 1.58 2.41 3.83 3.38.54.23.95.37 1.28.47.54.17 1.03.15 1.42.09.43-.07 1.3-.53 1.49-1.05.18-.51.18-.95.13-1.05-.06-.09-.21-.15-.44-.26z"/></svg>
-                                Book a Call
-                            </a>
-                            <button onclick="firebase.database().ref('portal/scale_signal/' + currentUser.uid).remove().then(() => setPage('scaleSignal'))" style="flex:1;padding:14px;background:var(--bg-input);border:1px solid var(--border);color:rgba(255,255,255,0.6);border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;">
-                                Retake Assessment
-                            </button>
-                        </div>
-                    </div>`;
-                }
-
-                // Show form
-                return `<div>
-                    <h2 class="page-title">The Scale Signal</h2>
-                    <p class="page-subtitle">Rate yourself honestly on each statement. Select a colour for each.</p>
-
-                    <form id="scaleSignalForm">
-                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
-                            ${SCALE_SIGNAL_SECTIONS.map(sec => `
-                            <div style="background:#111;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
-                                <div style="background:#1a1a1a;padding:14px 16px;display:flex;align-items:center;gap:10px;">
-                                    <span style="color:var(--accent);">${sec.icon}</span>
-                                    <div>
-                                        <div style="font-size:13px;font-weight:700;color:#fff;">${sec.title}</div>
-                                        <div style="font-size:11px;color:rgba(255,255,255,0.4);">${sec.subtitle}</div>
-                                    </div>
-                                </div>
-                                <div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px;">
-                                    ${sec.items.map((item, ii) => `
-                                    <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);">
-                                        <span style="font-size:12px;color:rgba(255,255,255,0.7);line-height:1.4;flex:1;">${item}</span>
-                                        <div style="display:flex;gap:0.4rem;flex-shrink:0;" data-section="${sec.key}" data-idx="${ii}">
-                                            <button type="button" class="ss-color-btn" data-value="4" onclick="this.parentElement.querySelectorAll('.ss-color-btn').forEach(b=>{b.style.opacity='0.3';b.style.transform='scale(1)';b.style.boxShadow='none'});this.style.opacity='1';this.style.transform='scale(1.15)';this.style.boxShadow='0 0 8px #4ADE80'" style="width:26px;height:26px;border-radius:50%;background:#4ADE80;border:2px solid transparent;cursor:pointer;opacity:0.3;transition:all 0.2s ease;" title="Bright Green"></button>
-                                            <button type="button" class="ss-color-btn" data-value="3" onclick="this.parentElement.querySelectorAll('.ss-color-btn').forEach(b=>{b.style.opacity='0.3';b.style.transform='scale(1)';b.style.boxShadow='none'});this.style.opacity='1';this.style.transform='scale(1.15)';this.style.boxShadow='0 0 8px #22C55E'" style="width:26px;height:26px;border-radius:50%;background:#22C55E;border:2px solid transparent;cursor:pointer;opacity:0.3;transition:all 0.2s ease;" title="Green"></button>
-                                            <button type="button" class="ss-color-btn" data-value="2" onclick="this.parentElement.querySelectorAll('.ss-color-btn').forEach(b=>{b.style.opacity='0.3';b.style.transform='scale(1)';b.style.boxShadow='none'});this.style.opacity='1';this.style.transform='scale(1.15)';this.style.boxShadow='0 0 8px #FBBF24'" style="width:26px;height:26px;border-radius:50%;background:#FBBF24;border:2px solid transparent;cursor:pointer;opacity:0.3;transition:all 0.2s ease;" title="Orange"></button>
-                                            <button type="button" class="ss-color-btn" data-value="1" onclick="this.parentElement.querySelectorAll('.ss-color-btn').forEach(b=>{b.style.opacity='0.3';b.style.transform='scale(1)';b.style.boxShadow='none'});this.style.opacity='1';this.style.transform='scale(1.15)';this.style.boxShadow='0 0 8px #FF4533'" style="width:26px;height:26px;border-radius:50%;background:#FF4533;border:2px solid transparent;cursor:pointer;opacity:0.3;transition:all 0.2s ease;" title="Red"></button>
-                                        </div>
-                                    </div>`).join('')}
-                                </div>
-                            </div>`).join('')}
-                        </div>
-                        <button type="button" onclick="submitScaleSignal()" class="btn-primary" style="width:100%;padding:16px;font-size:15px;">Submit My Scale Signal &#x2192;</button>
-                    </form>
-                </div>`;
-            }
-
-            async function submitScaleSignal() {
-                const form = document.getElementById('scaleSignalForm');
-                if (!form) return;
-                const scores = {};
-                const responses = {};
-                let totalSelected = 0;
-                let totalItems = 0;
-                SCALE_SIGNAL_SECTIONS.forEach(sec => {
-                    let sectionTotal = 0;
-                    responses[sec.key] = [];
-                    const groups = form.querySelectorAll('[data-section="' + sec.key + '"]');
-                    groups.forEach(group => {
-                        totalItems++;
-                        const selected = Array.from(group.querySelectorAll('.ss-color-btn')).find(b => parseFloat(b.style.opacity) === 1);
-                        if (selected) {
-                            const val = parseInt(selected.getAttribute('data-value')) || 0;
-                            sectionTotal += val;
-                            responses[sec.key].push(val);
-                            totalSelected++;
-                        } else {
-                            responses[sec.key].push(0);
-                        }
-                    });
-                    scores[sec.key] = sectionTotal;
-                });
-                if (totalSelected < totalItems) {
-                    toast.error('Please rate every statement before submitting. You have ' + (totalItems - totalSelected) + ' remaining.');
-                    return;
-                }
-                await firebase.database().ref('portal/scale_signal/' + currentUser.uid).set({
-                    scores,
-                    responses,
-                    submittedAt: new Date().toISOString(),
-                    firstName: currentUser.firstName || '',
-                    lastName: currentUser.lastName || ''
-                });
-                setPage('scaleSignal');
-            }
-
-            async function renderAdminScaleSignal() {
-                const snap = await firebase.database().ref('portal/scale_signal').once('value');
-                const allSignals = snap.val() || {};
-
-                const cards = { brightGreen: [], green: [], orange: [], red: [] };
-
-                Object.entries(allSignals).forEach(([uid, data]) => {
-                    if (!data || !data.scores) return;
-                    const rating = getOverallRating(data.scores);
-                    const total = Object.values(data.scores).reduce((a,b) => a+b, 0);
-                    const max = SCALE_SIGNAL_SECTIONS.reduce((a,s) => a + s.items.length * 4, 0);
-                    const name = ((data.firstName || '') + ' ' + (data.lastName || '')).trim() || uid.slice(0,8);
-                    cards[rating].push({ uid, name, total, max, scores: data.scores, submittedAt: data.submittedAt });
-                });
-
-                // Sort each bucket by total score descending
-                Object.values(cards).forEach(arr => arr.sort((a,b) => b.total - a.total));
-
-                const renderCard = (item, color) => {
-                    return '<div style="background:#111;border:1px solid ' + color.border + '33;border-radius:10px;padding:12px;margin-bottom:8px;" class="ss-card" data-name="' + item.name.toLowerCase() + '">' +
-                        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
-                        '<div style="font-size:13px;font-weight:700;color:#fff;">' + item.name + '</div>' +
-                        '<div style="font-size:12px;font-weight:700;color:' + color.text + ';">' + item.total + '/' + item.max + '</div></div>' +
-                        '<div style="display:flex;gap:4px;">' +
-                        SCALE_SIGNAL_SECTIONS.map(sec => {
-                            const s = item.scores[sec.key] || 0;
-                            const m = sec.items.length;
-                            const p = m > 0 ? (s/(m*4))*100 : 0;
-                            const c = p >= 85 ? '#4ADE80' : p >= 65 ? '#22C55E' : p >= 40 ? '#FBBF24' : '#FF4533';
-                            return '<div style="flex:1;height:4px;border-radius:2px;background:' + c + '33;"><div style="width:' + p + '%;height:100%;border-radius:2px;background:' + c + ';"></div></div>';
-                        }).join('') +
-                        '</div></div>';
-                };
-
-                const renderColumn = (key) => {
-                    const color = SIGNAL_COLORS[key];
-                    const items = cards[key];
-                    return '<div>' +
-                        '<div style="text-align:center;margin-bottom:12px;">' +
-                        '<div style="display:inline-block;width:14px;height:14px;border-radius:50%;background:' + color.text + ';margin-bottom:4px;"></div>' +
-                        '<div style="font-size:12px;font-weight:700;color:' + color.text + ';">' + color.label + '</div>' +
-                        '<div style="font-size:11px;color:rgba(255,255,255,0.35);">' + items.length + ' member' + (items.length !== 1 ? 's' : '') + '</div></div>' +
-                        items.map(item => renderCard(item, color)).join('') +
-                        '</div>';
-                };
-
-                return `<div>
-                    <h2 class="page-title">Traffic Lights</h2>
-                    <p class="page-subtitle">Scale Signal overview for all members</p>
-                    <div style="margin-bottom:16px;">
-                        <input type="text" placeholder="Search members..." oninput="filterSSCards(this.value)" style="width:100%;max-width:300px;padding:10px 14px;background:var(--bg-input);border:1px solid var(--border);border-radius:10px;color:#fff;font-size:13px;font-family:inherit;">
-                    </div>
-                    <div id="ssColumns" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
-                        ${renderColumn('brightGreen')}
-                        ${renderColumn('green')}
-                        ${renderColumn('orange')}
-                        ${renderColumn('red')}
-                    </div>
-                </div>`;
-            }
-
-            function filterSSCards(query) {
-                const q = query.toLowerCase().trim();
-                document.querySelectorAll('.ss-card').forEach(card => {
-                    const name = card.getAttribute('data-name') || '';
-                    card.style.display = !q || name.includes(q) ? '' : 'none';
-                });
-            }
-
-            async function refreshSocialData() {
-                const btn = document.getElementById('socialRefreshBtn');
-                const refreshIcon = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 8a6 6 0 0 1 10.3-4.2"/><path d="M14 8a6 6 0 0 1-10.3 4.2"/><path d="M12.3 1v3h-3"/><path d="M3.7 15v-3h3"/></svg>';
-                const spinIcon = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="animation:spin 1s linear infinite;"><path d="M2 8a6 6 0 0 1 10.3-4.2"/><path d="M14 8a6 6 0 0 1-10.3 4.2"/><path d="M12.3 1v3h-3"/><path d="M3.7 15v-3h3"/></svg>';
-                if (btn) {
-                    btn.disabled = true;
-                    btn.innerHTML = spinIcon + ' Scraping profiles... (30-60s)';
-                }
-                try {
-                    const idToken = await getIdToken();
-                    const res = await sbClient.functions.invoke('scrape-profiles', { body: { uid: currentUser.uid, idToken } });
-                    if (res && res.data && res.data.error === 'Cooldown') {
-                        toast.error(res.data.message || 'You can refresh once a week.');
-                        if (btn) { btn.disabled = false; btn.innerHTML = refreshIcon + ' Refresh'; }
-                        return;
-                    }
-                    if (btn) btn.innerHTML = spinIcon + ' Updating...';
-                    setTimeout(() => setPage('social'), 1500);
-                } catch (e) {
-                    console.error('Refresh failed:', e);
-                    if (btn) { btn.disabled = false; btn.innerHTML = refreshIcon + ' Refresh'; }
-                    toast.error('Refresh failed \u2014 please try again.');
-                }
-            }
 
         // ── MONEY: SAVINGS + INVESTMENTS ──
         // Savings = structured % of weekly revenue (Profit First). Auto-calculated, one-tap to confirm transfer.
@@ -8529,7 +7786,6 @@ const renderAdminClientDetail = async (uid) => {
             const ICON_OVERVIEW = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="5.5" height="5.5" rx="1.2"/><rect x="9.5" y="1" width="5.5" height="5.5" rx="1.2"/><rect x="1" y="9.5" width="5.5" height="5.5" rx="1.2"/><rect x="9.5" y="9.5" width="5.5" height="5.5" rx="1.2"/></svg>';
             const ICON_ROADMAP = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12L6 4L10 9L14 2"/><circle cx="6" cy="4" r="1.2" fill="currentColor"/><circle cx="10" cy="9" r="1.2" fill="currentColor"/></svg>';
             const ICON_ICP = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><circle cx="8" cy="8" r="4" opacity="0.6"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/></svg>';
-            const ICON_TASKS = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5L6.5 12L13 4"/></svg>';
             const ICON_BUSINESS = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><text x="3" y="12.5" font-size="13" font-weight="700" fill="currentColor" stroke="none" font-family="sans-serif">$</text></svg>';
             const ICON_BIZREPORT = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 1.5h6l3 3V14a0.5 0.5 0 0 1-0.5 0.5h-8.5A0.5 0.5 0 0 1 3 14V2a0.5 0.5 0 0 1 0.5-0.5Z"/><path d="M9.5 1.5v3h3"/><path d="M5.5 11v-1M8 11V8.5M10.5 11V6.5"/></svg>';
             const ICON_INVESTMENTS = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4.5" width="12" height="8" rx="1.4"/><circle cx="8" cy="8.5" r="1.7"/><path d="M4.6 7v3M11.4 7v3"/></svg>';
@@ -8538,8 +7794,7 @@ const renderAdminClientDetail = async (uid) => {
             const ICON_INSPO = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 11C2 11 3 6 8 6C13 6 14 11 14 11"/><path d="M8 6V3"/><path d="M5.5 3.5C5.5 2 8 1 8 3"/><path d="M10.5 3.5C10.5 2 8 1 8 3"/></svg>';
             const ICON_SOCIAL = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2a6 6 0 0 1 0 12"/><path d="M8 2a6 6 0 0 0 0 12"/><path d="M8 14V8"/><path d="M5 5L8 8L11 5"/></svg>';
             const ICON_ANALYTICS = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="9" width="3" height="5" rx="0.5" fill="currentColor" opacity="0.4"/><rect x="6.5" y="5" width="3" height="9" rx="0.5" fill="currentColor" opacity="0.6"/><rect x="11.5" y="2" width="3" height="12" rx="0.5" fill="currentColor" opacity="0.9"/></svg>';
-            const ICON_SCALESIGNAL = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="4" y="1" width="8" height="14" rx="2"/><circle cx="8" cy="4.2" r="1.5" fill="#4ADE80"/><circle cx="8" cy="8" r="1.5" fill="#FBBF24"/><circle cx="8" cy="11.8" r="1.5" fill="#FF4533"/></svg>';
-            const ICON_INTELLIGENCE = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="10" height="8" rx="2"/><path d="M8 2v3"/><circle cx="8" cy="2" r="0.8" fill="currentColor"/><circle cx="6.5" cy="9" r="0.9" fill="currentColor"/><circle cx="9.5" cy="9" r="0.9" fill="currentColor"/><path d="M1.5 8.5v2"/><path d="M14.5 8.5v2"/></svg>';
+            const ICON_INTELLIGENCE ='<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="10" height="8" rx="2"/><path d="M8 2v3"/><circle cx="8" cy="2" r="0.8" fill="currentColor"/><circle cx="6.5" cy="9" r="0.9" fill="currentColor"/><circle cx="9.5" cy="9" r="0.9" fill="currentColor"/><path d="M1.5 8.5v2"/><path d="M14.5 8.5v2"/></svg>';
             const ICON_USER = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="6" r="2.5"/><path d="M3 14c0-2.5 2.2-4 5-4s5 1.5 5 4"/></svg>';
             const ICON_BRIEFCASE = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="12" height="9" rx="1.5"/><path d="M5.5 5V3.5h5V5"/><path d="M2 9h12"/></svg>';
             const ICON_CONTENT_GROUP = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="1.4"/><circle cx="6" cy="7" r="1"/><path d="M3 12.5L6.5 9 9 11 13 6"/></svg>';
@@ -8562,17 +7817,13 @@ const renderAdminClientDetail = async (uid) => {
                     { page: 'inspo', icon: ICON_INSPO, label: 'Inspo' },
                     { page: 'social', icon: ICON_SOCIAL, label: 'Social' },
                 ]},
-                { type: 'item', page: 'tasks', icon: ICON_TASKS, label: 'Tasks' },
-                { type: 'item', page: 'scaleSignal', icon: ICON_SCALESIGNAL, label: 'The Scale Signal' },
                 ...(SCALO_INTELLIGENCE_ENABLED ? [{ type: 'item', page: 'intelligence', icon: ICON_INTELLIGENCE, label: 'SCALO Intelligence' }] : []),
             ];
 
             const adminNavItems = [
                 { page: 'clients', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2.5 14c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/></svg>', label: 'Clients' },
-                { page: 'tasks', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5L6.5 12L13 4"/></svg>', label: 'Tasks' },
                 { page: 'crm', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="9" width="3" height="5" rx="0.5" fill="currentColor" opacity="0.4"/><rect x="6.5" y="5" width="3" height="9" rx="0.5" fill="currentColor" opacity="0.6"/><rect x="11.5" y="2" width="3" height="12" rx="0.5" fill="currentColor" opacity="0.9"/></svg>', label: 'CRM' },
                 { page: 'addClient', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v6M5 8h6"/></svg>', label: 'Add Client' },
-                { page: 'scaleSignal', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="4" y="1" width="8" height="14" rx="2"/><circle cx="8" cy="4.2" r="1.5" fill="#4ADE80"/><circle cx="8" cy="8" r="1.5" fill="#FBBF24"/><circle cx="8" cy="11.8" r="1.5" fill="#FF4533"/></svg>', label: 'Scale Signal' },
             ];
 
             // Helper: is a section currently expanded?
@@ -8657,17 +7908,15 @@ const renderAdminClientDetail = async (uid) => {
                 </div>
             `;
 
-            const pageTitles = { hub:'Overview', implementation:'The Roadmap', dailyfive:'The Daily Five', businessReport:'Business Report', numbers:'Log Your Numbers', money:'Investments', criticalNumbers:'Critical Numbers', tasks:'Your Tasks', content:'Content Library', inspo:'Inspo Feed', social:'Social Profiles', progress:'Analytics', scaleSignal:'The Scale Signal', intelligence:'SCALO Intelligence', goals:'Your Goals', icp:'Your ICP', clients:'Your Clients', addClient:'Add New Client', crm:'Client CRM', clientDetail:'Client Detail' };
+            const pageTitles = { hub:'Overview', implementation:'The Roadmap', dailyfive:'The Daily Five', businessReport:'Business Report', numbers:'Log Your Numbers', money:'Investments', criticalNumbers:'Critical Numbers', content:'Content Library', inspo:'Inspo Feed', social:'Social Profiles', progress:'Analytics', intelligence:'SCALO Intelligence', goals:'Your Goals', icp:'Your ICP', clients:'Your Clients', addClient:'Add New Client', crm:'Client CRM', clientDetail:'Client Detail' };
 
             let pageContent = '';
             try {
                 if (isAdmin) {
                     if (currentPage === 'clients') pageContent = await renderAdminClients();
                     else if (currentPage === 'addClient') pageContent = await renderAdminAddClient();
-                    else if (currentPage === 'tasks') pageContent = await renderAdminTasks();
                     else if (currentPage === 'crm') pageContent = await renderAdminCRM();
                     else if (currentPage === 'clientDetail' && selectedClientDetail) pageContent = await renderAdminClientDetail(selectedClientDetail);
-                    else if (currentPage === 'scaleSignal') pageContent = await renderAdminScaleSignal();
                     else { currentPage = 'clients'; pageContent = await renderAdminClients(); }
                 } else {
                     if (currentPage === 'hub') pageContent = await renderClientHub();
@@ -8676,7 +7925,6 @@ const renderAdminClientDetail = async (uid) => {
                     else if (currentPage === 'numbers') pageContent = await renderClientNumbers();
                     else if (currentPage === 'money') pageContent = await renderClientMoney();
                     else if (currentPage === 'criticalNumbers') pageContent = await renderClientCriticalNumbers();
-                    else if (currentPage === 'tasks') pageContent = await renderClientTasks();
                     else if (currentPage === 'icp') pageContent = await renderClientICP();
                     else if (currentPage === 'goals') pageContent = await renderClientGoals();
                     else if (currentPage === 'dailyfive') pageContent = await renderClientDailyFive();
@@ -8684,7 +7932,6 @@ const renderAdminClientDetail = async (uid) => {
                     else if (currentPage === 'inspo') pageContent = await renderClientInspo();
                     else if (currentPage === 'social') pageContent = await renderClientSocial();
                     else if (currentPage === 'progress') pageContent = await renderClientProgress();
-                    else if (currentPage === 'scaleSignal') pageContent = await renderClientScaleSignal();
                     else if (currentPage === 'intelligence' && SCALO_INTELLIGENCE_ENABLED) pageContent = await renderClientIntelligence();
                     else if (currentPage === 'intelligence') { currentPage = 'hub'; pageContent = await renderClientHub(); }
                 }
@@ -8739,20 +7986,10 @@ const renderAdminClientDetail = async (uid) => {
             // Event listeners
             if (isAdmin) {
                 if (currentPage === 'addClient') document.getElementById('createClientBtn').addEventListener('click', handleCreateClient);
-                else if (currentPage === 'tasks') {
-                    document.getElementById('addChecklistItem').addEventListener('click', handleAddChecklistItem);
-                    document.getElementById('assignTaskBtn').addEventListener('click', handleAssignTask);
-                }
             } else {
                 if (currentPage === 'numbers') {
                     const weekPicker = document.getElementById('weekPicker');
                     if (weekPicker) weekPicker.addEventListener('change', (e) => { if (e.target.value) { selectedWeekKey = weekKeyFromInput(e.target.value); selectedDayIndex = null; setPage('numbers'); } });
-                } else if (currentPage === 'tasks') {
-                    document.querySelectorAll('.checklist-checkbox').forEach(checkbox => {
-                        checkbox.addEventListener('change', (e) => {
-                            handleTaskChecklistChange(e.target.dataset.taskId, e.target.dataset.itemId, e.target.checked);
-                        });
-                    });
                 } else if (currentPage === 'content') {
                     const addBtn = document.getElementById('addContentBtn');
                     const modal = document.getElementById('addContentModal');
