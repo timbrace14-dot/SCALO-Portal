@@ -27,6 +27,12 @@
           ".write": "auth != null && auth.uid === $uid"
         }
       },
+      "leave": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      },
       "implementation": {
         "$uid": {
           ".read": "auth != null && auth.uid === $uid",

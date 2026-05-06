@@ -514,6 +514,109 @@
             background: linear-gradient(90deg, rgba(255,255,255,0.08) 0%, transparent 100%);
         }
 
+        /* ── FOCUS-MODE SECTIONS ── */
+        /* Hub container: flex column so we can re-order sections psychologically
+           via CSS `order` without rearranging the HTML. */
+        .hub-page {
+            display: flex;
+            flex-direction: column;
+        }
+        .hub-page > [data-snap-id="pulse"]     { order: 1; }
+        .hub-page > [data-snap-id="thisWeek"]  { order: 2; }
+        .hub-page > [data-snap-id="thisMonth"] { order: 3; }
+        .hub-page > [data-snap-id="allTime"]   { order: 4; }
+
+        /* Each logical hub section gets dimmed when scrolled away from, and
+           snap-aligns to the viewport top so the page "flips" between sections. */
+        .hub-snap-section {
+            min-height: calc(100vh - 120px);
+            padding: 28px 0;
+            box-sizing: border-box;
+            transition: opacity 0.45s ease, filter 0.45s ease;
+            scroll-margin-top: 24px;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+        }
+        .hub-snap-section:first-child { padding-top: 0; }
+        .hub-snap-section.dim {
+            opacity: 0.22;
+            filter: blur(1.5px);
+        }
+        .hub-snap-section.active {
+            opacity: 1;
+            filter: none;
+        }
+        /* Snap behaviour is scoped to the hub page (only when body has hub-active class)
+           so it doesn't affect any other page's natural scrolling.
+           Using `proximity` (not mandatory) so tall sections (e.g. This Week) can be
+           freely scrolled through — the snap kicks in only when the user is near a
+           section boundary, giving the "flip" feel without trapping content. */
+        body.hub-active .portal-content-area {
+            scroll-snap-type: y proximity;
+            scroll-behavior: smooth;
+        }
+
+        /* Right-side dot rail */
+        .hub-dot-rail {
+            position: fixed;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            z-index: 50;
+            padding: 8px 4px;
+        }
+        .hub-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.18);
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            position: relative;
+            transition: background 0.25s, transform 0.25s;
+        }
+        .hub-dot::after {
+            content: attr(data-label);
+            position: absolute;
+            right: 22px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.6);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            background: rgba(0,0,0,0.6);
+            padding: 4px 10px;
+            border-radius: 6px;
+            backdrop-filter: blur(6px);
+            transition: opacity 0.2s;
+        }
+        .hub-dot:hover { background: rgba(255,255,255,0.45); }
+        .hub-dot:hover::after { opacity: 1; }
+        .hub-dot.active {
+            background: var(--accent);
+            transform: scale(1.4);
+        }
+        .hub-dot.active::after { opacity: 1; }
+
+        /* Mobile: skip the focus-mode entirely — normal scroll, no dimming */
+        @media (max-width: 768px) {
+            .hub-dot-rail { display: none; }
+            .hub-snap-section {
+                min-height: auto;
+                padding: 16px 0;
+            }
+            .hub-snap-section.dim { opacity: 1; filter: none; }
+        }
+
         /* Hub metric tile: a refined version of the inline-styled cards used today */
         .hub-tile {
             background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
@@ -2474,8 +2577,14 @@
                 db.ref(`portal/goals/${currentUser.uid}`).once('value'),
                 db.ref(`portal/savings/${currentUser.uid}`).once('value'),
                 db.ref(`portal/investments/${currentUser.uid}`).once('value'),
+                loadLeaveDates(),
             ]);
             const goals = goalsSnap.val() || {};
+            const goalsComplete = !!(goals.why && goals.how && goals.goal90 && goals.goal6m);
+            const icpComplete = !!(goals.icpAge && goals.icpGender && goals.icpWants && goals.icpPains);
+            // Setup strip is ALWAYS visible so students can always re-edit Goals/ICP from the hub.
+            // It just goes quieter (small green chips) once both are complete.
+            const bothSetupComplete = goalsComplete && icpComplete;
             const entries = entriesSnap.val() || {};
             const tasks = tasksSnap.val() || {};
             const socialHistory = socialHistSnap.val() || {};
@@ -2489,8 +2598,9 @@
             const socialPrev = socialWeeks.length > 1 ? socialWeeks[socialWeeks.length-2][1] : {};
             const socialDiff = (key) => { const d = (socialLatest[key]||0)-(socialPrev[key]||0); if(d===0) return ''; return `<span style="font-size:11px;font-weight:700;color:${d>0?'#4ADE80':'#FF4533'};margin-left:6px;">${d>0?'+':''}${formatNumber(d)}</span>`; };
             const currentEntryRaw = entries[weekKey] || {};
-            const currentEntry = getWeeklyTotals(currentEntryRaw);
+            const currentEntry = getWeeklyTotals(currentEntryRaw, weekKey);
             const allEntries = Object.values(entries);
+            const allEntriesWithKeys = Object.entries(entries);
 
             const last8Weeks = [];
             for (let i = 7; i >= 0; i--) {
@@ -2498,7 +2608,7 @@
                 const s = new Date(d.getFullYear(), 0, 1);
                 const week = Math.ceil(((d - s) / 86400000 + s.getDay() + 1) / 7);
                 const wk = `${d.getFullYear()}_W${String(week).padStart(2, '0')}`;
-                last8Weeks.push(getWeeklyTotals(entries[wk]));
+                last8Weeks.push(getWeeklyTotals(entries[wk], wk));
             }
 
             const calcMetric = (key) => last8Weeks.map(w => parseFloat(w[key]) || 0);
@@ -2514,8 +2624,8 @@
             const rebook = currentEntry.appointmentsFilled > 0
                 ? currentEntry.rebookings / currentEntry.appointmentsFilled * 100 : 0;
 
-            // All-time totals (using getWeeklyTotals for each entry)
-            const allTotals = allEntries.map(e => getWeeklyTotals(e));
+            // All-time totals (using getWeeklyTotals for each entry, leave-aware)
+            const allTotals = allEntriesWithKeys.map(([k, e]) => getWeeklyTotals(e, k));
             const allRevenue = allTotals.reduce((s,e) => s+e.revenue, 0);
             const allExpenses = allTotals.reduce((s,e) => s+e.expenses, 0);
             const allBusinessExpenses = allTotals.reduce((s,e) => s+(e.businessExpenses||0), 0);
@@ -2532,34 +2642,56 @@
             const allOccupancy = allApptsAvailable > 0 ? (allApptsFilled / allApptsAvailable * 100) : 0;
             const allRebook = allApptsFilled > 0 ? (allRebookings / allApptsFilled * 100) : 0;
 
-            // ── Last month rate calculations for coaching alerts ──
+            // ── Monthly aggregations for coaching alerts + 3-bar margin panel ──
             const now = new Date();
+            const thisMonthYear = now.getFullYear();
+            const thisMonthNum = now.getMonth();
+            const thisMonthName = now.toLocaleDateString('en-GB', { month: 'long' });
             const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
             const lastMonthYear = lastMonth.getFullYear();
             const lastMonthNum = lastMonth.getMonth(); // 0-indexed
             const lastMonthName = lastMonth.toLocaleDateString('en-GB', { month: 'long' });
             let lmApptsAvailable = 0, lmApptsFilled = 0, lmRebookings = 0, lmWeeksLogged = 0;
+            let cmRevenue = 0, cmBusinessExp = 0, cmPersonalExp = 0, cmWeeksLogged = 0;
+            let lmRevenue = 0, lmBusinessExp = 0, lmPersonalExp = 0;
             Object.entries(entries).forEach(([wk, e]) => {
                 const yr = parseInt(wk.split('_')[0]);
                 const wn = parseInt(wk.split('_W')[1]);
                 const d = new Date(yr, 0, 1 + (wn - 1) * 7);
-                if (d.getFullYear() === lastMonthYear && d.getMonth() === lastMonthNum) {
-                    const t = getWeeklyTotals(e);
+                const t = getWeeklyTotals(e, wk);
+                if (d.getFullYear() === thisMonthYear && d.getMonth() === thisMonthNum) {
+                    cmRevenue += t.revenue || 0;
+                    cmBusinessExp += t.businessExpenses || 0;
+                    cmPersonalExp += t.personalExpenses || 0;
+                    if ((t.revenue || 0) > 0) cmWeeksLogged++;
+                } else if (d.getFullYear() === lastMonthYear && d.getMonth() === lastMonthNum) {
                     lmApptsAvailable += t.appointmentsAvailable;
                     lmApptsFilled += t.appointmentsFilled;
                     lmRebookings += t.rebookings;
                     lmWeeksLogged++;
+                    lmRevenue += t.revenue || 0;
+                    lmBusinessExp += t.businessExpenses || 0;
+                    lmPersonalExp += t.personalExpenses || 0;
                 }
             });
             const lmOccupancy = lmApptsAvailable > 0 ? (lmApptsFilled / lmApptsAvailable * 100) : 0;
             const lmRebook = lmApptsFilled > 0 ? (lmRebookings / lmApptsFilled * 100) : 0;
+
+            // 3-bar profit margins: Combined (true) / Business-only (operating) / Personal-only (lifestyle)
+            const cmCombinedMargin = cmRevenue > 0 ? ((cmRevenue - cmBusinessExp - cmPersonalExp) / cmRevenue * 100) : 0;
+            const cmBusinessMargin = cmRevenue > 0 ? ((cmRevenue - cmBusinessExp) / cmRevenue * 100) : 0;
+            const cmPersonalMargin = cmRevenue > 0 ? ((cmRevenue - cmPersonalExp) / cmRevenue * 100) : 0;
+            const lmCombinedMargin = lmRevenue > 0 ? ((lmRevenue - lmBusinessExp - lmPersonalExp) / lmRevenue * 100) : 0;
+            const lmBusinessMargin = lmRevenue > 0 ? ((lmRevenue - lmBusinessExp) / lmRevenue * 100) : 0;
+            const lmPersonalMargin = lmRevenue > 0 ? ((lmRevenue - lmPersonalExp) / lmRevenue * 100) : 0;
+            const showMarginPanel = cmRevenue > 0 || lmRevenue > 0;
             const showRebookAlert = lmWeeksLogged > 0 && lmRebook < 50 && !sessionStorage.getItem('dismissedRebookAlert');
             const showOccupancyAlert = lmWeeksLogged > 0 && lmOccupancy >= 80 && !sessionStorage.getItem('dismissedOccupancyAlert');
 
             // ── Money: nudge if numbers logged this week but transfer not ticked ──
             const hubSavingsSetup = (hubSavings.settings && hubSavings.settings.setupComplete) === true && Number(hubSavings.settings.weeklyTarget) > 0;
             const hubCurrentWeekKey = getWeekKey();
-            const hubCurrentWeekEntry = getWeeklyTotals(entries[hubCurrentWeekKey] || {});
+            const hubCurrentWeekEntry = getWeeklyTotals(entries[hubCurrentWeekKey] || {}, hubCurrentWeekKey);
             const hubLoggedThisWeek = (hubCurrentWeekEntry.revenue || 0) > 0;
             const hubTransferDone = !!(hubSavings.transfers && hubSavings.transfers[hubCurrentWeekKey]);
             const hubWeeklyTarget = Number(hubSavings.settings && hubSavings.settings.weeklyTarget) || 0;
@@ -2594,10 +2726,44 @@
             const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
             return `
-                <div>
+                <div class="hub-page">
+                    <!-- Dot rail is appended to <body> by initHubFocusMode() so position:fixed
+                         isn't broken by the transformed .page-fade-in ancestor.
+                         Visual order: Pulse → This Week → This Month → All Time (set via CSS order). -->
+
+                    <!-- §1 — PULSE (greeting, setup, alerts, investments) -->
+                    <section class="hub-snap-section active" data-snap-id="pulse">
                     <div class="greeting" style="margin-bottom:20px;">
                         <div class="greeting-text">${greeting}, <strong>${currentUser.firstName}</strong></div>
                     </div>
+
+                    ${bothSetupComplete ? `
+                    <!-- SETUP STRIP — quiet state (both complete) -->
+                    <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+                        <button onclick="setPage('goals')" style="display:inline-flex;align-items:center;gap:8px;padding:7px 14px;background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.2);border-radius:20px;color:rgba(74,222,128,0.85);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.2s;letter-spacing:0.02em;" onmouseover="this.style.background='rgba(74,222,128,0.12)'" onmouseout="this.style.background='rgba(74,222,128,0.06)'">
+                            <span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#4ADE80;color:#0f0f0f;font-size:9px;font-weight:900;">&#x2713;</span>
+                            Goals
+                            <span style="color:rgba(255,255,255,0.35);font-size:10px;margin-left:2px;">edit</span>
+                        </button>
+                        <button onclick="setPage('icp')" style="display:inline-flex;align-items:center;gap:8px;padding:7px 14px;background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.2);border-radius:20px;color:rgba(74,222,128,0.85);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.2s;letter-spacing:0.02em;" onmouseover="this.style.background='rgba(74,222,128,0.12)'" onmouseout="this.style.background='rgba(74,222,128,0.06)'">
+                            <span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#4ADE80;color:#0f0f0f;font-size:9px;font-weight:900;">&#x2713;</span>
+                            ICP
+                            <span style="color:rgba(255,255,255,0.35);font-size:10px;margin-left:2px;">edit</span>
+                        </button>
+                    </div>` : `
+                    <!-- SETUP STRIP — prominent state (at least one incomplete) -->
+                    <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+                        <button onclick="setPage('goals')" style="flex:1;min-width:160px;display:flex;align-items:center;gap:10px;padding:12px 16px;background:${goalsComplete ? 'rgba(74,222,128,0.08)' : 'rgba(245,200,66,0.08)'};border:1px solid ${goalsComplete ? 'rgba(74,222,128,0.35)' : 'rgba(245,200,66,0.35)'};border-radius:12px;color:${goalsComplete ? '#4ADE80' : '#f5c842'};font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;text-align:left;transition:all 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                            <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:${goalsComplete ? '#4ADE80' : 'rgba(245,200,66,0.18)'};color:${goalsComplete ? '#0f0f0f' : '#f5c842'};font-size:12px;flex-shrink:0;">${goalsComplete ? '&#x2713;' : '&#x2192;'}</span>
+                            <span style="flex:1;">Goals</span>
+                            <span style="font-size:11px;font-weight:600;color:${goalsComplete ? 'rgba(74,222,128,0.7)' : 'rgba(245,200,66,0.7)'};">${goalsComplete ? 'Complete' : 'Set up'}</span>
+                        </button>
+                        <button onclick="setPage('icp')" style="flex:1;min-width:160px;display:flex;align-items:center;gap:10px;padding:12px 16px;background:${icpComplete ? 'rgba(74,222,128,0.08)' : 'rgba(245,200,66,0.08)'};border:1px solid ${icpComplete ? 'rgba(74,222,128,0.35)' : 'rgba(245,200,66,0.35)'};border-radius:12px;color:${icpComplete ? '#4ADE80' : '#f5c842'};font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;text-align:left;transition:all 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                            <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:${icpComplete ? '#4ADE80' : 'rgba(245,200,66,0.18)'};color:${icpComplete ? '#0f0f0f' : '#f5c842'};font-size:12px;flex-shrink:0;">${icpComplete ? '&#x2713;' : '&#x2192;'}</span>
+                            <span style="flex:1;">Ideal Client (ICP)</span>
+                            <span style="font-size:11px;font-weight:600;color:${icpComplete ? 'rgba(74,222,128,0.7)' : 'rgba(245,200,66,0.7)'};">${icpComplete ? 'Complete' : 'Set up'}</span>
+                        </button>
+                    </div>`}
 
                     ${showTransferNudge ? `
                     <!-- WEEKLY TRANSFER NUDGE -->
@@ -2661,75 +2827,56 @@
                     <div class="money-progress-track" style="margin-bottom:24px;">
                         <div class="money-progress-fill" data-progress="${hubGoalPct}" style="width:0%;"></div>
                     </div>` : ''}
+                    </section>
 
-                    <!-- GOALS SECTION -->
-                    <div style="background:#0f0f0f;border:0.5px solid #2a2a2a;border-radius:16px;padding:28px 24px;margin-bottom:24px;">
-                        <h2 class="page-title">Your Goals</h2>
-                        <p class="page-subtitle">Write it down. Make it real.</p>
-
-                        <div style="margin-bottom:18px;">
-                            <label style="display:block;font-size:11px;color:#f5c842;text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:4px;">Your Why</label>
-                            <div style="font-size:12px;color:#555;letter-spacing:-0.015em;margin-bottom:8px;">Your why message</div>
-                            <textarea id="goalWhy" rows="3" style="width:100%;box-sizing:border-box;background:#1a1a1a;border:0.5px solid #333;border-radius:8px;color:#e8e8e8;padding:12px;font-family:'Helvetica Neue',Helvetica,sans-serif;font-size:14px;letter-spacing:-0.015em;resize:vertical;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='#f5c842'" onblur="this.style.borderColor='#333'">${goals.why || ''}</textarea>
-                        </div>
-
-                        <div style="margin-bottom:18px;">
-                            <label style="display:block;font-size:11px;color:#f5c842;text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:4px;">Your How</label>
-                            <div style="font-size:12px;color:#555;letter-spacing:-0.015em;margin-bottom:8px;">Your how message</div>
-                            <textarea id="goalHow" rows="3" style="width:100%;box-sizing:border-box;background:#1a1a1a;border:0.5px solid #333;border-radius:8px;color:#e8e8e8;padding:12px;font-family:'Helvetica Neue',Helvetica,sans-serif;font-size:14px;letter-spacing:-0.015em;resize:vertical;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='#f5c842'" onblur="this.style.borderColor='#333'">${goals.how || ''}</textarea>
-                        </div>
-
-                        <div style="border-top:0.5px solid #222;margin:20px 0;"></div>
-
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
-                            <div style="background:#1a1a1a;border:0.5px solid #2a2a2a;border-radius:10px;padding:16px;">
-                                <label style="display:block;font-size:10px;color:#f5c842;text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;font-family:'Helvetica Neue',Helvetica,sans-serif;margin-bottom:10px;">90-Day Goal</label>
-                                <textarea id="goal90" rows="4" style="width:100%;box-sizing:border-box;background:transparent;border:none;border-bottom:0.5px solid #333;color:#e8e8e8;padding:8px 0;font-family:'Helvetica Neue',Helvetica,sans-serif;font-size:14px;letter-spacing:-0.015em;resize:vertical;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderBottomColor='#f5c842'" onblur="this.style.borderBottomColor='#333'">${goals.goal90 || ''}</textarea>
-                            </div>
-                            <div style="background:#1a1a1a;border:0.5px solid #2a2a2a;border-radius:10px;padding:16px;">
-                                <label style="display:block;font-size:10px;color:#f5c842;text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;font-family:'Helvetica Neue',Helvetica,sans-serif;margin-bottom:10px;">6-Month Goal</label>
-                                <textarea id="goal6m" rows="4" style="width:100%;box-sizing:border-box;background:transparent;border:none;border-bottom:0.5px solid #333;color:#e8e8e8;padding:8px 0;font-family:'Helvetica Neue',Helvetica,sans-serif;font-size:14px;letter-spacing:-0.015em;resize:vertical;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderBottomColor='#f5c842'" onblur="this.style.borderBottomColor='#333'">${goals.goal6m || ''}</textarea>
-                            </div>
-                        </div>
-
-                        <div style="display:flex;align-items:center;gap:14px;">
-                            <button onclick="saveGoals()" style="background:#f5c842;color:#0f0f0f;border:none;padding:10px 22px;border-radius:8px;font-family:'Helvetica Neue',Helvetica,sans-serif;font-size:13px;font-weight:700;letter-spacing:-0.015em;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Save Goals</button>
-                            <span id="goalsSavedMsg" style="font-size:13px;color:#4ADE80;font-weight:700;opacity:0;transition:opacity 0.4s;"></span>
-                        </div>
+                    <!-- §2 — THIS MONTH (3-bar margins panel) -->
+                    <section class="hub-snap-section dim" data-snap-id="thisMonth">
+                    ${showMarginPanel ? (() => {
+                        const noData = cmRevenue === 0;
+                        const hasPrev = lmRevenue > 0;
+                        const marginColor = (v) => v >= 50 ? '#4ADE80' : v >= 30 ? '#FBBF24' : '#FF4533';
+                        const renderBar = (title, subtitle, currentVal, prevVal, formula) => {
+                            const fillPct = Math.max(0, Math.min(100, currentVal));
+                            const color = marginColor(currentVal);
+                            const delta = currentVal - prevVal;
+                            const showDelta = !noData && hasPrev;
+                            const deltaTxt = showDelta ? `<span style="font-size:11px;font-weight:700;color:${delta >= 0 ? '#4ADE80' : '#FF4533'};">${delta >= 0 ? '&#x25B2; +' : '&#x25BC; '}${Math.abs(delta).toFixed(1)}pp</span>` : '';
+                            return `
+                                <div style="background:#0f0f0f;border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:10px;">
+                                    <div>
+                                        <div style="font-size:12px;font-weight:700;color:#fff;letter-spacing:0.02em;">${title}</div>
+                                        <div style="font-size:10px;color:rgba(255,255,255,0.45);margin-top:2px;letter-spacing:0;font-weight:400;">${subtitle}</div>
+                                    </div>
+                                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;">
+                                        <div style="font-size:28px;font-weight:800;color:${noData ? 'rgba(255,255,255,0.3)' : color};line-height:1;">${noData ? '—' : currentVal.toFixed(1) + '%'}</div>
+                                        ${deltaTxt}
+                                    </div>
+                                    <div style="height:8px;background:rgba(255,255,255,0.05);border-radius:20px;overflow:hidden;position:relative;">
+                                        <div style="height:100%;width:${noData ? 0 : fillPct}%;background:${color};border-radius:20px;transition:width 0.6s ease-out;"></div>
+                                    </div>
+                                    <div style="font-size:10px;color:rgba(255,255,255,0.4);">${formula}</div>
+                                </div>`;
+                        };
+                        return `
+                    <!-- 3-BAR PROFIT MARGIN PANEL — current month -->
+                    <div class="hub-section-title">
+                        <span class="hub-section-title-icon">${IC.chart}</span>
+                        <span>Profit margins &mdash; ${thisMonthName}</span>
+                        <span class="hub-section-title-tail"></span>
+                        ${noData ? `<button onclick="setPage('numbers')" style="background:none;border:1px solid rgba(184,233,134,0.3);color:var(--accent);padding:4px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:0;">Log this week &rarr;</button>` : (hasPrev ? `<span style="font-size:11px;color:rgba(255,255,255,0.45);font-weight:600;">Compared to ${lastMonthName}</span>` : '')}
                     </div>
+                    ${noData && hasPrev ? `<div style="background:rgba(245,200,66,0.05);border:1px dashed rgba(245,200,66,0.2);border-radius:12px;padding:14px 16px;margin-bottom:14px;font-size:12px;color:rgba(255,255,255,0.55);text-align:center;">No revenue logged for ${thisMonthName} yet — log this week's numbers to see your margins update.</div>` : ''}
+                    <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;">
+                        ${renderBar('True Profit', 'After all expenses', cmCombinedMargin, lmCombinedMargin, 'Revenue &minus; business &minus; personal')}
+                        ${renderBar('Business Margin', 'After business expenses only', cmBusinessMargin, lmBusinessMargin, 'Revenue &minus; business expenses')}
+                        ${renderBar('Personal Margin', 'After personal expenses only', cmPersonalMargin, lmPersonalMargin, 'Revenue &minus; personal expenses')}
+                    </div>
+                        `;
+                    })() : ''}
+                    </section>
 
-                    ${(goals.icpAge || goals.icpGender || goals.icpWants || goals.icpPains) ? `
-                    <!-- ICP Summary on Overview -->
-                    <div style="background:#0f0f0f;border:0.5px solid #2a2a2a;border-radius:16px;padding:22px 24px;margin-bottom:24px;">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                            <div style="font-size:14px;color:#fff;font-weight:700;display:flex;align-items:center;gap:8px;"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="${ACCENT}" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><circle cx="8" cy="8" r="4" opacity="0.6"/><circle cx="8" cy="8" r="1.5" fill="${ACCENT}"/></svg> Your Ideal Client</div>
-                            <button onclick="setPage('icp')" style="font-size:11px;color:${ACCENT};background:none;border:1px solid ${ACCENT};padding:4px 12px;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;">Edit ICP &#x2192;</button>
-                        </div>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;" class="mobile-grid-2">
-                            ${goals.icpGender || goals.icpAge ? `<div style="background:#141414;border-radius:10px;padding:14px;border-left:3px solid ${ACCENT};">
-                                <div style="font-size:10px;color:${ACCENT};text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:6px;">Who</div>
-                                <div style="font-size:13px;color:#fff;font-weight:600;">${goals.icpGender || ''}${goals.icpAge ? ', aged ' + goals.icpAge : ''}</div>
-                                ${goals.icpSpend ? '<div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:4px;">Spends &#xA3;' + goals.icpSpend + ' per visit</div>' : ''}
-                            </div>` : ''}
-                            ${goals.icpWants ? `<div style="background:#141414;border-radius:10px;padding:14px;border-left:3px solid #4ADE80;">
-                                <div style="font-size:10px;color:#4ADE80;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:6px;">Wants</div>
-                                <div style="font-size:12px;color:rgba(255,255,255,0.7);line-height:1.5;">${goals.icpWants.length > 100 ? goals.icpWants.slice(0,100) + '...' : goals.icpWants}</div>
-                            </div>` : ''}
-                            ${goals.icpPains ? `<div style="background:#141414;border-radius:10px;padding:14px;border-left:3px solid #FF4533;">
-                                <div style="font-size:10px;color:#FF4533;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:6px;">Pain Points</div>
-                                <div style="font-size:12px;color:rgba(255,255,255,0.7);line-height:1.5;">${goals.icpPains.length > 100 ? goals.icpPains.slice(0,100) + '...' : goals.icpPains}</div>
-                            </div>` : ''}
-                            ${goals.icpChannels ? `<div style="background:#141414;border-radius:10px;padding:14px;border-left:3px solid #FBBF24;">
-                                <div style="font-size:10px;color:#FBBF24;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:6px;">Where to Find Them</div>
-                                <div style="font-size:12px;color:rgba(255,255,255,0.7);line-height:1.5;">${goals.icpChannels}</div>
-                            </div>` : ''}
-                        </div>
-                    </div>` : `
-                    <div style="background:#0f0f0f;border:0.5px dashed #333;border-radius:16px;padding:20px 24px;margin-bottom:24px;text-align:center;">
-                        <div style="font-size:13px;color:rgba(255,255,255,0.45);margin-bottom:10px;">You have not defined your ideal client yet</div>
-                        <button onclick="setPage('icp')" style="background:${ACCENT};color:#000;border:none;padding:8px 20px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;">Define Your ICP &#x2192;</button>
-                    </div>`}
-
+                    <!-- §3 — ALL TIME (totals + 3-bar margins + compact rates) -->
+                    <section class="hub-snap-section dim" data-snap-id="allTime">
                     <!-- ALL-TIME TOTALS — Money group -->
                     <div class="hub-section-title">
                         <span class="hub-section-title-icon"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><text x="3" y="13" font-size="13" font-weight="700" fill="currentColor" stroke="none" font-family="sans-serif">$</text></svg></span>
@@ -2797,34 +2944,65 @@
                         </div>
                     </div>
 
-                    <!-- DONUTS — All-Time Performance -->
+                    ${allRevenue > 0 ? (() => {
+                        const allBusinessMargin = ((allRevenue - allBusinessExpenses) / allRevenue * 100);
+                        const allPersonalMargin = ((allRevenue - allPersonalExpenses) / allRevenue * 100);
+                        const marginColor = (v) => v >= 50 ? '#4ADE80' : v >= 30 ? '#FBBF24' : '#FF4533';
+                        const renderAllTimeBar = (title, subtitle, val, formula) => {
+                            const fillPct = Math.max(0, Math.min(100, val));
+                            const color = marginColor(val);
+                            return `
+                                <div style="background:#0f0f0f;border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:10px;">
+                                    <div>
+                                        <div style="font-size:12px;font-weight:700;color:#fff;letter-spacing:0.02em;">${title}</div>
+                                        <div style="font-size:10px;color:rgba(255,255,255,0.45);margin-top:2px;letter-spacing:0;font-weight:400;">${subtitle}</div>
+                                    </div>
+                                    <div style="font-size:28px;font-weight:800;color:${color};line-height:1;">${val.toFixed(1)}%</div>
+                                    <div style="height:8px;background:rgba(255,255,255,0.05);border-radius:20px;overflow:hidden;position:relative;">
+                                        <div style="height:100%;width:${fillPct}%;background:${color};border-radius:20px;transition:width 0.6s ease-out;"></div>
+                                    </div>
+                                    <div style="font-size:10px;color:rgba(255,255,255,0.4);">${formula}</div>
+                                </div>`;
+                        };
+                        return `
+                    <!-- 3-BAR PROFIT MARGINS — all time -->
                     <div class="hub-section-title">
                         <span class="hub-section-title-icon">${IC.chart}</span>
-                        <span>Performance &mdash; all time</span>
+                        <span>Profit margins &mdash; all time</span>
                         <span class="hub-section-title-tail"></span>
                     </div>
+                    <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;">
+                        ${renderAllTimeBar('True Profit', 'After all expenses', allTrueProfitMargin, 'Revenue &minus; business &minus; personal')}
+                        ${renderAllTimeBar('Business Margin', 'After business expenses only', allBusinessMargin, 'Revenue &minus; business expenses')}
+                        ${renderAllTimeBar('Personal Margin', 'After personal expenses only', allPersonalMargin, 'Revenue &minus; personal expenses')}
+                    </div>
+                        `;
+                    })() : ''}
 
-                    <div class="hub-grid mobile-grid-2" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;">
-                        <div class="hub-donut-card">
-                            <div class="hub-tile-label" style="margin-bottom:8px;">Profit Margin</div>
-                            <canvas id="chartAllTimeProfitMargin" width="100" height="100" style="margin:0 auto;display:block;"></canvas>
-                            <div style="font-size:20px;font-weight:700;color:${allTrueProfitMargin>=75?'#4ADE80':allTrueProfitMargin>=50?'#FBBF24':'#FF4533'};margin-top:8px;">${allTrueProfitMargin.toFixed(1)}%</div>
-                            <div style="font-size:10px;color:rgba(255,255,255,0.45);margin-top:2px;">${formatCurrency(allTrueProfit)} / ${formatCurrency(allRevenue)}</div>
-                        </div>
-                        <div class="hub-donut-card">
-                            <div class="hub-tile-label" style="margin-bottom:8px;">Occupancy Rate</div>
-                            <canvas id="chartAllTimeOccupancy" width="100" height="100" style="margin:0 auto;display:block;"></canvas>
-                            <div style="font-size:20px;font-weight:700;color:${allOccupancy>=75?'#4ADE80':allOccupancy>=50?'#FBBF24':'#FF4533'};margin-top:8px;">${allOccupancy.toFixed(1)}%</div>
+                    <!-- COMPACT DONUTS — Occupancy + Rebook all time -->
+                    <div class="hub-section-title">
+                        <span class="hub-section-title-icon">${IC.chart}</span>
+                        <span>Rates &mdash; all time</span>
+                        <span class="hub-section-title-tail"></span>
+                    </div>
+                    <div class="hub-grid mobile-grid-2" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:24px;">
+                        <div class="hub-donut-card" style="padding:14px;">
+                            <div class="hub-tile-label" style="margin-bottom:6px;">Occupancy Rate</div>
+                            <canvas id="chartAllTimeOccupancy" width="76" height="76" style="margin:0 auto;display:block;"></canvas>
+                            <div style="font-size:18px;font-weight:700;color:${allOccupancy>=75?'#4ADE80':allOccupancy>=50?'#FBBF24':'#FF4533'};margin-top:6px;">${allOccupancy.toFixed(1)}%</div>
                             <div style="font-size:10px;color:rgba(255,255,255,0.45);margin-top:2px;">${allApptsFilled.toLocaleString(getCurrency().locale)} / ${allApptsAvailable.toLocaleString(getCurrency().locale)} appts</div>
                         </div>
-                        <div class="hub-donut-card">
-                            <div class="hub-tile-label" style="margin-bottom:8px;">Rebook Rate</div>
-                            <canvas id="chartAllTimeRebook" width="100" height="100" style="margin:0 auto;display:block;"></canvas>
-                            <div style="font-size:20px;font-weight:700;color:${allRebook>=75?'#4ADE80':allRebook>=50?'#FBBF24':'#FF4533'};margin-top:8px;">${allRebook.toFixed(1)}%</div>
+                        <div class="hub-donut-card" style="padding:14px;">
+                            <div class="hub-tile-label" style="margin-bottom:6px;">Rebook Rate</div>
+                            <canvas id="chartAllTimeRebook" width="76" height="76" style="margin:0 auto;display:block;"></canvas>
+                            <div style="font-size:18px;font-weight:700;color:${allRebook>=75?'#4ADE80':allRebook>=50?'#FBBF24':'#FF4533'};margin-top:6px;">${allRebook.toFixed(1)}%</div>
                             <div style="font-size:10px;color:rgba(255,255,255,0.45);margin-top:2px;">${allRebookings.toLocaleString(getCurrency().locale)} / ${allApptsFilled.toLocaleString(getCurrency().locale)} rebooked</div>
                         </div>
                     </div>
+                    </section>
 
+                    <!-- §2 — THIS WEEK (selector + metric cards + weekly donuts + profit breakdown + social) -->
+                    <section class="hub-snap-section dim" data-snap-id="thisWeek">
                     <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px 18px;margin-bottom:12px;box-shadow:0 4px 24px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.06);">
                         <button onclick="hubWeekOffset--;setPage('hub')" style="width:36px;height:36px;border-radius:50%;border:2px solid ${ACCENT};background:#141414;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;color:${ACCENT};font-weight:700;">&#x2039;</button>
                         <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
@@ -2963,6 +3141,7 @@
                             </div>`;
                         }).join('')}
                     </div>
+                    </section>
 
                     <!-- Donut Breakdown Modal -->
                     <div id="donutModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
@@ -3107,12 +3286,126 @@
             const aoc = hubChartData.allOccupancy || 0;
             const arb = hubChartData.allRebook || 0;
             // Cascade within each group: Profit Margin → Occupancy → Rebook (200ms apart, left to right)
-            makeDonut('chartAllTimeProfitMargin', apm, ringColor(apm), 0);
-            makeDonut('chartAllTimeOccupancy', aoc, ringColor(aoc), 200);
-            makeDonut('chartAllTimeRebook', arb, ringColor(arb), 400);
+            // All-time profit-margin donut replaced by 3-bar panel; occupancy/rebook stay as compact donuts.
+            makeDonut('chartAllTimeOccupancy', aoc, ringColor(aoc), 0);
+            makeDonut('chartAllTimeRebook', arb, ringColor(arb), 200);
             makeDonut('chartProfitMargin', tm, ringColor(tm), 0);
             makeDonut('chartOccupancy', oc, ringColor(oc), 200);
             makeDonut('chartRebook', rb, ringColor(rb), 400);
+        };
+
+        // ── HUB FOCUS-MODE ──
+        // Tracks which hub section is most visible as the user scrolls and dims the others.
+        // Mobile (<= 768px) skips this entirely via CSS.
+        let _hubFocusCleanup = null;
+        const initHubFocusMode = () => {
+            if (_hubFocusCleanup) { _hubFocusCleanup(); _hubFocusCleanup = null; }
+            // Always remove any existing rail before considering re-adding
+            const existing = document.getElementById('hubDotRail');
+            if (existing) existing.remove();
+            if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) return;
+            // VISUAL order (matches CSS `order` on .hub-page): Pulse → This Week → This Month → All Time
+            const VISUAL_ORDER = ['pulse', 'thisWeek', 'thisMonth', 'allTime'];
+            const LABELS = { pulse: 'Pulse', thisWeek: 'This Week', thisMonth: 'This Month', allTime: 'All Time' };
+            const sections = VISUAL_ORDER
+                .map(id => document.querySelector(`.hub-snap-section[data-snap-id="${id}"]`))
+                .filter(Boolean);
+            const scroller = document.querySelector('.portal-content-area');
+            if (sections.length === 0 || !scroller) return;
+
+            // Build the dot rail and append to <body> so it's outside any transformed ancestor
+            const labels = sections.map(s => LABELS[s.dataset.snapId] || s.dataset.snapId || '');
+            const rail = document.createElement('div');
+            rail.className = 'hub-dot-rail';
+            rail.id = 'hubDotRail';
+            rail.setAttribute('aria-hidden', 'true');
+            labels.forEach((label, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'hub-dot' + (i === 0 ? ' active' : '');
+                btn.dataset.label = label;
+                btn.dataset.snapTarget = String(i);
+                btn.setAttribute('aria-label', label);
+                rail.appendChild(btn);
+            });
+            document.body.appendChild(rail);
+            const dots = Array.from(rail.querySelectorAll('.hub-dot'));
+
+            const setActive = (idx) => {
+                sections.forEach((s, i) => {
+                    s.classList.toggle('active', i === idx);
+                    s.classList.toggle('dim', i !== idx);
+                });
+                dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+            };
+
+            // Track visibility ratios via IntersectionObserver (works even when scroll events
+            // don't fire on the scroll container — which we observed in this layout).
+            const ratios = new Map();
+            sections.forEach(s => ratios.set(s, 0));
+
+            const pickActive = () => {
+                let bestIdx = 0;
+                let bestRatio = -1;
+                sections.forEach((s, i) => {
+                    const r = ratios.get(s) || 0;
+                    if (r > bestRatio) { bestRatio = r; bestIdx = i; }
+                });
+                setActive(bestIdx);
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(e => ratios.set(e.target, e.intersectionRatio));
+                pickActive();
+            }, {
+                root: scroller,
+                threshold: [0, 0.1, 0.25, 0.4, 0.55, 0.7, 0.85, 1.0],
+            });
+            sections.forEach(s => observer.observe(s));
+
+            // Belt-and-braces fallback: also listen for scroll events directly. If the browser
+            // happens not to fire the IntersectionObserver callbacks (we've seen this in some
+            // testing environments) the scroll handler keeps the active state in sync.
+            const updateByScroll = () => {
+                const viewportMid = scroller.scrollTop + scroller.clientHeight / 2;
+                let bestIdx = 0;
+                let bestDist = Infinity;
+                sections.forEach((s, i) => {
+                    const sectionMid = s.offsetTop + s.offsetHeight / 2;
+                    const dist = Math.abs(sectionMid - viewportMid);
+                    if (dist < bestDist) { bestDist = dist; bestIdx = i; }
+                });
+                setActive(bestIdx);
+            };
+            let rafQueued = false;
+            const onScroll = () => {
+                if (rafQueued) return;
+                rafQueued = true;
+                requestAnimationFrame(() => { rafQueued = false; updateByScroll(); });
+            };
+            scroller.addEventListener('scroll', onScroll, { passive: true });
+            // Run once on init to seed the correct state (e.g. if the user reloads mid-scroll)
+            requestAnimationFrame(updateByScroll);
+
+            const dotHandlers = dots.map((d, i) => {
+                const h = () => {
+                    const target = sections[i];
+                    if (!target) return;
+                    const top = target.offsetTop - 16;
+                    scroller.scrollTo({ top, behavior: 'smooth' });
+                    // Optimistically set the active state immediately so the user gets
+                    // instant visual feedback even if scroll/observer events lag.
+                    setActive(i);
+                };
+                d.addEventListener('click', h);
+                return { el: d, h };
+            });
+
+            _hubFocusCleanup = () => {
+                observer.disconnect();
+                scroller.removeEventListener('scroll', onScroll);
+                dotHandlers.forEach(({ el, h }) => el.removeEventListener('click', h));
+                if (rail.parentNode) rail.parentNode.removeChild(rail);
+            };
         };
 
         // ── NUMBERS ──
@@ -3151,14 +3444,51 @@
             return -1; // today is not in this week
         };
 
-        // Helper: normalize entry data — returns weekly totals from either old (flat) or new (days) format
-        const getWeeklyTotals = (entry) => {
+        // ── ANNUAL LEAVE / HOLIDAY ──
+        // leaveDatesCache is populated by loadLeaveDates() at the start of each render that needs it.
+        // Leave days are EXCLUDED (dropped, not zeroed) from all metric calculations so they
+        // don't drag down occupancy, rebook rate, or profit margins.
+        let leaveDatesCache = {};
+        const loadLeaveDates = async () => {
+            if (!currentUser || !currentUser.uid) { leaveDatesCache = {}; return leaveDatesCache; }
+            try {
+                const snap = await db.ref(`portal/leave/${currentUser.uid}`).once('value');
+                leaveDatesCache = snap.val() || {};
+            } catch (err) {
+                // Most likely cause: database.rules.json hasn't been deployed yet with the new
+                // "leave" path. Don't break the rest of the portal — just disable leave-awareness.
+                console.warn('Leave dates unavailable (deploy database.rules.json?):', err.message);
+                leaveDatesCache = {};
+            }
+            return leaveDatesCache;
+        };
+        const isLeaveDay = (dateStr) => !!leaveDatesCache[dateStr];
+        // Returns local-time YYYY-MM-DD for the given weekKey + dayIdx (0=Mon ... 6=Sun)
+        const dayDateString = (weekKey, dayIdx) => {
+            const monday = getMondayOfWeek(weekKey);
+            const d = new Date(monday);
+            d.setDate(monday.getDate() + dayIdx);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        };
+        const isDayLeave = (weekKey, dayIdx) => isLeaveDay(dayDateString(weekKey, dayIdx));
+        // Count leave days in a given week
+        const getLeaveDayCount = (weekKey) => {
+            if (!weekKey) return 0;
+            let count = 0;
+            for (let i = 0; i < 7; i++) if (isDayLeave(weekKey, i)) count++;
+            return count;
+        };
+
+        // Helper: normalize entry data — returns weekly totals from either old (flat) or new (days) format.
+        // If weekKey is provided, days marked as leave are skipped entirely.
+        const getWeeklyTotals = (entry, weekKey) => {
             if (!entry) return { appointmentsAvailable:0, appointmentsFilled:0, newClients:0, rebookings:0, noShows:0, hoursWorked:0, avgTicketPrice:0, revenue:0, businessExpenses:0, personalExpenses:0, expenses:0 };
             // New format: has a "days" property
             if (entry.days) {
                 const totals = { appointmentsAvailable:0, appointmentsFilled:0, newClients:0, rebookings:0, noShows:0, hoursWorked:0, avgTicketPrice:0, revenue:0, businessExpenses:0, personalExpenses:0 };
                 let avgTicketSum = 0, avgTicketCount = 0;
                 for (let i = 0; i < 7; i++) {
+                    if (weekKey && isDayLeave(weekKey, i)) continue;
                     const day = entry.days[i];
                     if (!day) continue;
                     FIELD_KEYS.forEach(key => {
@@ -3176,7 +3506,10 @@
                 totals.expenses = totals.businessExpenses + totals.personalExpenses;
                 return totals;
             }
-            // Old format: flat weekly data
+            // Old format: flat weekly data. If the entire week is on leave, treat as zero.
+            if (weekKey && getLeaveDayCount(weekKey) === 7) {
+                return { appointmentsAvailable:0, appointmentsFilled:0, newClients:0, rebookings:0, noShows:0, hoursWorked:0, avgTicketPrice:0, revenue:0, businessExpenses:0, personalExpenses:0, expenses:0 };
+            }
             const result = {};
             FIELD_KEYS.forEach(key => { result[key] = parseFloat(entry[key]) || 0; });
             // Backwards compat: old "expenses" field maps to businessExpenses
@@ -3188,11 +3521,12 @@
         // Helper: check if entry uses new daily format
         const isDailyFormat = (entry) => entry && entry.days !== undefined;
 
-        // Helper: count filled days in a daily-format entry
-        const getFilledDayCount = (entry) => {
+        // Helper: count filled days in a daily-format entry. Leave days are NOT counted as filled.
+        const getFilledDayCount = (entry, weekKey) => {
             if (!entry || !entry.days) return 0;
             let count = 0;
             for (let i = 0; i < 7; i++) {
+                if (weekKey && isDayLeave(weekKey, i)) continue;
                 const day = entry.days[i];
                 if (day && FIELD_KEYS.some(k => day[k] !== undefined && day[k] !== null && day[k] !== '')) count++;
             }
@@ -3223,6 +3557,50 @@
         };
         const weekInputFromKey = (key) => {
             return key.replace('_W', '-W');
+        };
+
+        // ── GOALS PAGE ──
+        const renderClientGoals = async () => {
+            const goalsSnap = await db.ref(`portal/goals/${currentUser.uid}`).once('value');
+            const goals = goalsSnap.val() || {};
+            return `
+                <div>
+                    <h2 class="page-title">Your Goals</h2>
+                    <p class="page-subtitle">Write it down. Make it real.</p>
+
+                    <div style="background:#0f0f0f;border:0.5px solid #2a2a2a;border-radius:16px;padding:28px 24px;margin-bottom:24px;">
+                        <div style="margin-bottom:18px;">
+                            <label style="display:block;font-size:11px;color:#f5c842;text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:4px;">Your Why</label>
+                            <div style="font-size:12px;color:#777;letter-spacing:-0.015em;margin-bottom:8px;">The deeper reason you started this — the life you want to build.</div>
+                            <textarea id="goalWhy" rows="3" style="width:100%;box-sizing:border-box;background:#1a1a1a;border:0.5px solid #333;border-radius:8px;color:#e8e8e8;padding:12px;font-family:'Helvetica Neue',Helvetica,sans-serif;font-size:14px;letter-spacing:-0.015em;resize:vertical;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='#f5c842'" onblur="this.style.borderColor='#333'">${goals.why || ''}</textarea>
+                        </div>
+
+                        <div style="margin-bottom:18px;">
+                            <label style="display:block;font-size:11px;color:#f5c842;text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;margin-bottom:4px;">Your How</label>
+                            <div style="font-size:12px;color:#777;letter-spacing:-0.015em;margin-bottom:8px;">The specific actions and numbers that will get you there.</div>
+                            <textarea id="goalHow" rows="3" style="width:100%;box-sizing:border-box;background:#1a1a1a;border:0.5px solid #333;border-radius:8px;color:#e8e8e8;padding:12px;font-family:'Helvetica Neue',Helvetica,sans-serif;font-size:14px;letter-spacing:-0.015em;resize:vertical;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='#f5c842'" onblur="this.style.borderColor='#333'">${goals.how || ''}</textarea>
+                        </div>
+
+                        <div style="border-top:0.5px solid #222;margin:20px 0;"></div>
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;" class="mobile-grid-2">
+                            <div style="background:#1a1a1a;border:0.5px solid #2a2a2a;border-radius:10px;padding:16px;">
+                                <label style="display:block;font-size:10px;color:#f5c842;text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;font-family:'Helvetica Neue',Helvetica,sans-serif;margin-bottom:10px;">90-Day Goal</label>
+                                <textarea id="goal90" rows="4" style="width:100%;box-sizing:border-box;background:transparent;border:none;border-bottom:0.5px solid #333;color:#e8e8e8;padding:8px 0;font-family:'Helvetica Neue',Helvetica,sans-serif;font-size:14px;letter-spacing:-0.015em;resize:vertical;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderBottomColor='#f5c842'" onblur="this.style.borderBottomColor='#333'">${goals.goal90 || ''}</textarea>
+                            </div>
+                            <div style="background:#1a1a1a;border:0.5px solid #2a2a2a;border-radius:10px;padding:16px;">
+                                <label style="display:block;font-size:10px;color:#f5c842;text-transform:uppercase;letter-spacing:-0.015em;font-weight:700;font-family:'Helvetica Neue',Helvetica,sans-serif;margin-bottom:10px;">6-Month Goal</label>
+                                <textarea id="goal6m" rows="4" style="width:100%;box-sizing:border-box;background:transparent;border:none;border-bottom:0.5px solid #333;color:#e8e8e8;padding:8px 0;font-family:'Helvetica Neue',Helvetica,sans-serif;font-size:14px;letter-spacing:-0.015em;resize:vertical;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderBottomColor='#f5c842'" onblur="this.style.borderBottomColor='#333'">${goals.goal6m || ''}</textarea>
+                            </div>
+                        </div>
+
+                        <div style="display:flex;align-items:center;gap:14px;">
+                            <button onclick="saveGoals()" style="background:#f5c842;color:#0f0f0f;border:none;padding:10px 22px;border-radius:8px;font-family:'Helvetica Neue',Helvetica,sans-serif;font-size:13px;font-weight:700;letter-spacing:-0.015em;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Save Goals</button>
+                            <span id="goalsSavedMsg" style="font-size:13px;color:#4ADE80;font-weight:700;opacity:0;transition:opacity 0.4s;"></span>
+                        </div>
+                    </div>
+                </div>
+            `;
         };
 
         // ── ICP PAGE ──
@@ -3343,6 +3721,7 @@
                 db.ref(`portal/entries/${currentUser.uid}/${selectedWeekKey}`).once('value'),
                 db.ref(`portal/entries/${currentUser.uid}`).once('value'),
                 db.ref(`portal/savings/${currentUser.uid}`).once('value'),
+                loadLeaveDates(),
             ]);
             const data = snap.val() || {};
             const allEntries = allSnap.val() || {};
@@ -3366,10 +3745,28 @@
                 const dayDate = new Date(monday);
                 dayDate.setDate(monday.getDate() + idx);
                 const dateStr = dayDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                const dayIsoStr = dayDateString(selectedWeekKey, idx);
+                const isLeave = isLeaveDay(dayIsoStr);
                 const dayData = (data.days && data.days[idx]) ? data.days[idx] : {};
-                const isFilled = FIELD_KEYS.some(k => dayData[k] !== undefined && dayData[k] !== null && dayData[k] !== '');
+                const isFilled = !isLeave && FIELD_KEYS.some(k => dayData[k] !== undefined && dayData[k] !== null && dayData[k] !== '');
                 const isToday = todayIdx === idx;
-                const isSelected = selectedDayIndex === idx;
+                const isSelected = selectedDayIndex === idx && !isLeave;
+
+                if (isLeave) {
+                    return `<div class="day-card" data-day-idx="${idx}" style="background:repeating-linear-gradient(135deg,#0d0d0d,#0d0d0d 8px,#141414 8px,#141414 16px);border:1px dashed rgba(245,200,66,0.35);border-radius:14px;padding:0;margin-bottom:10px;overflow:hidden;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <div style="width:8px;height:8px;border-radius:50%;background:#f5c842;flex-shrink:0;"></div>
+                                <div>
+                                    <span style="font-size:14px;font-weight:700;color:rgba(255,255,255,0.7);">${dayName}</span>
+                                    <span style="font-size:12px;color:rgba(255,255,255,0.4);margin-left:8px;">${dateStr}</span>
+                                </div>
+                                <span style="font-size:10px;font-weight:700;background:rgba(245,200,66,0.15);color:#f5c842;padding:3px 10px;border-radius:20px;margin-left:8px;letter-spacing:0.05em;">ANNUAL LEAVE</span>
+                            </div>
+                            <button onclick="unmarkLeaveDate('${dayIsoStr}')" style="background:none;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);padding:5px 12px;border-radius:6px;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;">Cancel leave</button>
+                        </div>
+                    </div>`;
+                }
 
                 const fields = FIELD_KEYS.map((key, fi) => {
                     const isCurrency = CURRENCY_FIELDS.includes(key);
@@ -3409,21 +3806,26 @@
                         <div class="input-grid" style="margin-top:4px;">
                             ${fields}
                         </div>
-                        <button class="btn-primary" onclick="handleSaveDayNumbers(${idx})" id="saveDayBtn_${idx}" style="margin-top:10px;font-size:13px;padding:10px;">Save ${dayName} &#x2192;</button>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;flex-wrap:wrap;">
+                            <button class="btn-primary" onclick="handleSaveDayNumbers(${idx})" id="saveDayBtn_${idx}" style="font-size:13px;padding:10px;flex:1;min-width:160px;">Save ${dayName} &#x2192;</button>
+                            <button onclick="markSingleDayLeave('${dayIsoStr}')" style="background:transparent;border:1px solid rgba(245,200,66,0.3);color:#f5c842;padding:9px 14px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;">Mark as annual leave</button>
+                        </div>
                     </div>
                 </div>`;
             }).join('');
 
-            // Weekly totals (auto-calculated)
-            const totals = getWeeklyTotals(data);
-            const filledCount = getFilledDayCount(data);
+            // Weekly totals (auto-calculated, leave-aware)
+            const totals = getWeeklyTotals(data, selectedWeekKey);
+            const filledCount = getFilledDayCount(data, selectedWeekKey);
+            const leaveCount = getLeaveDayCount(selectedWeekKey);
+            const workingDayCount = 7 - leaveCount;
             const isOldFormat = !isDailyFormat(data) && Object.keys(data).length > 0 && (data.revenue || data.appointmentsFilled);
 
             // ── Savings card: surface this week's savings target ──
             const pfSettings = savings.settings || {};
             const pfTransfers = savings.transfers || {};
             const pfWeeklyTarget = Number(pfSettings.weeklyTarget) || 0;
-            const pfRevenue = (getWeeklyTotals(data).revenue) || 0;
+            const pfRevenue = (getWeeklyTotals(data, selectedWeekKey).revenue) || 0;
             const pfThisWeekTransfer = pfTransfers[selectedWeekKey] || null;
             let pfCardHtml = '';
             if (!pfSettings.setupComplete || !pfWeeklyTarget) {
@@ -3489,6 +3891,21 @@
                 </div>
             </div>`;
 
+            // Sorted leave dates for the chip list
+            const allLeaveDates = Object.keys(leaveDatesCache).sort();
+            const leaveChipsHtml = allLeaveDates.map(dateStr => {
+                const d = new Date(dateStr + 'T00:00:00');
+                const label = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+                return `<span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;background:rgba(245,200,66,0.1);border:1px solid rgba(245,200,66,0.25);border-radius:20px;font-size:11px;color:#f5c842;font-weight:600;">${label}<button onclick="unmarkLeaveDate('${dateStr}')" style="background:none;border:none;color:#f5c842;cursor:pointer;font-size:14px;padding:0;line-height:1;">&times;</button></span>`;
+            }).join('');
+
+            // Default range pre-fill: monday/sunday of currently selected week
+            const sundayDate = new Date(monday);
+            sundayDate.setDate(monday.getDate() + 6);
+            const isoFmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const defaultStart = isoFmt(monday);
+            const defaultEnd = isoFmt(sundayDate);
+
             return `
                 <div>
                     <h2 class="page-title">Log Your Numbers</h2>
@@ -3496,7 +3913,37 @@
                     <div class="card" style="margin-bottom:16px;">
                         <div class="form-label" style="margin-bottom:8px;">${IC.calendar} Select Week</div>
                         <input type="week" id="weekPicker" class="form-input" value="${weekInputFromKey(selectedWeekKey)}" style="cursor:pointer;font-weight:600;font-family:inherit;">
-                        <div style="font-size:12px;color:rgba(255,255,255,0.45);margin-top:6px;font-weight:400;">Currently editing: <strong style="color:#fff;">${selectedWeekKey}</strong>${isDailyFormat(data) ? ` — <span style="color:#4ADE80;">${getFilledDayCount(data)}/7 days logged</span>` : isOldFormat ? ' — <span style="color:#FBBF24;">Logged as weekly total</span>' : ' — no data yet'}</div>
+                        <div style="font-size:12px;color:rgba(255,255,255,0.45);margin-top:6px;font-weight:400;">Currently editing: <strong style="color:#fff;">${selectedWeekKey}</strong>${isDailyFormat(data) ? ` — <span style="color:#4ADE80;">${filledCount}/${workingDayCount} working days logged</span>${leaveCount > 0 ? ` <span style="color:#f5c842;">· ${leaveCount} on leave</span>` : ''}` : isOldFormat ? ' — <span style="color:#FBBF24;">Logged as weekly total</span>' : ' — no data yet'}</div>
+                    </div>
+
+                    <!-- ANNUAL LEAVE PICKER -->
+                    <div class="card" style="margin-bottom:16px;background:#0f0f0f;border:1px solid rgba(245,200,66,0.18);">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+                            <div class="section-header" style="margin-bottom:0;display:flex;align-items:center;gap:8px;color:#f5c842;">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3.5" width="12" height="10" rx="1.4"/><path d="M2 6.5h12"/><path d="M5 2v3M11 2v3"/></svg>
+                                Annual Leave
+                            </div>
+                            ${allLeaveDates.length > 0 ? `<span style="font-size:11px;color:rgba(255,255,255,0.55);font-weight:600;">${allLeaveDates.length} ${allLeaveDates.length === 1 ? 'day' : 'days'} marked</span>` : ''}
+                        </div>
+                        <div style="font-size:12px;color:rgba(255,255,255,0.55);margin-bottom:14px;line-height:1.5;">Mark days off here so they don't drag down your occupancy, rebook rate, or profit margins. Leave days are excluded from every metric.</div>
+
+                        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+                            <div style="flex:1;min-width:140px;">
+                                <label style="display:block;font-size:10px;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin-bottom:4px;">From</label>
+                                <input type="date" id="leaveStart" class="form-input" value="${defaultStart}" style="margin-bottom:0;font-family:inherit;">
+                            </div>
+                            <div style="flex:1;min-width:140px;">
+                                <label style="display:block;font-size:10px;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin-bottom:4px;">To</label>
+                                <input type="date" id="leaveEnd" class="form-input" value="${defaultEnd}" style="margin-bottom:0;font-family:inherit;">
+                            </div>
+                            <button onclick="markLeaveRange()" style="background:#f5c842;color:#0f0f0f;border:none;padding:10px 18px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;height:42px;white-space:nowrap;">Mark as leave</button>
+                        </div>
+
+                        ${allLeaveDates.length > 0 ? `
+                        <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.06);">
+                            <div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin-bottom:8px;">Days off</div>
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;">${leaveChipsHtml}</div>
+                        </div>` : ''}
                     </div>
 
                     ${isOldFormat ? `<div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#FBBF24;">
@@ -3585,6 +4032,54 @@
             if (selectedDayIndex !== null && selectedDayIndex !== undefined) {
                 await window.handleSaveDayNumbers(selectedDayIndex);
             }
+        };
+
+        // ── ANNUAL LEAVE save handlers ──
+        // Build an inclusive YYYY-MM-DD list from start to end (capped at 365 days for safety)
+        const leaveDateRange = (startStr, endStr) => {
+            const start = new Date(startStr + 'T00:00:00');
+            const end = new Date(endStr + 'T00:00:00');
+            if (isNaN(start) || isNaN(end) || end < start) return [];
+            const days = Math.round((end - start) / 86400000) + 1;
+            if (days > 365) return [];
+            const out = [];
+            for (let i = 0; i < days; i++) {
+                const d = new Date(start);
+                d.setDate(start.getDate() + i);
+                out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+            }
+            return out;
+        };
+
+        window.markLeaveRange = async () => {
+            const startEl = document.getElementById('leaveStart');
+            const endEl = document.getElementById('leaveEnd');
+            if (!startEl || !endEl) return;
+            const dates = leaveDateRange(startEl.value, endEl.value);
+            if (dates.length === 0) { toast.error('Pick a valid date range (end must be on or after start, max 365 days).'); return; }
+            try {
+                const updates = {};
+                dates.forEach(d => { updates[d] = true; });
+                await db.ref(`portal/leave/${currentUser.uid}`).update(updates);
+                toast.success(`${dates.length} ${dates.length === 1 ? 'day' : 'days'} marked as leave`);
+                setPage('numbers');
+            } catch (err) { toast.error('Could not save leave: ' + err.message); }
+        };
+
+        window.markSingleDayLeave = async (dateStr) => {
+            try {
+                await db.ref(`portal/leave/${currentUser.uid}/${dateStr}`).set(true);
+                toast.success('Marked as leave');
+                setPage('numbers');
+            } catch (err) { toast.error('Could not save: ' + err.message); }
+        };
+
+        window.unmarkLeaveDate = async (dateStr) => {
+            try {
+                await db.ref(`portal/leave/${currentUser.uid}/${dateStr}`).remove();
+                toast.success('Leave removed');
+                setPage('numbers');
+            } catch (err) { toast.error('Could not remove: ' + err.message); }
         };
 
         const exportWeekPDF = async (weekKey) => {
@@ -3999,7 +4494,7 @@
                     const monday = new Date(d); monday.setDate(d.getDate() - d.getDay() + 1);
                     const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
                     const fmt = dt => dt.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
-                    result.push({ label: `${fmt(monday)} - ${fmt(sunday)}`, ...getWeeklyTotals(progressAllEntries[wk]), ...(progressAllEntries[wk]||{}) });
+                    result.push({ label: `${fmt(monday)} - ${fmt(sunday)}`, ...getWeeklyTotals(progressAllEntries[wk], wk), ...(progressAllEntries[wk]||{}) });
                 }
                 return result;
             } else {
@@ -4013,7 +4508,7 @@
                     const monthKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
                     if (!months[monthKey]) months[monthKey] = { label: d.toLocaleDateString('en-GB',{month:'short',year:'2-digit'}), revenue:0,expenses:0,appointmentsAvailable:0,appointmentsFilled:0,rebookings:0,noShows:0,instagramViews:0,tiktokViews:0,instagramFollowers:0,tiktokFollowers:0 };
                     const m = months[monthKey];
-                    const t = getWeeklyTotals(e);
+                    const t = getWeeklyTotals(e, wk);
                     m.revenue += t.revenue;
                     m.expenses += t.expenses;
                     m.appointmentsAvailable += t.appointmentsAvailable;
@@ -4102,7 +4597,10 @@
         };
 
         const renderClientProgress = async () => {
-            const snap = await db.ref(`portal/entries/${currentUser.uid}`).once('value');
+            const [snap] = await Promise.all([
+                db.ref(`portal/entries/${currentUser.uid}`).once('value'),
+                loadLeaveDates(),
+            ]);
             progressAllEntries = snap.val() || {};
             const hasData = Object.keys(progressAllEntries).length > 0;
 
@@ -4159,7 +4657,10 @@
         const brFmtMoney = (v) => currencySymbol() + Math.round(v || 0).toLocaleString(getCurrency().locale);
 
         const renderClientBusinessReport = async () => {
-            const snap = await db.ref(`portal/entries/${currentUser.uid}`).once('value');
+            const [snap] = await Promise.all([
+                db.ref(`portal/entries/${currentUser.uid}`).once('value'),
+                loadLeaveDates(),
+            ]);
             const all = snap.val() || {};
             const weekKeys = Object.keys(all).filter(k => /^\d{4}_W\d{1,2}$/.test(k));
 
@@ -4186,7 +4687,7 @@
             let earliestMonthKey = thisMonthKey;
 
             weekKeys.forEach(wk => {
-                const t = getWeeklyTotals(all[wk]);
+                const t = getWeeklyTotals(all[wk], wk);
                 weekTotalsByKey[wk] = t;
                 const monday = getMondayOfWeek(wk);
                 const mKey = brMonthKey(new Date(Date.UTC(monday.getFullYear(), monday.getMonth(), 1)));
@@ -6641,6 +7142,7 @@ const renderAdminClientDetail = async (uid) => {
                 if (!entry || !weekKey.includes('_W')) return;
                 if (entry.days) {
                     for (let i = 0; i < 7; i++) {
+                        if (isDayLeave(weekKey, i)) continue; // skip annual leave
                         const day = entry.days[i];
                         if (!day) continue;
                         const revenue = parseFloat(day.revenue) || 0;
@@ -6650,14 +7152,17 @@ const renderAdminClientDetail = async (uid) => {
                         out.push({ date: dateForWeekDay(weekKey, i), revenue, hoursWorked });
                     }
                 } else {
-                    // Old flat-week format: spread across the 7 days of that week
-                    const totals = getWeeklyTotals(entry);
+                    // Old flat-week format: spread across the 7 days of that week, skipping leave days
+                    const totals = getWeeklyTotals(entry, weekKey);
                     if (!(totals.revenue || totals.appointmentsFilled || totals.hoursWorked)) return;
+                    const workingDays = 7 - getLeaveDayCount(weekKey);
+                    if (workingDays === 0) return;
                     for (let i = 0; i < 7; i++) {
+                        if (isDayLeave(weekKey, i)) continue;
                         out.push({
                             date: dateForWeekDay(weekKey, i),
-                            revenue: totals.revenue / 7,
-                            hoursWorked: totals.hoursWorked / 7,
+                            revenue: totals.revenue / workingDays,
+                            hoursWorked: totals.hoursWorked / workingDays,
                         });
                     }
                 }
@@ -6884,7 +7389,10 @@ const renderAdminClientDetail = async (uid) => {
 
         const renderClientCriticalNumbers = async () => {
             const uid = currentUser.uid;
-            const entriesSnap = await db.ref('portal/entries/' + uid).once('value');
+            const [entriesSnap] = await Promise.all([
+                db.ref('portal/entries/' + uid).once('value'),
+                loadLeaveDates(),
+            ]);
             const entries = entriesSnap.val() || {};
             const timeline = buildDailyTimeline(entries);
             window.__criticalTimeline = timeline;
@@ -7659,24 +8167,21 @@ const renderAdminClientDetail = async (uid) => {
             const clientNavStructure = [
                 { type: 'item', page: 'hub', icon: ICON_OVERVIEW, label: 'Overview' },
                 { type: 'item', page: 'implementation', icon: ICON_ROADMAP, label: 'The Roadmap' },
-                { type: 'section', id: 'icpTasks', icon: ICON_USER, label: 'Your ICP & Tasks', items: [
-                    { page: 'icp', icon: ICON_ICP, label: 'Your ICP' },
-                    { page: 'tasks', icon: ICON_TASKS, label: 'Tasks' },
-                ]},
-                { type: 'section', id: 'business', icon: ICON_BRIEFCASE, label: 'Business', items: [
-                    { page: 'numbers', icon: ICON_BUSINESS, label: 'Business' },
+                { type: 'item', page: 'numbers', icon: ICON_BUSINESS, label: 'Daily Log' },
+                { type: 'section', id: 'reports', icon: ICON_BIZREPORT, label: 'Reports', items: [
                     { page: 'businessReport', icon: ICON_BIZREPORT, label: 'Business Report' },
-                    { page: 'money', icon: ICON_INVESTMENTS, label: 'Investments' },
                     { page: 'criticalNumbers', icon: ICON_CRITICAL, label: 'Critical Numbers' },
+                    { page: 'progress', icon: ICON_ANALYTICS, label: 'Analytics' },
                 ]},
+                { type: 'item', page: 'money', icon: ICON_INVESTMENTS, label: 'Investments' },
                 { type: 'section', id: 'content', icon: ICON_CONTENT_GROUP, label: 'Content', items: [
                     { page: 'content', icon: ICON_CONTENT, label: 'Content' },
                     { page: 'inspo', icon: ICON_INSPO, label: 'Inspo' },
                     { page: 'social', icon: ICON_SOCIAL, label: 'Social' },
                 ]},
+                { type: 'item', page: 'tasks', icon: ICON_TASKS, label: 'Tasks' },
                 { type: 'item', page: 'scaleSignal', icon: ICON_SCALESIGNAL, label: 'The Scale Signal' },
                 ...(SCALO_INTELLIGENCE_ENABLED ? [{ type: 'item', page: 'intelligence', icon: ICON_INTELLIGENCE, label: 'SCALO Intelligence' }] : []),
-                { type: 'item', page: 'progress', icon: ICON_ANALYTICS, label: 'Analytics' },
             ];
 
             const adminNavItems = [
@@ -7790,6 +8295,7 @@ const renderAdminClientDetail = async (uid) => {
                     else if (currentPage === 'criticalNumbers') pageContent = await renderClientCriticalNumbers();
                     else if (currentPage === 'tasks') pageContent = await renderClientTasks();
                     else if (currentPage === 'icp') pageContent = await renderClientICP();
+                    else if (currentPage === 'goals') pageContent = await renderClientGoals();
                     else if (currentPage === 'content') pageContent = await renderClientContent();
                     else if (currentPage === 'inspo') pageContent = await renderClientInspo();
                     else if (currentPage === 'social') pageContent = await renderClientSocial();
@@ -7832,7 +8338,16 @@ const renderAdminClientDetail = async (uid) => {
             setTimeout(() => { animateCountUps(); animateProgressBars(); }, 30);
 
             if (currentPage === 'progress' && !isAdmin) setTimeout(renderProgressCharts, 50);
-            if (currentPage === 'hub' && !isAdmin) setTimeout(renderHubCharts, 50);
+            if (currentPage === 'hub' && !isAdmin) {
+                document.body.classList.add('hub-active');
+                setTimeout(() => { renderHubCharts(); initHubFocusMode(); }, 50);
+            } else if (!isAdmin) {
+                document.body.classList.remove('hub-active');
+                // Tear down the hub dot rail / scroll listener when leaving the hub
+                if (_hubFocusCleanup) { _hubFocusCleanup(); _hubFocusCleanup = null; }
+                const stale = document.getElementById('hubDotRail');
+                if (stale) stale.remove();
+            }
             if (currentPage === 'social' && !isAdmin) setTimeout(renderSocialCharts, 50);
             if (currentPage === 'businessReport' && !isAdmin) setTimeout(animateBusinessReportChart, 60);
             if (currentPage === 'criticalNumbers' && !isAdmin) setTimeout(renderCriticalChart, 60);
