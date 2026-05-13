@@ -39,6 +39,12 @@
           ".write": "auth != null && auth.uid === $uid"
         }
       },
+      "price_coach_sessions": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      },
       "implementation": {
         "$uid": {
           ".read": "auth != null && auth.uid === $uid",
