@@ -3929,6 +3929,416 @@
             modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
         };
 
+        // ── PRICE COACH ──
+        // AI chat agent that helps barbers structure price increases using the
+        // Price Ascension framework. Streams responses from the Supabase edge
+        // function `price-coach-chat`, which calls Claude. The student's
+        // business numbers are read straight off their daily log entries.
+        const PRICE_COACH_FN_URL = SUPABASE_URL + '/functions/v1/price-coach-chat';
+
+        // In-memory state for the currently-open Price Coach session.
+        let pc_session = null;          // { id, messages:[{role,content}], startedAt, updatedAt }
+        let pc_streaming = false;
+        let pc_businessData = null;
+        let pc_pastSummary = '';
+
+        // Compute the businessData object the edge function's system prompt
+        // expects, aggregating across every week in the student's daily log.
+        const pc_computeBusinessData = async (uid) => {
+            const snap = await db.ref('portal/entries/' + uid).once('value');
+            const entries = snap.val() || {};
+            let totalRevenue = 0, totalApptsFilled = 0, totalApptsAvailable = 0;
+            let totalNoShows = 0, totalNewClients = 0, totalRebookings = 0;
+            let totalHoursWorked = 0, totalBusinessExpenses = 0;
+            let avgTicketSum = 0, avgTicketCount = 0;
+            let weeksWithData = 0;
+
+            Object.entries(entries).forEach(([weekKey, entry]) => {
+                if (!weekKey.includes('_W')) return;
+                const t = getWeeklyTotals(entry, weekKey);
+                if (!(t.revenue || t.appointmentsFilled || t.hoursWorked)) return;
+                weeksWithData++;
+                totalRevenue += t.revenue;
+                totalApptsFilled += t.appointmentsFilled;
+                totalApptsAvailable += t.appointmentsAvailable;
+                totalNoShows += t.noShows;
+                totalNewClients += t.newClients;
+                totalRebookings += t.rebookings;
+                totalHoursWorked += t.hoursWorked;
+                totalBusinessExpenses += t.businessExpenses;
+                if (t.avgTicketPrice > 0) { avgTicketSum += t.avgTicketPrice; avgTicketCount++; }
+            });
+
+            const timeline = buildDailyTimeline(entries);
+            const dateFrom = timeline.length ? timeline[0].date.toISOString().slice(0,10) : null;
+            const dateTo   = timeline.length ? timeline[timeline.length-1].date.toISOString().slice(0,10) : null;
+
+            // Revenue ÷ filled is the true average ticket. Fall back to the
+            // self-reported avg if filled is empty.
+            const computedAvg = totalApptsFilled > 0 ? totalRevenue / totalApptsFilled : 0;
+            const reportedAvg = avgTicketCount > 0 ? avgTicketSum / avgTicketCount : 0;
+            const avgTicketPrice = computedAvg > 0 ? computedAvg : reportedAvg;
+
+            const occupancyRate = totalApptsAvailable > 0 ? (totalApptsFilled / totalApptsAvailable) * 100 : 0;
+            const rebookRate    = totalApptsFilled > 0 ? (totalRebookings / totalApptsFilled) * 100 : 0;
+            const profit        = totalRevenue - totalBusinessExpenses;
+            const profitMargin  = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
+            const hoursPerWeek  = weeksWithData > 0 ? totalHoursWorked / weeksWithData : 0;
+            const annualRevenue = weeksWithData > 0 ? (totalRevenue / weeksWithData) * 48 : 0;
+            const monthsOfData  = weeksWithData / 4.345;
+            const newClientsPerMonth = monthsOfData > 0 ? totalNewClients / monthsOfData : 0;
+            const weeklyExpenses     = weeksWithData > 0 ? totalBusinessExpenses / weeksWithData : 0;
+            const breakEvenHaircutsPerWeek = avgTicketPrice > 0 ? weeklyExpenses / avgTicketPrice : 0;
+
+            const r1 = (n) => Math.round(n * 10) / 10;
+            const r2 = (n) => Math.round(n * 100) / 100;
+
+            return {
+                dateFrom, dateTo,
+                weeksOfData: r1(weeksWithData),
+                monthsOfData: r1(monthsOfData),
+                avgTicketPrice: r2(avgTicketPrice),
+                totalRevenue: r2(totalRevenue),
+                annualRevenue: r2(annualRevenue),
+                appointmentsFilled: totalApptsFilled,
+                appointmentsAvailable: totalApptsAvailable,
+                occupancyRate: r1(occupancyRate),
+                totalNoShows,
+                newClients: totalNewClients,
+                newClientsPerMonth: r1(newClientsPerMonth),
+                rebookRate: r1(rebookRate),
+                totalHoursWorked: r1(totalHoursWorked),
+                hoursPerWeek: r1(hoursPerWeek),
+                totalBusinessExpenses: r2(totalBusinessExpenses),
+                profit: r2(profit),
+                profitMargin: r1(profitMargin),
+                breakEvenHaircutsPerWeek: r1(breakEvenHaircutsPerWeek),
+            };
+        };
+
+        // Lightweight markdown → HTML for what the agent actually outputs:
+        // ## headings, **bold**, *italic*, "- " bullet lists, paragraphs.
+        const pc_renderMarkdown = (md) => {
+            if (!md) return '';
+            let s = md.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            s = s.replace(/^## (.*)$/gm, '<h3 style="font-size:14px;font-weight:800;color:#fff;margin:14px 0 6px;letter-spacing:0.02em;">$1</h3>');
+            s = s.replace(/^### (.*)$/gm, '<h4 style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.9);margin:12px 0 4px;">$1</h4>');
+            s = s.replace(/\*\*([^*]+)\*\*/g, '<strong style="color:#fff;">$1</strong>');
+            s = s.replace(/(^|[^*])\*([^*\n]+)\*([^*]|$)/g, '$1<em>$2</em>$3');
+            s = s.replace(/(^|\n)((?:- .*(?:\n|$))+)/g, (_, prefix, block) => {
+                const items = block.trim().split(/\n/).map(l => l.replace(/^- /, '').trim()).map(t => '<li style="margin-bottom:4px;">' + t + '</li>').join('');
+                return prefix + '<ul style="margin:6px 0 10px 18px;padding:0;color:rgba(255,255,255,0.85);line-height:1.55;">' + items + '</ul>';
+            });
+            s = s.replace(/\n{2,}/g, '<br><br>').replace(/\n/g, '<br>');
+            return s;
+        };
+
+        // Build a compact text summary of the student's prior sessions so the
+        // agent has continuity across visits. Past three sessions only.
+        const pc_buildPastSummary = (sessions) => {
+            if (!sessions || !sessions.length) return '';
+            return sessions.slice(-3).map(s => {
+                const when = s.startedAt ? new Date(s.startedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+                const firstUser = (s.messages || []).find(m => m.role === 'user');
+                const lastAssistant = [...(s.messages || [])].reverse().find(m => m.role === 'assistant');
+                const trim = (t, n) => (t || '').length > n ? (t || '').slice(0, n) + '…' : (t || '');
+                return '• ' + when + (firstUser ? ' — student asked: "' + trim(firstUser.content, 80) + '"' : '') + (lastAssistant ? ' Coach recommended: "' + trim(lastAssistant.content, 220) + '"' : '');
+            }).join('\n');
+        };
+
+        // The data-summary card at the top of the chat. Lets the barber sanity-
+        // check what the coach is working from before they engage.
+        const pc_renderDataCard = (bd) => {
+            const sym = currencySymbol();
+            const r = (n) => sym + Math.round(n || 0).toLocaleString(getCurrency().locale);
+            const r1 = (n) => Math.round((n || 0) * 10) / 10;
+            const stat = (label, value, sub) => `
+                <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px 12px;">
+                    <div style="font-size:9.5px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:4px;">${label}</div>
+                    <div style="font-size:16px;font-weight:800;color:#fff;line-height:1.1;">${value}</div>
+                    ${sub ? '<div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px;">' + sub + '</div>' : ''}
+                </div>`;
+            return `
+                <div style="background:#0f0f0f;border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:16px 18px;margin-bottom:18px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                        <div style="font-size:11px;font-weight:800;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.1em;">Your numbers — what the coach sees</div>
+                        <div style="font-size:10px;color:rgba(255,255,255,0.35);">${bd.weeksOfData || 0} weeks logged</div>
+                    </div>
+                    <div class="mobile-grid-2" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+                        ${stat('Avg Ticket', r(bd.avgTicketPrice))}
+                        ${stat('Occupancy', r1(bd.occupancyRate) + '%')}
+                        ${stat('Rebook', r1(bd.rebookRate) + '%')}
+                        ${stat('Profit', r(bd.profit), r1(bd.profitMargin) + '% margin')}
+                        ${stat('Annual', r(bd.annualRevenue), 'projected')}
+                        ${stat('New / mo', r1(bd.newClientsPerMonth))}
+                        ${stat('No-shows', String(bd.totalNoShows || 0))}
+                        ${stat('Hours/wk', r1(bd.hoursPerWeek))}
+                    </div>
+                </div>`;
+        };
+
+        const renderClientPriceCoach = async () => {
+            pc_businessData = await pc_computeBusinessData(currentUser.uid);
+
+            const sessSnap = await db.ref('portal/price_coach_sessions/' + currentUser.uid).once('value');
+            const sessions = [];
+            sessSnap.forEach((child) => sessions.push({ id: child.key, ...child.val() }));
+            sessions.sort((a,b) => (b.startedAt || 0) - (a.startedAt || 0));
+            pc_pastSummary = pc_buildPastSummary(sessions.slice().reverse());
+
+            if (!pc_session) pc_session = { id: null, messages: [], startedAt: null, updatedAt: null };
+
+            const noData = !pc_businessData || (pc_businessData.weeksOfData || 0) < 1;
+
+            if (noData) {
+                return `
+                <div>
+                    <h2 class="page-title">Price Coach</h2>
+                    <p class="page-subtitle">A coach for structuring your next price increase — built on your actual numbers.</p>
+                    <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:14px;padding:22px;font-size:13.5px;color:#FBBF24;line-height:1.7;">
+                        You haven't logged any weeks yet. The Price Coach needs a couple of weeks of <strong>Daily Log</strong> data — current price, appointments filled, expenses — before it can give you a real answer. Log a week or two and come back.
+                        <div style="margin-top:14px;"><button onclick="setPage('numbers')" style="background:${ACCENT};color:#000;border:none;padding:10px 18px;border-radius:10px;font-family:inherit;font-size:12.5px;font-weight:800;cursor:pointer;letter-spacing:0.04em;text-transform:uppercase;">Open the Daily Log &rarr;</button></div>
+                    </div>
+                </div>`;
+            }
+
+            const messagesHtml = pc_session.messages.map(m => pc_renderMessage(m)).join('');
+
+            const pastHtml = sessions.length ? sessions.slice(0, 8).map(s => {
+                const when = s.startedAt ? new Date(s.startedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '';
+                const firstUser = (s.messages || []).find(m => m.role === 'user');
+                const summary = firstUser ? firstUser.content : 'Session';
+                const trim = summary.length > 42 ? summary.slice(0, 42) + '…' : summary;
+                const active = pc_session.id === s.id ? 'border-color:rgba(184,233,134,0.4);background:rgba(184,233,134,0.04);' : '';
+                return `<button onclick="priceCoachOpenSession('${s.id}')" style="${active}width:100%;text-align:left;background:#0a0a0a;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px 12px;color:rgba(255,255,255,0.85);font-family:inherit;font-size:12px;cursor:pointer;margin-bottom:6px;line-height:1.4;">
+                    <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:3px;">${when}</div>
+                    <div>${trim.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+                </button>`;
+            }).join('') : '<div style="font-size:11px;color:rgba(255,255,255,0.35);padding:4px 2px;line-height:1.5;">No past sessions yet. Your first chat will show up here.</div>';
+
+            const suggestedPrompts = [
+                "I want to map out my next price increase.",
+                "What's my next move on price?",
+                "Walk me through my numbers.",
+            ];
+            const promptChips = suggestedPrompts.map(p => {
+                const safe = JSON.stringify(p).replace(/"/g, '&quot;');
+                return `<button onclick="priceCoachSend(${safe})" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.85);font-family:inherit;font-size:12px;padding:8px 12px;border-radius:20px;cursor:pointer;">${p}</button>`;
+            }).join('');
+
+            return `
+                <div>
+                    <h2 class="page-title">Price Coach</h2>
+                    <p class="page-subtitle">A coach for structuring your next price increase — built on your actual numbers.</p>
+
+                    <div class="pc-layout" style="display:grid;grid-template-columns:1fr 240px;gap:18px;align-items:start;">
+                        <div style="min-width:0;">
+                            ${pc_renderDataCard(pc_businessData)}
+
+                            <div id="pcThread" style="background:#0a0a0a;border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:18px;min-height:300px;max-height:62vh;overflow-y:auto;margin-bottom:14px;">
+                                ${pc_session.messages.length ? messagesHtml : `
+                                    <div class="pc-empty" style="text-align:center;padding:48px 24px;color:rgba(255,255,255,0.5);font-size:13px;line-height:1.7;">
+                                        <div style="font-size:32px;margin-bottom:10px;opacity:0.7;">💬</div>
+                                        <div style="color:rgba(255,255,255,0.75);font-weight:700;margin-bottom:4px;">Ready when you are.</div>
+                                        <div style="font-size:12px;">Say hi to start, or tap a prompt below.</div>
+                                    </div>`}
+                            </div>
+
+                            ${pc_session.messages.length === 0 ? `
+                            <div id="pcPromptChips" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">${promptChips}</div>` : ''}
+
+                            <div style="display:flex;gap:8px;align-items:flex-end;">
+                                <textarea id="pcInput" placeholder="Ask the coach anything — or just say hi..." rows="2" style="flex:1;background:#0f0f0f;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 14px;color:#fff;font-family:inherit;font-size:13px;resize:vertical;min-height:46px;max-height:200px;outline:none;"></textarea>
+                                <button id="pcSendBtn" onclick="priceCoachSend()" style="background:${ACCENT};color:#000;border:none;padding:0 18px;height:46px;border-radius:12px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:0.04em;text-transform:uppercase;">Send</button>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:8px;">
+                                <button onclick="priceCoachNewSession()" style="background:none;border:none;color:rgba(255,255,255,0.5);font-family:inherit;font-size:11.5px;cursor:pointer;padding:0;">+ Start a new session</button>
+                                <div style="font-size:10.5px;color:rgba(255,255,255,0.3);">Press Enter to send · Shift+Enter for new line</div>
+                            </div>
+                        </div>
+
+                        <div class="pc-sidebar" style="background:#0f0f0f;border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:14px;">
+                            <div style="font-size:10.5px;font-weight:800;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">Past Sessions</div>
+                            ${pastHtml}
+                        </div>
+                    </div>
+                </div>
+                <style>
+                    @media (max-width: 880px) {
+                        .pc-layout { grid-template-columns: 1fr !important; }
+                        .pc-sidebar { order: 2; }
+                    }
+                    @keyframes pc-blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+                </style>`;
+        };
+
+        const pc_renderMessage = (m) => {
+            const isUser = m.role === 'user';
+            const align = isUser ? 'flex-end' : 'flex-start';
+            const bg = isUser ? 'rgba(184,233,134,0.12)' : 'rgba(255,255,255,0.04)';
+            const border = isUser ? 'rgba(184,233,134,0.25)' : 'rgba(255,255,255,0.08)';
+            const label = isUser ? 'You' : 'Price Coach';
+            const body = isUser
+                ? (m.content || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')
+                : pc_renderMarkdown(m.content || '');
+            return `
+                <div style="display:flex;justify-content:${align};margin-bottom:14px;">
+                    <div style="max-width:88%;">
+                        <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:5px;padding:0 4px;">${label}</div>
+                        <div style="background:${bg};border:1px solid ${border};border-radius:14px;padding:12px 14px;color:rgba(255,255,255,0.92);font-size:13.5px;line-height:1.65;">${body}</div>
+                    </div>
+                </div>`;
+        };
+
+        const pc_scrollThread = () => {
+            const t = document.getElementById('pcThread');
+            if (t) t.scrollTop = t.scrollHeight;
+        };
+
+        const pc_appendThreadHtml = (html) => {
+            const t = document.getElementById('pcThread');
+            if (!t) return;
+            const empty = t.querySelector('.pc-empty');
+            if (empty) t.innerHTML = '';
+            const chips = document.getElementById('pcPromptChips');
+            if (chips) chips.remove();
+            t.insertAdjacentHTML('beforeend', html);
+            pc_scrollThread();
+        };
+
+        window.priceCoachSend = async (forcedText) => {
+            if (pc_streaming) return;
+            const inputEl = document.getElementById('pcInput');
+            const text = typeof forcedText === 'string' ? forcedText.trim() : (inputEl ? inputEl.value.trim() : '');
+            if (!text) return;
+            if (inputEl) inputEl.value = '';
+
+            pc_session.messages.push({ role: 'user', content: text });
+            pc_appendThreadHtml(pc_renderMessage({ role: 'user', content: text }));
+
+            const streamId = 'pcStream_' + Date.now();
+            pc_appendThreadHtml(`
+                <div id="${streamId}" style="display:flex;justify-content:flex-start;margin-bottom:14px;">
+                    <div style="max-width:88%;">
+                        <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:5px;padding:0 4px;">Price Coach</div>
+                        <div class="pc-msg-body" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:12px 14px;color:rgba(255,255,255,0.92);font-size:13.5px;line-height:1.65;min-height:24px;">
+                            <span class="pc-cursor" style="display:inline-block;width:7px;height:14px;background:rgba(255,255,255,0.5);vertical-align:middle;animation:pc-blink 1s infinite;"></span>
+                        </div>
+                    </div>
+                </div>`);
+
+            pc_streaming = true;
+            const sendBtn = document.getElementById('pcSendBtn');
+            if (sendBtn) { sendBtn.disabled = true; sendBtn.style.opacity = '0.55'; sendBtn.innerHTML = 'Thinking…'; }
+
+            let accumulated = '';
+            try {
+                const idToken = await getIdToken();
+                if (!idToken) throw new Error('Not authenticated');
+                const res = await fetch(PRICE_COACH_FN_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+                    },
+                    body: JSON.stringify({
+                        idToken,
+                        messages: pc_session.messages,
+                        businessData: pc_businessData,
+                        pastSessionsSummary: pc_pastSummary,
+                    }),
+                });
+                if (!res.ok || !res.body) {
+                    const errText = await res.text().catch(() => '');
+                    throw new Error('Coach unavailable (' + res.status + '): ' + errText.slice(0, 200));
+                }
+
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                const bubble = document.querySelector('#' + streamId + ' .pc-msg-body');
+                const renderStream = () => {
+                    if (!bubble) return;
+                    bubble.innerHTML = pc_renderMarkdown(accumulated) + '<span class="pc-cursor" style="display:inline-block;width:7px;height:14px;background:rgba(255,255,255,0.5);vertical-align:middle;animation:pc-blink 1s infinite;margin-left:2px;"></span>';
+                    pc_scrollThread();
+                };
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+                    for (const line of lines) {
+                        if (!line.startsWith('data: ')) continue;
+                        const dataStr = line.slice(6).trim();
+                        if (!dataStr) continue;
+                        try {
+                            const evt = JSON.parse(dataStr);
+                            if (evt.type === 'text') { accumulated += evt.text; renderStream(); }
+                            else if (evt.type === 'error') { throw new Error(evt.message || 'Stream error'); }
+                        } catch(_) { /* skip malformed */ }
+                    }
+                }
+
+                if (bubble) bubble.innerHTML = pc_renderMarkdown(accumulated);
+                pc_session.messages.push({ role: 'assistant', content: accumulated });
+                pc_session.updatedAt = Date.now();
+                await pc_persistSession();
+            } catch (err) {
+                console.error('Price Coach send failed:', err);
+                const bubble = document.querySelector('#' + streamId + ' .pc-msg-body');
+                if (bubble) bubble.innerHTML = '<span style="color:#FF4533;font-size:12.5px;">Couldn\'t reach the coach. ' + ((err && err.message) || err) + '</span>';
+                pc_session.messages.pop(); // let them retry
+            } finally {
+                pc_streaming = false;
+                if (sendBtn) { sendBtn.disabled = false; sendBtn.style.opacity = '1'; sendBtn.innerHTML = 'Send'; }
+                document.querySelectorAll('.pc-cursor').forEach(c => c.remove());
+            }
+        };
+
+        const pc_persistSession = async () => {
+            if (!currentUser || !pc_session || !pc_session.messages.length) return;
+            try {
+                const root = 'portal/price_coach_sessions/' + currentUser.uid;
+                if (!pc_session.id) {
+                    const ref = db.ref(root).push();
+                    pc_session.id = ref.key;
+                    pc_session.startedAt = pc_session.startedAt || Date.now();
+                }
+                await db.ref(root + '/' + pc_session.id).set({
+                    startedAt: pc_session.startedAt,
+                    updatedAt: pc_session.updatedAt || Date.now(),
+                    messages: pc_session.messages,
+                });
+            } catch(e) { console.warn('Price Coach persist failed:', e); }
+        };
+
+        window.priceCoachNewSession = () => {
+            if (pc_streaming) return;
+            pc_session = { id: null, messages: [], startedAt: null, updatedAt: null };
+            render();
+        };
+
+        window.priceCoachOpenSession = async (sessionId) => {
+            if (pc_streaming) return;
+            try {
+                const snap = await db.ref('portal/price_coach_sessions/' + currentUser.uid + '/' + sessionId).once('value');
+                const data = snap.val();
+                if (!data) return;
+                pc_session = { id: sessionId, messages: data.messages || [], startedAt: data.startedAt, updatedAt: data.updatedAt };
+                render();
+            } catch(e) { toast.error('Could not open that session.'); }
+        };
+
+        // Enter-to-send (Shift+Enter inserts a newline). Registered once at script load.
+        document.addEventListener('keydown', (e) => {
+            if (e.target && e.target.id === 'pcInput' && e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                window.priceCoachSend();
+            }
+        });
+
         // ── ICP PAGE ──
         const renderClientICP = async () => {
             const goalsSnap = await db.ref(`portal/goals/${currentUser.uid}`).once('value');
@@ -7800,6 +8210,7 @@ const renderAdminClientDetail = async (uid) => {
             const ICON_CONTENT_GROUP = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="1.4"/><circle cx="6" cy="7" r="1"/><path d="M3 12.5L6.5 9 9 11 13 6"/></svg>';
 
             const ICON_DAILYFIVE = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5C8 1.5 5 4 5 7c0 1.7 1.3 3 3 3s3-1.3 3-3c0-1.5-1-2.5-1-2.5s0 1.2-1 1.2c-.5 0-.8-.4-.8-.8C8.2 3.5 9 2.4 8 1.5z" fill="currentColor" stroke="none"/><path d="M4 9.5C4 12 6 14.5 8 14.5s4-2.5 4-5c0-1.6-.9-2.5-.9-2.5s.4 1-.5 1.7c-.7.5-1.4-.1-1.4-1 0-1.3 1.2-2.7 0-3.7"/></svg>';
+            const ICON_PRICECOACH = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H7l-3 2.5V11H4a2 2 0 0 1-2-2z"/><text x="5.4" y="9" font-size="6.5" font-weight="900" fill="currentColor" stroke="none" font-family="sans-serif">&#163;</text></svg>';
 
             const clientNavStructure = [
                 { type: 'item', page: 'hub', icon: ICON_OVERVIEW, label: 'Overview' },
@@ -7811,6 +8222,7 @@ const renderAdminClientDetail = async (uid) => {
                     { page: 'criticalNumbers', icon: ICON_CRITICAL, label: 'Critical Numbers' },
                     { page: 'progress', icon: ICON_ANALYTICS, label: 'Analytics' },
                 ]},
+                { type: 'item', page: 'pricecoach', icon: ICON_PRICECOACH, label: 'Price Coach' },
                 { type: 'item', page: 'money', icon: ICON_INVESTMENTS, label: 'Investments' },
                 { type: 'section', id: 'content', icon: ICON_CONTENT_GROUP, label: 'Content', items: [
                     { page: 'content', icon: ICON_CONTENT, label: 'Content' },
@@ -7908,7 +8320,7 @@ const renderAdminClientDetail = async (uid) => {
                 </div>
             `;
 
-            const pageTitles = { hub:'Overview', implementation:'The Roadmap', dailyfive:'The Daily Five', businessReport:'Business Report', numbers:'Log Your Numbers', money:'Investments', criticalNumbers:'Critical Numbers', content:'Content Library', inspo:'Inspo Feed', social:'Social Profiles', progress:'Analytics', intelligence:'SCALO Intelligence', goals:'Your Goals', icp:'Your ICP', clients:'Your Clients', addClient:'Add New Client', crm:'Client CRM', clientDetail:'Client Detail' };
+            const pageTitles = { hub:'Overview', implementation:'The Roadmap', dailyfive:'The Daily Five', businessReport:'Business Report', numbers:'Log Your Numbers', money:'Investments', criticalNumbers:'Critical Numbers', pricecoach:'Price Coach', content:'Content Library', inspo:'Inspo Feed', social:'Social Profiles', progress:'Analytics', intelligence:'SCALO Intelligence', goals:'Your Goals', icp:'Your ICP', clients:'Your Clients', addClient:'Add New Client', crm:'Client CRM', clientDetail:'Client Detail' };
 
             let pageContent = '';
             try {
@@ -7928,6 +8340,7 @@ const renderAdminClientDetail = async (uid) => {
                     else if (currentPage === 'icp') pageContent = await renderClientICP();
                     else if (currentPage === 'goals') pageContent = await renderClientGoals();
                     else if (currentPage === 'dailyfive') pageContent = await renderClientDailyFive();
+                    else if (currentPage === 'pricecoach') pageContent = await renderClientPriceCoach();
                     else if (currentPage === 'content') pageContent = await renderClientContent();
                     else if (currentPage === 'inspo') pageContent = await renderClientInspo();
                     else if (currentPage === 'social') pageContent = await renderClientSocial();
