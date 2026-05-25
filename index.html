@@ -1162,22 +1162,37 @@
 
         @media (max-width: 640px) {
             .auth-left { display: none; }
-            .portal-sidebar { width: 58px; padding: 20px 8px; align-items: center; }
+            .portal-sidebar { width: 60px; padding: 20px 8px; align-items: center; overflow: hidden; }
             .sidebar-logo { margin-left: 0; margin-bottom: 16px; height: 14px; width: auto; }
             .sidebar-profile { padding: 0; background: none; border: none; margin-bottom: 18px; justify-content: center; }
             .sidebar-profile-text { display: none; }
             .sidebar-profile-avatar { width: 32px; height: 32px; font-size: 12px; }
             .sidebar-nav { flex: 0 !important; }
             .sidebar-nav-item { justify-content: center; padding: 10px; gap: 0; }
-            .sidebar-nav-item .nav-label { display: none; }
-            .sidebar-signout { justify-content: center; padding: 10px; gap: 0; flex-direction: column; margin-top: 24px; }
+            /* Hide ALL nav labels inside the sidebar — including section-header labels that
+               were leaking onto the main content because the existing rule only targeted
+               .sidebar-nav-item .nav-label (and section headers aren't nav-items). */
+            .portal-sidebar .nav-label { display: none; }
             .sidebar-signout .nav-label { display: block !important; font-size: 7px; letter-spacing: 0.05em; text-transform: uppercase; margin-top: 2px; }
-            .portal-content-area { padding: 20px 12px; }
+            /* Section headers behave like nav-item icons on mobile */
+            .sidebar-section-header { justify-content: center; padding: 10px; gap: 0; }
+            .sidebar-section-chevron { display: none; }
+            /* Always expand sections on mobile so sub-item icons stay reachable */
+            .sidebar-section .sidebar-section-items { max-height: none !important; overflow: visible !important; }
+            .sidebar-nav-item.sub { padding: 9px 10px !important; justify-content: center; gap: 0; }
+            .sidebar-nav-item.sub.active { padding-left: 10px !important; }
+            .sidebar-signout { justify-content: center; padding: 10px; gap: 0; flex-direction: column; margin-top: 24px; }
+            /* More breathing room in the main content column */
+            .portal-content-area { padding: 22px 16px; }
             .card-grid { grid-template-columns: repeat(2, 1fr) !important; }
             .client-grid { grid-template-columns: 1fr; }
-            .card { padding: 16px 14px; }
+            .card { padding: 18px 16px; }
             .metric-card { padding: 14px 10px; }
             .mobile-grid-2 { grid-template-columns: repeat(2, 1fr) !important; }
+            /* Stack the hub investments tile row — 3-across is too cramped on a phone.
+               !important because the row uses inline grid-template-columns. */
+            .hub-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
+            .hub-tile { padding: 14px 16px !important; }
             .donut-canvas { width: 64px !important; height: 64px !important; }
             .form-input { font-size: 13px; padding: 10px 12px; max-width: 100%; }
             input[type="week"] { -webkit-appearance: none; max-width: 100%; width: 100% !important; }
@@ -2931,7 +2946,7 @@
                         <div class="hub-tile" style="cursor:pointer;">
                             <div class="hub-tile-label">Pots</div>
                             <div class="hub-tile-value">${hubActivePots.length}<span style="font-size:13px;color:rgba(255,255,255,0.45);font-weight:600;"> active</span></div>
-                            <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:6px;">${hubPausedPots.length > 0 ? hubPausedPots.length + ' paused &middot; ' : ''}${hubGoalPct.toFixed(0)}% across all</div>
+                            <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:6px;">${hubPausedPots.length > 0 ? hubPausedPots.length + ' paused &middot; ' : ''}${hubTotalTarget > 0 ? hubGoalPct.toFixed(0) + '% to goals' : 'No targets yet'}</div>
                         </div>
                         <div class="hub-tile" style="cursor:pointer;">
                             <div class="hub-tile-label">Total invested</div>
