@@ -8582,9 +8582,11 @@ const renderAdminClientDetail = async (uid) => {
                             <span class="nav-label">${sub.label}</span>
                         </button>
                     `).join('');
+                    const firstPage = (entry.items[0] && entry.items[0].page) || '';
+                    const subPagesCsv = entry.items.map(it => it.page).join(',');
                     return `
                         <div class="sidebar-section ${expanded ? 'expanded' : ''}" data-id="${entry.id}">
-                            <button class="sidebar-section-header ${hasActive ? 'has-active' : ''}" onclick="toggleSidebarSection('${entry.id}')">
+                            <button class="sidebar-section-header ${hasActive ? 'has-active' : ''}" onclick="enterSidebarSection('${entry.id}','${firstPage}','${subPagesCsv}')">
                                 <span class="sidebar-nav-icon">${entry.icon}</span>
                                 <span class="nav-label">${entry.label}</span>
                                 <span class="sidebar-section-chevron">&#9656;</span>
@@ -8822,6 +8824,20 @@ const renderAdminClientDetail = async (uid) => {
                 sidebarSectionToggles[sectionId] = !wasExpanded;
             }
             render();
+        };
+
+        // Tap a section header → open the dropdown AND navigate to its first sub-item, so the
+        // main content actually changes (otherwise mobile users — who can't see the section
+        // label — think nothing happened). If the user is already viewing any sub-item of this
+        // section, just keep the dropdown open and leave them where they are.
+        window.enterSidebarSection = (sectionId, firstPage, subPagesCsv) => {
+            sidebarSectionToggles[sectionId] = true;
+            const subPages = (subPagesCsv || '').split(',').filter(Boolean);
+            if (subPages.includes(currentPage)) {
+                render();
+            } else {
+                setPage(firstPage);
+            }
         };
         window.handleRefreshContent = async () => {
             const btn = document.getElementById('refreshContentBtn');
