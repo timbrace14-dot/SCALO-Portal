@@ -1832,6 +1832,94 @@
         .money-setup-label { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.55); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
         .money-setup-help { font-size: 12px; color: rgba(255,255,255,0.45); font-weight: 400; line-height: 1.5; margin-bottom: 10px; }
 
+        /* Weekly/Monthly toggle inside the pot form */
+        .pot-unit-btn {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.65);
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .pot-unit-btn:hover { background: rgba(255,255,255,0.07); color: #fff; }
+        .pot-unit-btn.active {
+            background: var(--accent);
+            color: #0f0f0f;
+            border-color: var(--accent);
+        }
+
+        /* Pot card on the money dashboard */
+        .pot-card {
+            background: #0f0f0f;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 18px 20px;
+            margin-bottom: 14px;
+        }
+        .pot-card.paused {
+            opacity: 0.65;
+            border-style: dashed;
+            border-color: rgba(255,255,255,0.12);
+        }
+        .pot-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+        .pot-card-title-row { flex: 1; min-width: 0; }
+        .pot-card-title { font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -0.01em; }
+        .pot-card-sub { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 3px; font-weight: 500; }
+        .pot-card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .pot-icon-btn {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.55);
+            width: 30px; height: 30px;
+            border-radius: 8px;
+            display: inline-flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: all 0.18s;
+            padding: 0;
+        }
+        .pot-icon-btn:hover { background: rgba(255,255,255,0.09); color: #fff; }
+        .pot-icon-btn.danger:hover { background: rgba(255,69,51,0.12); color: #FF4533; border-color: rgba(255,69,51,0.3); }
+        .pot-paused-pill {
+            display: inline-block;
+            font-size: 9px;
+            font-weight: 800;
+            color: #FBBF24;
+            background: rgba(251,191,36,0.12);
+            border: 1px solid rgba(251,191,36,0.3);
+            padding: 2px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        .pot-add-card {
+            background: transparent;
+            border: 1.5px dashed rgba(184,233,134,0.3);
+            border-radius: 14px;
+            padding: 18px;
+            margin-bottom: 16px;
+            text-align: center;
+            cursor: pointer;
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 700;
+            transition: all 0.2s;
+        }
+        .pot-add-card:hover { background: rgba(184,233,134,0.06); border-color: rgba(184,233,134,0.5); }
+        .pot-log-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .pot-log-input {
+            flex: 1;
+            min-width: 100px;
+            max-width: 160px;
+            margin-bottom: 0 !important;
+        }
+
         /* Profit First inline card on Numbers page */
         .pf-card {
             background: linear-gradient(135deg, rgba(184,233,134,0.06) 0%, rgba(184,233,134,0.02) 100%);
@@ -2705,25 +2793,28 @@
             const showOccupancyAlert = lmWeeksLogged > 0 && lmOccupancy >= 80 && !sessionStorage.getItem('dismissedOccupancyAlert');
 
             // ── Money: nudge if numbers logged this week but transfer not ticked ──
-            const hubSavingsSetup = (hubSavings.settings && hubSavings.settings.setupComplete) === true && Number(hubSavings.settings.weeklyTarget) > 0;
+            // ── Multi-pot savings: aggregate across active pots, check this-week transfer nudge ──
+            const hubActivePots = getActivePots(hubSavings);
+            const hubPausedPots = getPausedPots(hubSavings);
+            const hubAllPots = hubActivePots.concat(hubPausedPots);
+            const hubSavingsSetup = hubAllPots.length > 0;
             const hubCurrentWeekKey = getWeekKey();
             const hubCurrentWeekEntry = getWeeklyTotals(entries[hubCurrentWeekKey] || {}, hubCurrentWeekKey);
             const hubLoggedThisWeek = (hubCurrentWeekEntry.revenue || 0) > 0;
-            const hubTransferDone = !!(hubSavings.transfers && hubSavings.transfers[hubCurrentWeekKey]);
-            const hubWeeklyTarget = Number(hubSavings.settings && hubSavings.settings.weeklyTarget) || 0;
-            const hubExpectedTransfer = hubWeeklyTarget;
-            const showTransferNudge = hubSavingsSetup && hubLoggedThisWeek && !hubTransferDone && hubWeeklyTarget > 0;
+            // Weekly nudge fires only if there are weekly active pots with at least one not yet logged
+            const hubWeeklyActivePots = hubActivePots.filter(p => p.contributionUnit !== 'monthly');
+            const hubWeeklyPotsPending = hubWeeklyActivePots.filter(p => !getPotTransfers(hubSavings, p.id)[hubCurrentWeekKey]);
+            const hubWeeklyTargetPending = hubWeeklyPotsPending.reduce((s, p) => s + (Number(p.contribution) || 0), 0);
+            const showTransferNudge = hubSavingsSetup && hubLoggedThisWeek && hubWeeklyPotsPending.length > 0 && hubWeeklyTargetPending > 0;
+            const hubAggregateWeekly = totalWeeklyTargetActive(hubSavings);
 
-            // ── Investments summary (uses helpers from Money module) ──
-            const hubTotalSaved = totalSaved(hubSavings);
+            // ── Investments summary tiles ──
+            const hubTotalSaved = totalSavedAcrossPots(hubSavings);
             const hubTotalInvested = totalInvested(hubInvestments);
             const hubCombinedWealth = hubTotalSaved + hubTotalInvested;
-            const hubSavingsGoal = (hubSavings && hubSavings.goal) || {};
-            const hubGoalAmount = Number(hubSavingsGoal.targetAmount) || 0;
-            const hubGoalPct = hubGoalAmount > 0 ? Math.min(100, (hubTotalSaved / hubGoalAmount) * 100) : 0;
-            const hubWeeksToGoal = weeksToGoal(hubGoalAmount, hubWeeklyTarget, hubTotalSaved);
-            const hubGoalLabel = hubSavingsGoal.label || 'Savings goal';
-            const showInvestmentsSummary = hubSavingsSetup; // only show if they've set up
+            const hubTotalTarget = hubAllPots.reduce((s, p) => s + (Number(p.target) || 0), 0);
+            const hubGoalPct = hubTotalTarget > 0 ? Math.min(100, (hubTotalSaved / hubTotalTarget) * 100) : 0;
+            const showInvestmentsSummary = hubSavingsSetup;
 
             hubChartData = { trueMargin, occupancy, rebook, allTrueProfitMargin, allOccupancy, allRebook, revenue, expenses, lossOfEarnings, trueProfit, noShows, avgTicket, appointmentsAvailable: currentEntry.appointmentsAvailable||0, appointmentsFilled: currentEntry.appointmentsFilled||0, rebookings: currentEntry.rebookings||0 };
 
@@ -2793,7 +2884,7 @@
                     <!-- WEEKLY TRANSFER NUDGE -->
                     <div class="money-overview-banner" onclick="setPage('numbers')">
                         <div style="font-size:20px;flex-shrink:0;">💰</div>
-                        <div class="money-overview-banner-text">You logged numbers this week — don't forget your <strong>${formatMoney(hubExpectedTransfer)}</strong> savings target.</div>
+                        <div class="money-overview-banner-text">You logged numbers this week — don't forget your <strong>${formatMoney(hubWeeklyTargetPending)}</strong> ${hubWeeklyPotsPending.length === 1 ? 'transfer to ' + (hubWeeklyPotsPending[0].label || 'your pot').replace(/</g, '&lt;') : 'across ' + hubWeeklyPotsPending.length + ' pots'}.</div>
                         <span style="font-size:12px;color:#FBBF24;font-weight:700;">Open &rarr;</span>
                     </div>` : ''}
 
@@ -2835,12 +2926,12 @@
                         <div class="hub-tile" style="cursor:pointer;">
                             <div class="hub-tile-label">Total saved</div>
                             <div class="hub-tile-value" data-countup="${Math.round(hubTotalSaved)}" data-countup-prefix="${currencySymbol()}">${formatMoney(hubTotalSaved)}</div>
-                            <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:6px;">${formatMoney(hubWeeklyTarget)}/week target</div>
+                            <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:6px;">${hubAggregateWeekly > 0 ? formatMoney(hubAggregateWeekly) + '/wk active' : 'No active rate'}</div>
                         </div>
                         <div class="hub-tile" style="cursor:pointer;">
-                            <div class="hub-tile-label">Time to goal</div>
-                            <div class="hub-tile-value">${(() => { if (!isFinite(hubWeeksToGoal)) return '—'; if (hubWeeksToGoal === 0) return 'Hit'; if (hubWeeksToGoal < 8) return hubWeeksToGoal + ' wks'; if (hubWeeksToGoal < 78) return Math.round(hubWeeksToGoal/4.345) + ' mo'; return (hubWeeksToGoal/52).toFixed(1) + ' yrs'; })()}</div>
-                            <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:6px;">${hubGoalLabel.length > 24 ? hubGoalLabel.slice(0,24)+'…' : hubGoalLabel} &middot; ${hubGoalPct.toFixed(0)}%</div>
+                            <div class="hub-tile-label">Pots</div>
+                            <div class="hub-tile-value">${hubActivePots.length}<span style="font-size:13px;color:rgba(255,255,255,0.45);font-weight:600;"> active</span></div>
+                            <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:6px;">${hubPausedPots.length > 0 ? hubPausedPots.length + ' paused &middot; ' : ''}${hubGoalPct.toFixed(0)}% across all</div>
                         </div>
                         <div class="hub-tile" style="cursor:pointer;">
                             <div class="hub-tile-label">Total invested</div>
@@ -3731,7 +3822,7 @@
                         <div style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.7;">
                             Every day for 90 days, you tick 5 boxes:<br>
                             <strong style="color:#fff;">post a piece of content · 3 CTA stories · log your numbers · follow up with 5 rebook-due clients · 20 min of a Roadmap step</strong>.<br>
-                            How strict you want to be is your call. Pick a mode below — once you start, you can level up to a harder mode any time, but you can't downgrade.
+                            How strict you want to be is your call. Pick a mode below — you can switch difficulty any time (up or down) and your progress comes with you.
                         </div>
                     </div>
 
@@ -3781,8 +3872,8 @@
                 return `<div title="Day ${i+1} · ${dateStr}" style="aspect-ratio:1/1;background:${bg};border:1.5px solid ${border};border-radius:3px;"></div>`;
             }).join('');
 
-            // Mode controls — upgrade buttons (no downgrade)
-            const otherModes = Object.keys(DF_MODES).filter(k => k !== df.mode && DF_MODE_RANK[k] > DF_MODE_RANK[df.mode]);
+            // Mode controls — both upgrade and downgrade are now allowed; progress is preserved either way
+            const upgradeModes = Object.keys(DF_MODES).filter(k => k !== df.mode && DF_MODE_RANK[k] > DF_MODE_RANK[df.mode]);
             const downgradeModes = Object.keys(DF_MODES).filter(k => k !== df.mode && DF_MODE_RANK[k] < DF_MODE_RANK[df.mode]);
 
             return `
@@ -3793,8 +3884,11 @@
                     ${stats.failed ? `
                     <div style="background:linear-gradient(135deg,#1a0808,#1a1208);border:1px solid rgba(255,69,51,0.4);border-radius:14px;padding:18px 20px;margin-bottom:18px;">
                         <div style="font-size:13px;font-weight:800;color:#FF4533;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;">Challenge ended</div>
-                        <div style="font-size:13px;color:rgba(255,255,255,0.75);line-height:1.6;margin-bottom:12px;">You didn't hit all 5 boxes on a day — your ${mode.label.toLowerCase()} run is over. Ready to go again? You'll start day 1 fresh. Discipline is built one rep at a time.</div>
-                        <button onclick="dfRestart()" style="background:${ACCENT};color:#000;border:none;padding:10px 20px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:0.04em;text-transform:uppercase;">Start over &rarr;</button>
+                        <div style="font-size:13px;color:rgba(255,255,255,0.75);line-height:1.6;margin-bottom:12px;">You didn't hit all 5 boxes on a day &mdash; your ${mode.label.toLowerCase()} run is over. Switch to a kinder mode below to keep your completed days, or restart fresh from day 1.</div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            ${downgradeModes.length > 0 ? `<button onclick="dfChangeMode('${downgradeModes[downgradeModes.length - 1]}')" style="background:${ACCENT};color:#000;border:none;padding:10px 20px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:0.04em;text-transform:uppercase;">Switch to ${DF_MODES[downgradeModes[downgradeModes.length - 1]].short} &rarr;</button>` : ''}
+                            <button onclick="dfRestart()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.2);padding:10px 20px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:0.04em;text-transform:uppercase;">Restart from day 1</button>
+                        </div>
                     </div>` : ''}
 
                     ${challengeComplete && !stats.failed ? `
@@ -3847,12 +3941,12 @@
                         </div>
                     </div>
 
-                    <!-- Mode controls -->
+                    <!-- Mode controls — both directions allowed, progress preserved -->
                     <div style="background:#0f0f0f;border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:18px;margin-bottom:24px;">
                         <div style="font-size:12px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-bottom:8px;">Difficulty</div>
-                        <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.6;margin-bottom:14px;">You're locked in to <strong style="color:#fff;">${mode.label}</strong>. ${otherModes.length > 0 ? 'You can level up to a harder mode (resets your day count to 1).' : 'You\'re already on the hardest mode — eat up.'}</div>
-                        ${otherModes.length > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:8px;">${otherModes.map(k => `<button onclick="dfUpgrade('${k}')" style="background:transparent;border:1px solid rgba(255,69,51,0.4);color:#FF4533;padding:8px 14px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:0.05em;text-transform:uppercase;">Level up to ${DF_MODES[k].short} &rarr;</button>`).join('')}</div>` : ''}
-                        ${downgradeModes.length > 0 ? `<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;">${downgradeModes.map(k => `<button onclick="dfBlockDowngrade()" style="background:transparent;border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.35);padding:8px 14px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:0.02em;">Drop to ${DF_MODES[k].short}</button>`).join('')}</div>` : ''}
+                        <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.6;margin-bottom:14px;">You're on <strong style="color:#fff;">${mode.label}</strong>. Switching modes keeps every day you've completed &mdash; only the rules going forward change.</div>
+                        ${upgradeModes.length > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:8px;">${upgradeModes.map(k => `<button onclick="dfChangeMode('${k}')" style="background:transparent;border:1px solid rgba(255,69,51,0.4);color:#FF4533;padding:8px 14px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:0.05em;text-transform:uppercase;">Level up to ${DF_MODES[k].short} &rarr;</button>`).join('')}</div>` : ''}
+                        ${downgradeModes.length > 0 ? `<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;">${downgradeModes.map(k => `<button onclick="dfChangeMode('${k}')" style="background:transparent;border:1px solid rgba(184,233,134,0.4);color:var(--accent);padding:8px 14px;border-radius:8px;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:0.05em;text-transform:uppercase;">Switch to ${DF_MODES[k].short}</button>`).join('')}</div>` : ''}
                     </div>
                 </div>
             `;
@@ -3884,23 +3978,42 @@
             } catch (err) { toast.error('Could not save: ' + err.message); }
         };
 
-        window.dfUpgrade = async (newMode) => {
+        // Change difficulty in either direction. Progress (startDate + completed days) is preserved
+        // — only the rules going forward change. df_computeStats re-derives "failed" from the new mode.
+        window.dfChangeMode = async (newMode) => {
             if (!DF_MODES[newMode]) return;
-            if (!confirm(`Level up to ${DF_MODES[newMode].label}? Your day count resets to 1.`)) return;
-            const today = df_iso(new Date());
+            const snap = await db.ref(`portal/dailyfive/${currentUser.uid}`).once('value');
+            const cur = snap.val() || {};
+            if (cur.mode === newMode) return;
+            const goingHarder = DF_MODE_RANK[newMode] > DF_MODE_RANK[cur.mode];
+            const message = goingHarder
+                ? `Switching to ${DF_MODES[newMode].label} keeps your ${cur.startDate ? 'day count and ' : ''}completed days. The stricter rule kicks in from today — miss a day now and ${newMode === 'hard' ? 'your run ends' : 'a strike is used'}.`
+                : `Switching to ${DF_MODES[newMode].label} keeps every day you've completed. The relaxed rule applies retroactively — any previous misses stop counting against you.`;
+            const ok = await confirmAsync({
+                title: `Switch to ${DF_MODES[newMode].label}?`,
+                message,
+                confirmLabel: 'Switch mode',
+                cancelLabel: 'Stay',
+            });
+            if (!ok) return;
             try {
-                await db.ref(`portal/dailyfive/${currentUser.uid}`).set({
-                    startDate: today,
-                    mode: newMode,
-                    days: {},
-                });
-                toast.success(`Locked in to ${DF_MODES[newMode].label}. Day 1.`);
+                await db.ref(`portal/dailyfive/${currentUser.uid}/mode`).set(newMode);
+                toast.success(`Now on ${DF_MODES[newMode].label}.`);
                 setPage('dailyfive');
             } catch (err) { toast.error('Could not save: ' + err.message); }
         };
 
+        // Back-compat alias — older inline onclicks may still call dfUpgrade
+        window.dfUpgrade = window.dfChangeMode;
+
         window.dfRestart = async () => {
-            if (!confirm('Restart The Daily Five Challenge from day 1?')) return;
+            const ok = await confirmAsync({
+                title: 'Restart from day 1?',
+                message: 'This wipes every day you\'ve completed. Use this only if you genuinely want a fresh 90-day run.',
+                confirmLabel: 'Restart',
+                danger: true,
+            });
+            if (!ok) return;
             const today = df_iso(new Date());
             try {
                 const snap = await db.ref(`portal/dailyfive/${currentUser.uid}`).once('value');
@@ -3913,26 +4026,6 @@
                 toast.success('Restarted. Day 1.');
                 setPage('dailyfive');
             } catch (err) { toast.error('Could not save: ' + err.message); }
-        };
-
-        // Motivational interrupt when student tries to drop to an easier mode
-        window.dfBlockDowngrade = () => {
-            const existing = document.getElementById('dfDowngradeModal');
-            if (existing) existing.remove();
-            const modal = document.createElement('div');
-            modal.id = 'dfDowngradeModal';
-            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:2000;display:flex;align-items:center;justify-content:center;padding:24px;';
-            modal.innerHTML = `
-                <div style="background:linear-gradient(135deg,#1a1308,#1a1508);border:1px solid rgba(245,200,66,0.45);border-radius:18px;padding:36px 32px;max-width:440px;width:100%;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,0.6);">
-                    <div style="font-size:48px;margin-bottom:14px;">🔒</div>
-                    <div style="font-size:18px;font-weight:900;color:#f5c842;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:18px;">Lock in.</div>
-                    <div style="font-size:14px;color:rgba(255,255,255,0.85);line-height:1.75;margin-bottom:28px;">No, you chose this. You can do it. You're just having a hard day. There's always tomorrow. Lock in for the rest of today and just get through it.</div>
-                    <button onclick="document.getElementById('dfDowngradeModal').remove()" style="background:#f5c842;color:#0f0f0f;border:none;padding:12px 36px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:900;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;">I'm staying in</button>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            // Click outside the inner card to dismiss
-            modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
         };
 
         // ── PRICE COACH ──
@@ -4563,52 +4656,59 @@
             const workingDayCount = 7 - leaveCount;
             const isOldFormat = !isDailyFormat(data) && Object.keys(data).length > 0 && (data.revenue || data.appointmentsFilled);
 
-            // ── Savings card: surface this week's savings target ──
-            const pfSettings = savings.settings || {};
-            const pfTransfers = savings.transfers || {};
-            const pfWeeklyTarget = Number(pfSettings.weeklyTarget) || 0;
+            // ── Savings card: one row per active pot, prefilled with each pot's contribution ──
+            const pfActivePots = getActivePots(savings);
             const pfRevenue = (getWeeklyTotals(data, selectedWeekKey).revenue) || 0;
-            const pfThisWeekTransfer = pfTransfers[selectedWeekKey] || null;
             let pfCardHtml = '';
-            if (!pfSettings.setupComplete || !pfWeeklyTarget) {
+            if (pfActivePots.length === 0) {
                 if (pfRevenue > 0) {
                     pfCardHtml = `<div class="pf-card" style="margin-top:8px;">
                         <div class="pf-head">
                             <div class="pf-head-icon">${IC.chart}</div>
                             <div class="pf-head-text">Want to start saving toward a goal?</div>
                         </div>
-                        <div style="font-size:12px;color:rgba(255,255,255,0.55);margin-bottom:12px;line-height:1.5;">Pick a goal, choose what you can save each week, and we'll calculate how long it takes to hit it.</div>
+                        <div style="font-size:12px;color:rgba(255,255,255,0.55);margin-bottom:12px;line-height:1.5;">Set up a savings pot &mdash; house deposit, holiday, investment ISA, anything &mdash; and we'll prompt you here every week.</div>
                         <button class="money-btn-primary" onclick="setPage('money')">Set up savings &rarr;</button>
                     </div>`;
                 }
             } else {
-                if (pfThisWeekTransfer) {
-                    pfCardHtml = `<div class="pf-card done" style="margin-top:8px;">
-                        <div class="pf-head">
-                            <div class="pf-head-icon" style="background:rgba(74,222,128,0.18);color:#4ADE80;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5L6.5 12L13 4"/></svg></div>
-                            <div class="pf-head-text">${formatMoney(pfThisWeekTransfer.amount)} saved for this week</div>
+                const sym = currencySymbol();
+                const potRows = pfActivePots.map(pot => {
+                    const periodK = currentPeriodKey(pot);
+                    const transfers = getPotTransfers(savings, pot.id);
+                    const logged = transfers[periodK];
+                    const safeLabel = (pot.label || 'Savings pot').replace(/</g, '&lt;');
+                    const isMonthly = pot.contributionUnit === 'monthly';
+                    const cadence = isMonthly ? 'month' : 'week';
+                    if (logged) {
+                        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.22);border-radius:10px;margin-bottom:8px;flex-wrap:wrap;">
+                            <span style="font-size:12px;color:#4ADE80;font-weight:800;flex:1;min-width:0;">&check; ${safeLabel} &middot; ${formatMoney(logged.amount)} this ${cadence}</span>
+                            <button class="money-btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="editPotTransfer('${pot.id}','${periodK}')">Edit</button>
+                        </div>`;
+                    }
+                    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;margin-bottom:8px;flex-wrap:wrap;">
+                        <div style="flex:1;min-width:120px;">
+                            <div style="font-size:13px;font-weight:700;color:#fff;">${safeLabel}</div>
+                            <div style="font-size:11px;color:rgba(255,255,255,0.45);">${formatMoney(pot.contribution)}/${cadence} target</div>
                         </div>
-                        <div class="money-cta-row">
-                            <button class="money-btn-ghost" onclick="editWeeklyTransfer('${selectedWeekKey}')">Edit amount</button>
-                            <button class="money-btn-ghost" onclick="setPage('money')">View Investments &rarr;</button>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span style="font-size:14px;font-weight:700;color:rgba(255,255,255,0.45);">${sym}</span>
+                            <input type="number" id="potLogAmount_${pot.id}" min="0" step="1" value="${Math.round(pot.contribution)}" class="form-input" style="font-weight:700;font-size:14px;max-width:90px;margin-bottom:0;padding:6px 8px;">
+                            <button class="money-btn-primary" style="font-size:12px;padding:7px 12px;" onclick="logForPot('${pot.id}','${periodK}')">Log &check;</button>
                         </div>
                     </div>`;
-                } else {
-                    pfCardHtml = `<div class="pf-card" style="margin-top:8px;">
-                        <div class="pf-head">
-                            <div class="pf-head-icon">${IC.chart}</div>
-                            <div class="pf-head-text">This week's savings target: ${formatMoney(pfWeeklyTarget)}</div>
-                        </div>
-                        <div style="font-size:12px;color:rgba(255,255,255,0.55);margin-bottom:14px;line-height:1.5;">How much did you actually put aside this week? Pre-filled with your target &mdash; edit if you saved more or less.</div>
-                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-                            <span style="font-size:18px;font-weight:700;color:rgba(255,255,255,0.45);">&pound;</span>
-                            <input type="number" id="pfWeeklyAmount" min="0" step="1" value="${pfWeeklyTarget}" class="form-input" style="font-weight:700;font-size:16px;max-width:200px;margin-bottom:0;">
-                        </div>
-                        <div class="money-cta-row">
-                            <button class="money-btn-primary" onclick="logWeeklySaving('${selectedWeekKey}')">Log it &check;</button>
-                        </div>
-                    </div>`;
-                }
+                }).join('');
+                const allDone = pfActivePots.every(p => getPotTransfers(savings, p.id)[currentPeriodKey(p)]);
+                pfCardHtml = `<div class="pf-card ${allDone ? 'done' : ''}" style="margin-top:8px;">
+                    <div class="pf-head">
+                        <div class="pf-head-icon" style="${allDone ? 'background:rgba(74,222,128,0.18);color:#4ADE80;' : ''}">${allDone ? '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5L6.5 12L13 4"/></svg>' : IC.chart}</div>
+                        <div class="pf-head-text">${allDone ? 'All pots topped up' : 'Log this period’s transfers'}</div>
+                    </div>
+                    ${potRows}
+                    <div class="money-cta-row" style="margin-top:6px;">
+                        <button class="money-btn-ghost" onclick="setPage('money')">View Investments &rarr;</button>
+                    </div>
+                </div>`;
             }
 
             const totalsRow = `<div class="card" style="margin-top:8px;margin-bottom:16px;background:#0f0f0f;border:1.5px solid ${ACCENT_RGBA}0.2);">
@@ -6918,7 +7018,8 @@ const renderAdminClientDetail = async (uid) => {
 
 
         // ── MONEY: SAVINGS + INVESTMENTS ──
-        // Savings = structured % of weekly revenue (Profit First). Auto-calculated, one-tap to confirm transfer.
+        // Savings = one or more "pots" (house deposit, holiday, ISA, etc.). Each pot has its own
+        //   target, contribution rate (weekly or monthly), pause state, and transfer history.
         // Investments = free-form ledger. Manual entries with optional category (Stocks/Crypto/Business).
 
         const SAVINGS_DEFAULT_WEEKLY = 100;
@@ -7004,10 +7105,31 @@ const renderAdminClientDetail = async (uid) => {
             };
         };
 
-        // Sum saved across all transfers
-        const totalSaved = (savings) => {
-            const transfers = (savings && savings.transfers) || {};
-            return Object.values(transfers).reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+        // ── MULTI-POT HELPERS ──
+        // Each pot has: label, target, contribution, contributionUnit ('weekly'|'monthly'),
+        //   status ('active'|'paused'), startDate, createdAt.
+        // Transfers live at savings.transfers[potId][periodKey] — periodKey is a weekKey for
+        //   weekly pots ("2026_W17"), a monthKey for monthly pots ("2026-05").
+        // Backwards-compat: old single-goal users have savings.goal + flat savings.transfers[weekKey].
+        //   getPotsMap() synthesizes a "legacy_pot" from that data until migrateLegacyIfNeeded()
+        //   writes the new shape on first dashboard render.
+
+        const WEEKS_PER_MONTH = 4.345;
+
+        const weeklyEquivalent = (pot) => {
+            const c = Number(pot && pot.contribution) || 0;
+            return pot && pot.contributionUnit === 'monthly' ? c / WEEKS_PER_MONTH : c;
+        };
+
+        const monthlyEquivalent = (pot) => {
+            const c = Number(pot && pot.contribution) || 0;
+            return pot && pot.contributionUnit === 'monthly' ? c : c * WEEKS_PER_MONTH;
+        };
+
+        const formatContribution = (pot) => {
+            const amt = Number(pot && pot.contribution) || 0;
+            const unit = pot && pot.contributionUnit === 'monthly' ? 'mo' : 'wk';
+            return formatMoney(amt) + '/' + unit;
         };
 
         // Sum invested across all entries
@@ -7016,28 +7138,80 @@ const renderAdminClientDetail = async (uid) => {
             return Object.values(entries).reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
         };
 
-        // Streak = consecutive completed weeks ending at current week (or last week if current isn't done)
-        const computeStreak = (savings) => {
-            const transfers = (savings && savings.transfers) || {};
-            // Walk back from current week and count consecutive weeks with a transfer
-            let count = 0;
-            for (let offset = 0; offset >= -52; offset--) {
-                const wk = getOffsetWeekKey(offset);
-                if (transfers[wk]) count++;
-                else if (offset < 0) break;  // allow current week to be empty without breaking streak
-                else if (count > 0) break;
-                else continue;
+        // Returns { potId → pot }. If pots haven't been migrated, synthesizes one from the legacy goal.
+        const getPotsMap = (savings) => {
+            if (savings && savings.pots && Object.keys(savings.pots).length > 0) return savings.pots;
+            const legacyGoal = savings && savings.goal;
+            const legacyWeekly = Number(savings && savings.settings && savings.settings.weeklyTarget) || 0;
+            if (legacyGoal && legacyGoal.label) {
+                const today = new Date().toISOString().slice(0, 10);
+                return {
+                    legacy_pot: {
+                        label: legacyGoal.label,
+                        target: Number(legacyGoal.targetAmount) || 0,
+                        contribution: legacyWeekly,
+                        contributionUnit: 'weekly',
+                        status: 'active',
+                        startDate: legacyGoal.startDate || today,
+                        createdAt: legacyGoal.startDate ? legacyGoal.startDate + 'T00:00:00.000Z' : new Date().toISOString(),
+                    },
+                };
             }
-            return count;
+            return {};
         };
 
-        // Compute weeks to goal at a given weekly rate
-        const weeksToGoal = (targetAmount, weeklyRate, alreadySaved) => {
-            const remaining = Math.max(0, (targetAmount || 0) - (alreadySaved || 0));
-            if (remaining <= 0) return 0;
-            if (!weeklyRate || weeklyRate <= 0) return Infinity;
-            return Math.ceil(remaining / weeklyRate);
+        const getPotsArray = (savings) => {
+            const map = getPotsMap(savings);
+            return Object.entries(map).map(([id, pot]) => ({ id, ...pot }))
+                .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
         };
+        const getActivePots = (savings) => getPotsArray(savings).filter(p => p.status !== 'paused');
+        const getPausedPots = (savings) => getPotsArray(savings).filter(p => p.status === 'paused');
+
+        // Pot-specific transfer history. Falls back to flat legacy transfers when reading "legacy_pot".
+        const getPotTransfers = (savings, potId) => {
+            if (savings && savings.pots && Object.keys(savings.pots).length > 0) {
+                return (savings.transfers && savings.transfers[potId]) || {};
+            }
+            if (potId === 'legacy_pot') {
+                const flat = (savings && savings.transfers) || {};
+                const out = {};
+                Object.entries(flat).forEach(([k, v]) => {
+                    if (v && typeof v === 'object' && v.amount !== undefined) out[k] = v;
+                });
+                return out;
+            }
+            return {};
+        };
+
+        const savedForPot = (savings, potId) => {
+            const t = getPotTransfers(savings, potId);
+            return Object.values(t).reduce((sum, tr) => sum + (Number(tr.amount) || 0), 0);
+        };
+
+        const totalSavedAcrossPots = (savings) => {
+            return getPotsArray(savings).reduce((sum, p) => sum + savedForPot(savings, p.id), 0);
+        };
+
+        // Aggregate weekly savings rate across active pots (monthly pots normalized to weekly)
+        const totalWeeklyTargetActive = (savings) => {
+            return getActivePots(savings).reduce((sum, p) => sum + weeklyEquivalent(p), 0);
+        };
+
+        // Month-period key like "2026-05" — used for monthly-cadence pots
+        const getMonthKey = (d) => {
+            d = d || new Date();
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        };
+        const getOffsetMonthKey = (offset) => {
+            const d = new Date();
+            d.setDate(1);
+            d.setMonth(d.getMonth() + offset);
+            return getMonthKey(d);
+        };
+
+        const currentPeriodKey = (pot) => pot && pot.contributionUnit === 'monthly' ? getMonthKey() : getWeekKey();
+        const offsetPeriodKey = (pot, offset) => pot && pot.contributionUnit === 'monthly' ? getOffsetMonthKey(offset) : getOffsetWeekKey(offset);
 
         // Format a future date that's `weeks` weeks from now
         const futureDateLabel = (weeks) => {
@@ -7046,129 +7220,195 @@ const renderAdminClientDetail = async (uid) => {
             return d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
         };
 
-        // Pace: comparing actual weekly avg to their chosen weekly target
-        // Returns { state, label, weeksToGoal, weeklyTarget, avgRecent }
-        const computePace = (savings) => {
-            const settings = (savings && savings.settings) || {};
-            const goal = (savings && savings.goal) || {};
-            const weeklyTarget = Number(settings.weeklyTarget) || 0;
-            const saved = totalSaved(savings);
-            if (!goal.targetAmount) return { state: 'no-goal', label: 'No goal set', weeklyTarget };
-            const remaining = Math.max(0, goal.targetAmount - saved);
-            if (remaining === 0) return { state: 'achieved', label: 'Goal hit 🎉', weeklyTarget };
-
-            // Recent weekly average (last 4 weeks of logged savings)
-            const transfers = savings.transfers || {};
-            const recent = [];
-            for (let offset = -1; offset >= -4; offset--) {
-                const wk = getOffsetWeekKey(offset);
-                if (transfers[wk]) recent.push(Number(transfers[wk].amount) || 0);
-            }
-            const avgRecent = recent.length > 0 ? recent.reduce((a, b) => a + b, 0) / recent.length : 0;
-            const weeks = weeksToGoal(goal.targetAmount, weeklyTarget, saved);
-
-            let state, label;
-            if (avgRecent === 0 && recent.length === 0) {
-                state = 'no-goal';
-                label = weeklyTarget > 0 ? 'Start logging weeks' : 'Set a weekly target';
-            } else if (avgRecent >= weeklyTarget * 0.95) {
-                state = avgRecent > weeklyTarget * 1.1 ? 'ahead' : 'on-track';
-                label = state === 'ahead' ? 'Ahead of target' : 'On target';
-            } else {
-                state = 'behind';
-                const shortfall = weeklyTarget - avgRecent;
-                label = 'Behind by ' + formatMoney(shortfall) + '/wk';
-            }
-            return { state, label, weeksToGoal: weeks, weeklyTarget, avgRecent };
+        // Time to a pot's target in weeks at current contribution rate (monthly auto-normalized)
+        const weeksToPotGoal = (pot, alreadySaved) => {
+            const remaining = Math.max(0, (Number(pot.target) || 0) - (alreadySaved || 0));
+            if (remaining <= 0) return 0;
+            const weekly = weeklyEquivalent(pot);
+            if (weekly <= 0) return Infinity;
+            return Math.ceil(remaining / weekly);
         };
 
-        // Has the current week's transfer been logged?
-        const currentWeekTransferred = (savings) => {
-            const transfers = (savings && savings.transfers) || {};
-            return !!transfers[getWeekKey()];
+        // Streak for a single pot: consecutive completed periods ending at current (or last)
+        const streakForPot = (savings, pot) => {
+            const transfers = getPotTransfers(savings, pot.id);
+            const limit = pot.contributionUnit === 'monthly' ? 60 : 52;
+            let count = 0;
+            for (let offset = 0; offset >= -limit; offset--) {
+                const k = offsetPeriodKey(pot, offset);
+                if (transfers[k]) count++;
+                else if (offset < 0) break;
+                else if (count > 0) break;
+            }
+            return count;
+        };
+
+        // Pace per pot: recent avg vs contribution target
+        const paceForPot = (savings, pot) => {
+            const saved = savedForPot(savings, pot.id);
+            const target = Number(pot.target) || 0;
+            const contrib = Number(pot.contribution) || 0;
+            if (target <= 0) return { state: 'no-goal', label: 'No target set', avgRecent: 0 };
+            if (saved >= target) return { state: 'achieved', label: 'Goal hit 🎉', avgRecent: 0 };
+            const transfers = getPotTransfers(savings, pot.id);
+            const recent = [];
+            for (let offset = -1; offset >= -4; offset--) {
+                const k = offsetPeriodKey(pot, offset);
+                if (transfers[k]) recent.push(Number(transfers[k].amount) || 0);
+            }
+            const avg = recent.length ? recent.reduce((a, b) => a + b, 0) / recent.length : 0;
+            const unit = pot.contributionUnit === 'monthly' ? 'mo' : 'wk';
+            if (avg === 0 && recent.length === 0) {
+                return { state: 'no-goal', label: contrib > 0 ? 'Start logging' : 'Set a target', avgRecent: 0 };
+            }
+            if (avg >= contrib * 0.95) {
+                return { state: avg > contrib * 1.1 ? 'ahead' : 'on-track', label: avg > contrib * 1.1 ? 'Ahead of target' : 'On target', avgRecent: avg };
+            }
+            const shortfall = contrib - avg;
+            return { state: 'behind', label: 'Behind by ' + formatMoney(shortfall) + '/' + unit, avgRecent: avg };
+        };
+
+        // Has this period's transfer been logged for this pot?
+        const currentPeriodTransferred = (savings, pot) => {
+            const t = getPotTransfers(savings, pot.id);
+            return !!t[currentPeriodKey(pot)];
+        };
+
+        // Eager migration: on dashboard render, if pots don't exist but a legacy goal does,
+        // write the new shape and wipe legacy fields. Returns the post-migration savings object.
+        const migrateLegacyIfNeeded = async (uid, savings) => {
+            if (savings && savings.pots && Object.keys(savings.pots).length > 0) return savings;
+            const legacyGoal = savings && savings.goal;
+            if (!legacyGoal || !legacyGoal.label) return savings;
+            const legacyWeekly = Number(savings.settings && savings.settings.weeklyTarget) || 0;
+            const potId = db.ref('portal/savings/' + uid + '/pots').push().key;
+            const today = new Date().toISOString().slice(0, 10);
+            const newPot = {
+                label: legacyGoal.label,
+                target: Number(legacyGoal.targetAmount) || 0,
+                contribution: legacyWeekly,
+                contributionUnit: 'weekly',
+                status: 'active',
+                startDate: legacyGoal.startDate || today,
+                createdAt: legacyGoal.startDate ? legacyGoal.startDate + 'T00:00:00.000Z' : new Date().toISOString(),
+            };
+            const flat = (savings.transfers && typeof savings.transfers === 'object') ? savings.transfers : {};
+            const newTransfers = {};
+            Object.entries(flat).forEach(([k, v]) => {
+                if (v && typeof v === 'object' && v.amount !== undefined) newTransfers[k] = v;
+            });
+            const update = {};
+            update['pots/' + potId] = newPot;
+            update['transfers'] = { [potId]: newTransfers };
+            update['goal'] = null;
+            try {
+                await db.ref('portal/savings/' + uid).update(update);
+                const snap = await db.ref('portal/savings/' + uid).once('value');
+                return snap.val() || savings;
+            } catch (err) {
+                console.warn('Pot migration failed:', err.message);
+                return savings;
+            }
         };
 
         const renderClientMoney = async () => {
             const uid = currentUser.uid;
-            const data = await fetchMoneyData(uid);
-
-            const settings = data.savings.settings || {};
-            // Treat as setup only if both setupComplete AND a weekly target is set (handles old-model migration)
-            const isSetup = settings.setupComplete === true && Number(settings.weeklyTarget) > 0;
-
-            if (!isSetup) return renderClientMoneySetup(data);
+            let data = await fetchMoneyData(uid);
+            // Lazy one-time migration from the single-goal model to pots
+            data.savings = await migrateLegacyIfNeeded(uid, data.savings);
+            const hasPots = getPotsArray(data.savings).length > 0;
+            if (!hasPots) return renderClientMoneySetup(data);
             return renderClientMoneyDashboard(data);
         };
 
+        // Setup wizard — used the first time, when there are zero pots
         const renderClientMoneySetup = (data) => {
-            const existingWeekly = Number((data.savings && data.savings.settings && data.savings.settings.weeklyTarget)) || SAVINGS_DEFAULT_WEEKLY;
-            const existingGoal = (data.savings && data.savings.goal) || {};
-            const existingInvGoal = (data.investments && data.investments.goal) || {};
-            const existingTarget = Number(existingGoal.targetAmount) || 0;
             return `
                 <div>
-                    <h2 class="page-title">Set up your savings plan</h2>
-                    <p class="page-subtitle">Pick a goal, pick what you'll save each week, and we'll work out how long it takes.</p>
+                    <h2 class="page-title">Set up your first savings pot</h2>
+                    <p class="page-subtitle">A pot is one thing you're saving for &mdash; a house deposit, a holiday, an ISA. You can add more later and pause any of them whenever you like.</p>
 
                     <div class="money-setup-card">
-                        <div class="money-setup-section">
-                            <div class="money-setup-label">What are you saving for?</div>
-                            <div class="money-setup-help">Give your goal a name and the target amount.</div>
-                            <input type="text" id="moneySetupGoalLabel" class="form-input" placeholder="e.g. House deposit" value="${(existingGoal.label || '').replace(/"/g, '&quot;')}" style="margin-bottom:10px;">
-                            <input type="number" id="moneySetupGoalAmount" class="form-input" placeholder="Target amount (£)" value="${existingTarget || ''}" min="0" step="100" oninput="updateSavingsPreview()">
-                        </div>
-
-                        <div class="money-setup-section">
-                            <div class="money-setup-label">How much can you save each week?</div>
-                            <div class="money-setup-help">Pick an amount you can realistically put aside every week. You can change this any time.</div>
-                            <div style="display:flex;align-items:center;gap:10px;">
-                                <span style="font-size:18px;font-weight:700;color:rgba(255,255,255,0.45);">&pound;</span>
-                                <input type="number" id="moneySetupWeekly" min="0" step="10" value="${existingWeekly}" class="form-input" style="font-weight:700;font-size:18px;" oninput="updateSavingsPreview()">
-                                <span style="font-size:14px;color:rgba(255,255,255,0.55);">per week</span>
-                            </div>
-                        </div>
-
-                        <div class="money-setup-section">
-                            <div id="savingsPreview" style="background:rgba(184,233,134,0.06);border:1px solid rgba(184,233,134,0.2);border-radius:12px;padding:16px 18px;text-align:center;">
-                                <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">At this pace</div>
-                                <div id="savingsPreviewText" style="font-size:15px;color:#fff;font-weight:600;line-height:1.4;">Enter a goal and weekly amount to see the timeline</div>
-                            </div>
-                        </div>
-
-                        <div class="money-setup-section">
-                            <div class="money-setup-label">Investment goal &mdash; optional</div>
-                            <div class="money-setup-help">Separate from savings &mdash; for stocks, crypto or business reinvestment. Skip if you'd rather just track without a target.</div>
-                            <input type="text" id="moneySetupInvGoalLabel" class="form-input" placeholder="e.g. £100k portfolio (optional)" value="${(existingInvGoal.label || '').replace(/"/g, '&quot;')}" style="margin-bottom:10px;">
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                                <input type="number" id="moneySetupInvGoalAmount" class="form-input" placeholder="Target (£)" value="${existingInvGoal.targetAmount || ''}" min="0" step="1000">
-                                <input type="date" id="moneySetupInvGoalDate" class="form-input" value="${existingInvGoal.targetDate || ''}">
-                            </div>
-                        </div>
-
-                        <button class="money-btn-primary" onclick="saveMoneySetup()" style="width:100%;margin-top:8px;">Save and start tracking &rarr;</button>
+                        ${renderPotFormFields({ idPrefix: 'moneySetup', defaultUnit: 'weekly' })}
+                        <button class="money-btn-primary" onclick="saveFirstPot()" style="width:100%;margin-top:8px;">Save and start tracking &rarr;</button>
                     </div>
                 </div>
             `;
         };
 
-        // Live preview on the setup form
-        window.updateSavingsPreview = () => {
-            const target = parseFloat(document.getElementById('moneySetupGoalAmount').value);
-            const weekly = parseFloat(document.getElementById('moneySetupWeekly').value);
-            const previewEl = document.getElementById('savingsPreviewText');
+        // Shared form-fields block — used by the first-time setup AND by the add/edit pot modals
+        const renderPotFormFields = ({ idPrefix, defaults, defaultUnit }) => {
+            const d = defaults || {};
+            const unit = d.contributionUnit || defaultUnit || 'weekly';
+            const label = (d.label || '').replace(/"/g, '&quot;');
+            const target = Number(d.target) || '';
+            const contribution = Number(d.contribution) || (unit === 'monthly' ? 300 : SAVINGS_DEFAULT_WEEKLY);
+            return `
+                <div class="money-setup-section">
+                    <div class="money-setup-label">What is this pot for?</div>
+                    <div class="money-setup-help">Give it a name and the total you're aiming for.</div>
+                    <input type="text" id="${idPrefix}Label" class="form-input" placeholder="e.g. House deposit" value="${label}" style="margin-bottom:10px;">
+                    <input type="number" id="${idPrefix}Target" class="form-input" placeholder="Target amount (${currencySymbol()})" value="${target}" min="0" step="100" oninput="updatePotPreview('${idPrefix}')">
+                </div>
+
+                <div class="money-setup-section">
+                    <div class="money-setup-label">How often will you put money in?</div>
+                    <div class="money-setup-help">Weekly works well for steady savings; monthly fits most investments and standing orders.</div>
+                    <div style="display:flex;gap:8px;margin-bottom:12px;">
+                        <button type="button" id="${idPrefix}UnitWeekly" class="pot-unit-btn ${unit === 'weekly' ? 'active' : ''}" onclick="setPotUnit('${idPrefix}','weekly')" style="flex:1;">Weekly</button>
+                        <button type="button" id="${idPrefix}UnitMonthly" class="pot-unit-btn ${unit === 'monthly' ? 'active' : ''}" onclick="setPotUnit('${idPrefix}','monthly')" style="flex:1;">Monthly</button>
+                    </div>
+                    <input type="hidden" id="${idPrefix}Unit" value="${unit}">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:18px;font-weight:700;color:rgba(255,255,255,0.45);">${currencySymbol()}</span>
+                        <input type="number" id="${idPrefix}Contribution" min="0" step="10" value="${contribution}" class="form-input" style="font-weight:700;font-size:18px;" oninput="updatePotPreview('${idPrefix}')">
+                        <span id="${idPrefix}UnitLabel" style="font-size:14px;color:rgba(255,255,255,0.55);">per ${unit === 'monthly' ? 'month' : 'week'}</span>
+                    </div>
+                </div>
+
+                <div class="money-setup-section">
+                    <div id="${idPrefix}Preview" style="background:rgba(184,233,134,0.06);border:1px solid rgba(184,233,134,0.2);border-radius:12px;padding:16px 18px;text-align:center;">
+                        <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">At this pace</div>
+                        <div id="${idPrefix}PreviewText" style="font-size:15px;color:#fff;font-weight:600;line-height:1.4;">Enter a target and contribution to see the timeline</div>
+                    </div>
+                </div>
+            `;
+        };
+
+        // Toggle the weekly/monthly button group + sync the unit label and hidden input
+        window.setPotUnit = (idPrefix, unit) => {
+            const hidden = document.getElementById(idPrefix + 'Unit');
+            if (hidden) hidden.value = unit;
+            const wBtn = document.getElementById(idPrefix + 'UnitWeekly');
+            const mBtn = document.getElementById(idPrefix + 'UnitMonthly');
+            if (wBtn) wBtn.classList.toggle('active', unit === 'weekly');
+            if (mBtn) mBtn.classList.toggle('active', unit === 'monthly');
+            const unitLabel = document.getElementById(idPrefix + 'UnitLabel');
+            if (unitLabel) unitLabel.textContent = 'per ' + (unit === 'monthly' ? 'month' : 'week');
+            updatePotPreview(idPrefix);
+        };
+
+        // Live preview shared by setup wizard and add/edit modals
+        window.updatePotPreview = (idPrefix) => {
+            const target = parseFloat((document.getElementById(idPrefix + 'Target') || {}).value);
+            const contribution = parseFloat((document.getElementById(idPrefix + 'Contribution') || {}).value);
+            const unit = (document.getElementById(idPrefix + 'Unit') || {}).value || 'weekly';
+            const previewEl = document.getElementById(idPrefix + 'PreviewText');
             if (!previewEl) return;
-            if (isNaN(target) || target <= 0 || isNaN(weekly) || weekly <= 0) {
-                previewEl.textContent = 'Enter a goal and weekly amount to see the timeline';
+            if (isNaN(target) || target <= 0 || isNaN(contribution) || contribution <= 0) {
+                previewEl.textContent = 'Enter a target and contribution to see the timeline';
                 return;
             }
+            const weekly = unit === 'monthly' ? contribution / WEEKS_PER_MONTH : contribution;
             const weeks = Math.ceil(target / weekly);
-            const months = Math.round(weeks / 4.345);
+            const months = Math.round(weeks / WEEKS_PER_MONTH);
             const years = (weeks / 52).toFixed(1);
             const dateLabel = futureDateLabel(weeks);
             const timeLabel = weeks < 8 ? `${weeks} week${weeks === 1 ? '' : 's'}`
                 : weeks < 78 ? `${months} month${months === 1 ? '' : 's'}`
                 : `${years} years`;
-            previewEl.innerHTML = `Saving <strong>${formatMoney(weekly)}/week</strong>, you'll hit <strong>${formatMoney(target)}</strong> in <strong>${timeLabel}</strong> &mdash; ${dateLabel}`;
+            const cadence = unit === 'monthly' ? 'month' : 'week';
+            previewEl.innerHTML = `Saving <strong>${formatMoney(contribution)}/${cadence}</strong>, you'll hit <strong>${formatMoney(target)}</strong> in <strong>${timeLabel}</strong> &mdash; ${dateLabel}`;
         };
 
         // ── CRITICAL NUMBERS ──
@@ -7519,27 +7759,11 @@ const renderAdminClientDetail = async (uid) => {
         const renderClientMoneyDashboard = (data) => {
             const savings = data.savings;
             const investments = data.investments;
-            const settings = savings.settings || {};
-            const goal = savings.goal || {};
-            const invGoal = (investments && investments.goal) || null;
-            const saved = totalSaved(savings);
+            const activePots = getActivePots(savings);
+            const pausedPots = getPausedPots(savings);
+            const totalSaved = totalSavedAcrossPots(savings);
+            const aggregateWeekly = totalWeeklyTargetActive(savings);
             const invested = totalInvested(investments);
-            const wealth = saved + invested;
-            const streak = computeStreak(savings);
-            const pace = computePace(savings);
-            const weeklyTarget = Number(settings.weeklyTarget) || 0;
-
-            // Goal progress
-            const goalAmount = Number(goal.targetAmount) || 0;
-            const goalPct = goalAmount > 0 ? Math.min(100, (saved / goalAmount) * 100) : 0;
-
-            // Project remaining time at current weekly target
-            const weeksLeftAtTarget = weeksToGoal(goalAmount, weeklyTarget, saved);
-            const projectedDateLabel = futureDateLabel(weeksLeftAtTarget);
-
-            // Investment goal progress (optional)
-            const invGoalAmount = invGoal ? (Number(invGoal.targetAmount) || 0) : 0;
-            const invGoalPct = invGoalAmount > 0 ? Math.min(100, (invested / invGoalAmount) * 100) : 0;
 
             // Recent investments list (newest first, top 6)
             const invEntries = Object.entries(investments.entries || {})
@@ -7547,29 +7771,104 @@ const renderAdminClientDetail = async (uid) => {
                 .sort((a, b) => (b.date || b.createdAt || '').localeCompare(a.date || a.createdAt || ''))
                 .slice(0, 6);
 
-            const formatWeeks = (w) => {
+            const formatWeeksShort = (w) => {
                 if (!isFinite(w)) return '—';
-                if (w === 0) return 'Goal hit';
-                if (w < 8) return w + ' week' + (w === 1 ? '' : 's');
-                if (w < 78) return Math.round(w / 4.345) + ' months';
-                return (w / 52).toFixed(1) + ' years';
+                if (w === 0) return 'Hit';
+                if (w < 8) return w + ' wk' + (w === 1 ? '' : 's');
+                if (w < 78) return Math.round(w / WEEKS_PER_MONTH) + ' mo';
+                return (w / 52).toFixed(1) + ' yr';
             };
+
+            const renderPotCard = (pot, paused) => {
+                const saved = savedForPot(savings, pot.id);
+                const target = Number(pot.target) || 0;
+                const pct = target > 0 ? Math.min(100, (saved / target) * 100) : 0;
+                const weeksLeft = weeksToPotGoal(pot, saved);
+                const projected = futureDateLabel(weeksLeft);
+                const pace = paceForPot(savings, pot);
+                const streak = streakForPot(savings, pot);
+                const isMonthly = pot.contributionUnit === 'monthly';
+                const periodKey = currentPeriodKey(pot);
+                const transfers = getPotTransfers(savings, pot.id);
+                const logged = !!transfers[periodKey];
+                const safeLabel = (pot.label || 'Savings pot').replace(/</g, '&lt;');
+                const periodLabel = isMonthly ? 'this month' : 'this week';
+                const inputId = 'potLogAmount_' + pot.id;
+                return `
+                    <div class="pot-card ${paused ? 'paused' : ''}">
+                        <div class="pot-card-head">
+                            <div class="pot-card-title-row">
+                                <div class="pot-card-title">${safeLabel}${paused ? '<span class="pot-paused-pill">Paused</span>' : ''}</div>
+                                <div class="pot-card-sub">${formatMoney(target)} target &middot; ${formatContribution(pot)}${isMonthly ? ` <span style="color:rgba(255,255,255,0.35);">(≈${formatMoney(weeklyEquivalent(pot))}/wk)</span>` : ''}</div>
+                            </div>
+                            <div class="pot-card-actions">
+                                <button class="pot-icon-btn" title="${paused ? 'Resume' : 'Pause'}" onclick="togglePotPause('${pot.id}')">
+                                    ${paused
+                                        ? '<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M5 3l8 5-8 5z"/></svg>'
+                                        : '<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="3" width="3" height="10" rx="0.5"/><rect x="9" y="3" width="3" height="10" rx="0.5"/></svg>'}
+                                </button>
+                                <button class="pot-icon-btn" title="Edit pot" onclick="openEditPotModal('${pot.id}')">
+                                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 2.5l2 2L5 13H3v-2z"/></svg>
+                                </button>
+                                <button class="pot-icon-btn danger" title="Delete pot" onclick="deletePot('${pot.id}')">
+                                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h10M6 4V2.5h4V4M5 4l1 9.5h4L11 4"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+                            <span class="money-pace-pill ${pace.state}">${pace.label}</span>
+                            <span style="font-size:11px;color:rgba(255,255,255,0.45);font-weight:600;">${paused ? 'Resume to keep adding' : (weeksLeft > 0 && isFinite(weeksLeft) ? formatWeeksShort(weeksLeft) + ' &middot; ' + projected : '')}</span>
+                        </div>
+                        <div class="money-progress-track">
+                            <div class="money-progress-fill" data-progress="${pct}" style="width:0%;"></div>
+                        </div>
+                        <div class="money-progress-row">
+                            <span><strong>${formatMoney(saved)}</strong> saved</span>
+                            <span>${formatMoney(Math.max(0, target - saved))} to go</span>
+                        </div>
+                        ${streak > 0 ? `<div style="margin-top:10px;"><span class="money-streak-pill">🔥 ${streak} ${isMonthly ? 'month' : 'week'}${streak === 1 ? '' : 's'} in a row</span></div>` : ''}
+                        ${!paused ? (logged
+                            ? `<div style="margin-top:12px;padding:10px 12px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.25);border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                                <span style="font-size:12px;color:#4ADE80;font-weight:700;">&check; ${formatMoney(transfers[periodKey].amount)} logged for ${periodLabel}</span>
+                                <button class="money-btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="editPotTransfer('${pot.id}','${periodKey}')">Edit amount</button>
+                            </div>`
+                            : `<div class="pot-log-row">
+                                <span style="font-size:13px;color:rgba(255,255,255,0.55);font-weight:600;">Log for ${periodLabel}:</span>
+                                <span style="font-size:14px;font-weight:700;color:rgba(255,255,255,0.45);">${currencySymbol()}</span>
+                                <input type="number" id="${inputId}" class="form-input pot-log-input" min="0" step="1" value="${Math.round(pot.contribution)}">
+                                <button class="money-btn-primary" style="padding:8px 14px;font-size:12px;" onclick="logForPot('${pot.id}','${periodKey}')">Log it &check;</button>
+                            </div>`) : ''}
+                    </div>`;
+            };
+
+            const activePotsHtml = activePots.map(p => renderPotCard(p, false)).join('');
+            const pausedPotsHtml = pausedPots.length > 0
+                ? `<div style="margin-top:18px;">
+                    <div style="font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:10px;">Paused (${pausedPots.length})</div>
+                    ${pausedPots.map(p => renderPotCard(p, true)).join('')}
+                </div>`
+                : '';
+
+            // Standalone investments ledger (separate from pots)
+            const invGoal = (investments && investments.goal) || null;
+            const invGoalAmount = invGoal ? (Number(invGoal.targetAmount) || 0) : 0;
+            const invGoalPct = invGoalAmount > 0 ? Math.min(100, (invested / invGoalAmount) * 100) : 0;
 
             return `
                 <div>
                     <h2 class="page-title">Investments</h2>
-                    <p class="page-subtitle">Track what you save, what you invest, and how close you are to your goals.</p>
+                    <p class="page-subtitle">Track every pot you're saving toward, plus the standalone investments you log along the way.</p>
 
                     <div class="money-hero">
                         <div class="money-hero-card">
                             <div class="money-hero-label">Total saved</div>
-                            <div class="money-hero-value" data-countup="${Math.round(saved)}" data-countup-prefix="${currencySymbol()}">${formatMoney(saved)}</div>
-                            <div class="money-hero-sub">${formatMoney(weeklyTarget)}/week target</div>
+                            <div class="money-hero-value" data-countup="${Math.round(totalSaved)}" data-countup-prefix="${currencySymbol()}">${formatMoney(totalSaved)}</div>
+                            <div class="money-hero-sub">Across ${activePots.length} active pot${activePots.length === 1 ? '' : 's'}${pausedPots.length > 0 ? ` &middot; ${pausedPots.length} paused` : ''}</div>
                         </div>
                         <div class="money-hero-card">
-                            <div class="money-hero-label">Time to goal</div>
-                            <div class="money-hero-value">${formatWeeks(weeksLeftAtTarget)}</div>
-                            <div class="money-hero-sub">${weeksLeftAtTarget > 0 && isFinite(weeksLeftAtTarget) ? 'at ' + formatMoney(weeklyTarget) + '/week &mdash; ' + projectedDateLabel : ''}</div>
+                            <div class="money-hero-label">Weekly rate</div>
+                            <div class="money-hero-value">${aggregateWeekly > 0 ? formatMoney(aggregateWeekly) : '—'}</div>
+                            <div class="money-hero-sub">${aggregateWeekly > 0 ? `Combined active target${activePots.some(p => p.contributionUnit === 'monthly') ? ' (monthly normalised)' : ''}` : 'Add a pot to set a rate'}</div>
                         </div>
                         <div class="money-hero-card">
                             <div class="money-hero-label">Total invested</div>
@@ -7578,39 +7877,21 @@ const renderAdminClientDetail = async (uid) => {
                         </div>
                     </div>
 
-                    ${streak > 0 ? `<div style="margin-bottom:16px;"><span class="money-streak-pill">🔥 ${streak} week${streak === 1 ? '' : 's'} in a row</span></div>` : ''}
-
-                    <!-- Savings goal -->
-                    <div class="money-card">
-                        <div class="money-card-head">
-                            <div>
-                                <div class="money-card-title">${goal.label ? goal.label.replace(/</g, '&lt;') : 'Savings goal'}</div>
-                                <div class="money-card-sub">Target ${formatMoney(goalAmount)} · ${formatMoney(weeklyTarget)}/week</div>
-                            </div>
-                            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-                                <span class="money-pace-pill ${pace.state}">${pace.label}</span>
-                                <button class="money-btn-ghost" onclick="openEditSavingsGoalModal()" title="Edit goal" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:6px 10px;">
-                                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 2.5l2 2L5 13H3v-2z"/></svg>
-                                    Edit
-                                </button>
-                            </div>
-                        </div>
-                        <div class="money-progress-track">
-                            <div class="money-progress-fill" data-progress="${goalPct}" style="width:0%;"></div>
-                        </div>
-                        <div class="money-progress-row">
-                            <span><strong>${formatMoney(saved)}</strong> saved</span>
-                            <span>${formatMoney(Math.max(0, goalAmount - saved))} to go</span>
-                        </div>
-                        <div style="margin-top:10px;font-size:12px;color:rgba(255,255,255,0.5);">${pace.avgRecent > 0 ? 'Recent average: ' + formatMoney(pace.avgRecent) + '/week.' : 'Log this week\'s saving on the Business page to start tracking.'}</div>
+                    <!-- Pots -->
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin:18px 2px 12px;">
+                        <div style="font-size:12px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.55);">Your pots</div>
+                        <button class="money-btn-ghost" style="font-size:12px;padding:6px 12px;" onclick="openAddPotModal()">+ Add pot</button>
                     </div>
+                    ${activePotsHtml || '<div class="money-empty">All pots are paused. Resume one or add a new one to start saving again.</div>'}
+                    <div class="pot-add-card" onclick="openAddPotModal()">+ Add another pot</div>
+                    ${pausedPotsHtml}
 
-                    <!-- Investments -->
-                    <div class="money-card">
+                    <!-- Standalone investments ledger -->
+                    <div class="money-card" style="margin-top:24px;">
                         <div class="money-card-head">
                             <div>
-                                <div class="money-card-title">Investments</div>
-                                <div class="money-card-sub">${invGoal && invGoalAmount > 0 ? `Target ${formatMoney(invGoalAmount)} by ${invGoal.targetDate ? new Date(invGoal.targetDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '—'}` : 'Log every contribution. Stocks, crypto, or reinvesting in your business.'}</div>
+                                <div class="money-card-title">Investments ledger</div>
+                                <div class="money-card-sub">${invGoal && invGoalAmount > 0 ? `Target ${formatMoney(invGoalAmount)} by ${invGoal.targetDate ? new Date(invGoal.targetDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '—'}` : 'One-off contributions. Stocks, crypto, business reinvestment.'}</div>
                             </div>
                             <button class="money-btn-primary" onclick="openAddInvestmentModal()">+ Add entry</button>
                         </div>
@@ -7641,168 +7922,180 @@ const renderAdminClientDetail = async (uid) => {
                             }).join('')}
                     </div>
 
-                    <div class="money-cta-row" style="margin-top:8px;">
+                    <div class="money-cta-row" style="margin-top:12px;">
                         <button class="money-btn-secondary" onclick="setPage('numbers')">Log this week's numbers &rarr;</button>
-                        <button class="money-btn-ghost" onclick="openMoneySettings()">Adjust % or goals</button>
                     </div>
                 </div>
             `;
         };
 
-        // Save setup form
-        window.saveMoneySetup = async () => {
-            const goalLabel = document.getElementById('moneySetupGoalLabel').value.trim();
-            const goalAmount = parseFloat(document.getElementById('moneySetupGoalAmount').value);
-            const weeklyTarget = parseFloat(document.getElementById('moneySetupWeekly').value);
-            const invLabel = document.getElementById('moneySetupInvGoalLabel').value.trim();
-            const invAmount = parseFloat(document.getElementById('moneySetupInvGoalAmount').value);
-            const invDate = document.getElementById('moneySetupInvGoalDate').value;
+        // ── POT CRUD HANDLERS ──
 
-            if (!goalLabel || isNaN(goalAmount) || goalAmount <= 0) {
-                toast.error('Add a goal name and target amount');
-                return;
-            }
-            if (isNaN(weeklyTarget) || weeklyTarget <= 0) {
-                toast.error('Pick how much you can save each week');
-                return;
-            }
+        // Read form fields rendered by renderPotFormFields and return a validated pot payload.
+        const readPotFormFields = (idPrefix) => {
+            const label = (document.getElementById(idPrefix + 'Label')?.value || '').trim();
+            const target = parseFloat(document.getElementById(idPrefix + 'Target')?.value);
+            const contribution = parseFloat(document.getElementById(idPrefix + 'Contribution')?.value);
+            const unit = (document.getElementById(idPrefix + 'Unit')?.value) || 'weekly';
+            if (!label) { toast.error('Give this pot a name'); return null; }
+            if (isNaN(target) || target <= 0) { toast.error('Enter a target amount'); return null; }
+            if (isNaN(contribution) || contribution <= 0) { toast.error('Enter how much you can put in each ' + (unit === 'monthly' ? 'month' : 'week')); return null; }
+            return {
+                label,
+                target,
+                contribution: Math.round(contribution * 100) / 100,
+                contributionUnit: unit === 'monthly' ? 'monthly' : 'weekly',
+            };
+        };
 
-            const weeks = Math.ceil(goalAmount / weeklyTarget);
-            const projectedDate = new Date(Date.now() + weeks * 7 * 86400000).toISOString().slice(0, 10);
-
+        // First-time setup — creates the first pot and marks setupComplete
+        window.saveFirstPot = async () => {
+            const fields = readPotFormFields('moneySetup');
+            if (!fields) return;
             const uid = currentUser.uid;
             try {
-                await db.ref('portal/savings/' + uid + '/settings').set({
-                    weeklyTarget,
+                const potId = db.ref('portal/savings/' + uid + '/pots').push().key;
+                const nowIso = new Date().toISOString();
+                await db.ref('portal/savings/' + uid + '/pots/' + potId).set({
+                    ...fields,
+                    status: 'active',
+                    startDate: nowIso.slice(0, 10),
+                    createdAt: nowIso,
+                });
+                await db.ref('portal/savings/' + uid + '/settings').update({
                     setupComplete: true,
-                    updatedAt: new Date().toISOString(),
+                    updatedAt: nowIso,
                 });
-                await db.ref('portal/savings/' + uid + '/goal').set({
-                    label: goalLabel,
-                    targetAmount: goalAmount,
-                    targetDate: projectedDate,
-                    startDate: new Date().toISOString().slice(0, 10),
-                });
-                if (invLabel && !isNaN(invAmount) && invAmount > 0 && invDate) {
-                    await db.ref('portal/investments/' + uid + '/goal').set({
-                        label: invLabel,
-                        targetAmount: invAmount,
-                        targetDate: invDate,
-                    });
-                } else {
-                    await db.ref('portal/investments/' + uid + '/goal').remove();
-                }
-                toast.success('Plan saved');
+                toast.success('Pot created');
                 setPage('money');
             } catch (err) {
                 toast.error('Could not save: ' + err.message);
             }
         };
 
-        // Open settings (re-show setup form to allow editing)
-        window.openMoneySettings = async () => {
-            const uid = currentUser.uid;
-            // Mark setup as incomplete temporarily? No — just show setup form via a flag.
-            // Simpler: just mark setupComplete=false, let setup re-render, then it sets it true on save.
-            await db.ref('portal/savings/' + uid + '/settings/setupComplete').set(false);
-            setPage('money');
-        };
-
-        // Inline edit of the savings goal — name, target, weekly amount
-        window.openEditSavingsGoalModal = async () => {
+        // Open "Add another pot" modal
+        window.openAddPotModal = () => {
             const container = document.getElementById('confirmModalContainer');
             if (!container) return;
-            const uid = currentUser.uid;
-            const snap = await db.ref('portal/savings/' + uid).once('value');
-            const savings = snap.val() || {};
-            const goal = savings.goal || {};
-            const settings = savings.settings || {};
-            const label = (goal.label || '').replace(/"/g, '&quot;');
-            const target = Number(goal.targetAmount) || 0;
-            const weekly = Number(settings.weeklyTarget) || 0;
-            const sym = currencySymbol();
             container.innerHTML = `
-                <div class="confirm-modal-overlay" onclick="if(event.target===this) closeEditSavingsGoalModal()">
-                    <div class="confirm-modal" style="max-width:480px;">
-                        <div class="confirm-modal-title">Edit savings goal</div>
-                        <div class="confirm-modal-message">Change the name, target, or how much you save each week.</div>
-                        <div style="margin-bottom:14px;">
-                            <div class="form-label" style="margin-bottom:6px;">Goal name</div>
-                            <input type="text" id="editGoalLabel" class="form-input" placeholder="e.g. House deposit" value="${label}">
-                        </div>
-                        <div style="margin-bottom:14px;">
-                            <div class="form-label" style="margin-bottom:6px;">Target amount (${sym})</div>
-                            <input type="number" id="editGoalAmount" class="form-input" min="0" step="100" value="${target || ''}" oninput="updateEditGoalPreview()">
-                        </div>
-                        <div style="margin-bottom:14px;">
-                            <div class="form-label" style="margin-bottom:6px;">Weekly saving (${sym})</div>
-                            <input type="number" id="editGoalWeekly" class="form-input" min="0" step="10" value="${weekly || ''}" oninput="updateEditGoalPreview()">
-                        </div>
-                        <div id="editGoalPreview" style="background:rgba(184,233,134,0.06);border:1px solid rgba(184,233,134,0.2);border-radius:10px;padding:12px 14px;text-align:center;margin-bottom:18px;font-size:13px;color:rgba(255,255,255,0.85);line-height:1.4;">Enter both numbers to see the timeline</div>
+                <div class="confirm-modal-overlay" onclick="if(event.target===this) closePotModal()">
+                    <div class="confirm-modal" style="max-width:520px;">
+                        <div class="confirm-modal-title">Add a new pot</div>
+                        <div class="confirm-modal-message">Each pot is one thing you're saving toward. You can pause or delete it later.</div>
+                        ${renderPotFormFields({ idPrefix: 'addPot', defaultUnit: 'weekly' })}
                         <div class="confirm-modal-actions">
-                            <button class="confirm-btn confirm-btn-cancel" onclick="closeEditSavingsGoalModal()">Cancel</button>
-                            <button class="confirm-btn confirm-btn-confirm" onclick="saveEditedSavingsGoal()">Save</button>
+                            <button class="confirm-btn confirm-btn-cancel" onclick="closePotModal()">Cancel</button>
+                            <button class="confirm-btn confirm-btn-confirm" onclick="saveNewPot()">Add pot</button>
                         </div>
                     </div>
                 </div>
             `;
             setTimeout(() => {
-                const a = document.getElementById('editGoalLabel');
+                const a = document.getElementById('addPotLabel');
                 if (a) a.focus();
-                updateEditGoalPreview();
+                updatePotPreview('addPot');
             }, 50);
         };
 
-        window.closeEditSavingsGoalModal = () => {
+        window.closePotModal = () => {
             const c = document.getElementById('confirmModalContainer');
             if (c) c.innerHTML = '';
         };
 
-        window.updateEditGoalPreview = () => {
-            const target = parseFloat(document.getElementById('editGoalAmount')?.value);
-            const weekly = parseFloat(document.getElementById('editGoalWeekly')?.value);
-            const previewEl = document.getElementById('editGoalPreview');
-            if (!previewEl) return;
-            if (isNaN(target) || target <= 0 || isNaN(weekly) || weekly <= 0) {
-                previewEl.textContent = 'Enter both numbers to see the timeline';
-                return;
-            }
-            const weeks = Math.ceil(target / weekly);
-            const months = Math.round(weeks / 4.345);
-            const years = (weeks / 52).toFixed(1);
-            const dateLabel = futureDateLabel(weeks);
-            const timeLabel = weeks < 8 ? `${weeks} week${weeks === 1 ? '' : 's'}`
-                : weeks < 78 ? `${months} month${months === 1 ? '' : 's'}`
-                : `${years} years`;
-            previewEl.innerHTML = `Saving <strong>${formatMoney(weekly)}/week</strong>, you'll hit <strong>${formatMoney(target)}</strong> in <strong>${timeLabel}</strong> &mdash; ${dateLabel}`;
-        };
-
-        window.saveEditedSavingsGoal = async () => {
-            const label = (document.getElementById('editGoalLabel').value || '').trim();
-            const amount = parseFloat(document.getElementById('editGoalAmount').value);
-            const weekly = parseFloat(document.getElementById('editGoalWeekly').value);
-            if (!label) { toast.error('Add a goal name'); return; }
-            if (isNaN(amount) || amount <= 0) { toast.error('Enter a target amount'); return; }
-            if (isNaN(weekly) || weekly <= 0) { toast.error('Enter a weekly saving amount'); return; }
+        window.saveNewPot = async () => {
+            const fields = readPotFormFields('addPot');
+            if (!fields) return;
             const uid = currentUser.uid;
             try {
-                const weeks = Math.ceil(amount / weekly);
-                const projectedDate = new Date(Date.now() + weeks * 7 * 86400000).toISOString().slice(0, 10);
-                await db.ref('portal/savings/' + uid + '/goal').update({
-                    label,
-                    targetAmount: amount,
-                    targetDate: projectedDate,
+                const potId = db.ref('portal/savings/' + uid + '/pots').push().key;
+                const nowIso = new Date().toISOString();
+                await db.ref('portal/savings/' + uid + '/pots/' + potId).set({
+                    ...fields,
+                    status: 'active',
+                    startDate: nowIso.slice(0, 10),
+                    createdAt: nowIso,
                 });
-                await db.ref('portal/savings/' + uid + '/settings').update({
-                    weeklyTarget: weekly,
-                    setupComplete: true,
-                    updatedAt: new Date().toISOString(),
-                });
-                closeEditSavingsGoalModal();
-                toast.success('Goal updated');
+                closePotModal();
+                toast.success('Pot added');
                 setPage('money');
             } catch (err) {
                 toast.error('Could not save: ' + err.message);
+            }
+        };
+
+        window.openEditPotModal = async (potId) => {
+            const container = document.getElementById('confirmModalContainer');
+            if (!container) return;
+            const uid = currentUser.uid;
+            const snap = await db.ref('portal/savings/' + uid + '/pots/' + potId).once('value');
+            const pot = snap.val() || {};
+            container.innerHTML = `
+                <div class="confirm-modal-overlay" onclick="if(event.target===this) closePotModal()">
+                    <div class="confirm-modal" style="max-width:520px;">
+                        <div class="confirm-modal-title">Edit pot</div>
+                        <div class="confirm-modal-message">Change the name, target, or how much you put in.</div>
+                        ${renderPotFormFields({ idPrefix: 'editPot', defaults: pot })}
+                        <div class="confirm-modal-actions">
+                            <button class="confirm-btn confirm-btn-cancel" onclick="closePotModal()">Cancel</button>
+                            <button class="confirm-btn confirm-btn-confirm" onclick="saveEditedPot('${potId}')">Save</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            setTimeout(() => {
+                const a = document.getElementById('editPotLabel');
+                if (a) a.focus();
+                updatePotPreview('editPot');
+            }, 50);
+        };
+
+        window.saveEditedPot = async (potId) => {
+            const fields = readPotFormFields('editPot');
+            if (!fields) return;
+            const uid = currentUser.uid;
+            try {
+                await db.ref('portal/savings/' + uid + '/pots/' + potId).update(fields);
+                closePotModal();
+                toast.success('Pot updated');
+                setPage('money');
+            } catch (err) {
+                toast.error('Could not save: ' + err.message);
+            }
+        };
+
+        window.togglePotPause = async (potId) => {
+            const uid = currentUser.uid;
+            try {
+                const snap = await db.ref('portal/savings/' + uid + '/pots/' + potId + '/status').once('value');
+                const next = snap.val() === 'paused' ? 'active' : 'paused';
+                await db.ref('portal/savings/' + uid + '/pots/' + potId + '/status').set(next);
+                toast.success(next === 'paused' ? 'Pot paused' : 'Pot resumed');
+                setPage(currentPage);
+            } catch (err) {
+                toast.error('Could not update: ' + err.message);
+            }
+        };
+
+        window.deletePot = async (potId) => {
+            const uid = currentUser.uid;
+            const snap = await db.ref('portal/savings/' + uid + '/pots/' + potId).once('value');
+            const pot = snap.val() || {};
+            const ok = await confirmAsync({
+                title: 'Delete "' + (pot.label || 'this pot') + '"?',
+                message: 'This removes the pot AND every transfer you\'ve logged to it. You can\'t undo this.',
+                confirmLabel: 'Delete pot',
+                danger: true,
+            });
+            if (!ok) return;
+            try {
+                const update = {};
+                update['pots/' + potId] = null;
+                update['transfers/' + potId] = null;
+                await db.ref('portal/savings/' + uid).update(update);
+                toast.success('Pot deleted');
+                setPage(currentPage);
+            } catch (err) {
+                toast.error('Could not delete: ' + err.message);
             }
         };
 
@@ -7900,60 +8193,56 @@ const renderAdminClientDetail = async (uid) => {
             }
         };
 
-        // Log a week's saving. Reads amount from inline input if present, else uses weeklyTarget.
-        window.logWeeklySaving = async (weekKey) => {
+        // Log a transfer for a specific pot. Reads the amount from the pot's inline input
+        // (id="potLogAmount_<potId>"), falling back to the pot's contribution amount.
+        window.logForPot = async (potId, periodKey) => {
             const uid = currentUser.uid;
-            const wk = weekKey || getWeekKey();
-            const inputEl = document.getElementById('pfWeeklyAmount');
             try {
-                const savingsSnap = await db.ref('portal/savings/' + uid).once('value');
-                const savings = savingsSnap.val() || {};
-                const settings = savings.settings || {};
-                if (!settings.setupComplete || !Number(settings.weeklyTarget)) {
-                    toast.error('Set up your savings plan first');
-                    setPage('money');
-                    return;
-                }
-                const weeklyTarget = Number(settings.weeklyTarget);
-                let amount = inputEl ? parseFloat(inputEl.value) : weeklyTarget;
-                if (isNaN(amount) || amount < 0) amount = weeklyTarget;
+                const potSnap = await db.ref('portal/savings/' + uid + '/pots/' + potId).once('value');
+                const pot = potSnap.val();
+                if (!pot) { toast.error('Pot not found'); setPage('money'); return; }
+                const periodK = periodKey || currentPeriodKey(pot);
+                const inputEl = document.getElementById('potLogAmount_' + potId);
+                let amount = inputEl ? parseFloat(inputEl.value) : Number(pot.contribution);
+                if (isNaN(amount) || amount < 0) amount = Number(pot.contribution) || 0;
                 amount = Math.round(amount * 100) / 100;
-                await db.ref('portal/savings/' + uid + '/transfers/' + wk).set({
+                await db.ref('portal/savings/' + uid + '/transfers/' + potId + '/' + periodK).set({
                     amount,
-                    weeklyTarget,
                     transferredAt: new Date().toISOString(),
                     source: 'manual',
                 });
-                toast.success('Logged ' + formatMoney(amount) + ' for this week');
+                toast.success('Logged ' + formatMoney(amount) + ' to ' + (pot.label || 'pot'));
                 setPage(currentPage);
             } catch (err) {
                 toast.error('Could not log: ' + err.message);
             }
         };
 
-        // Back-compat alias for any existing onclicks
-        window.markWeeklyTransfer = window.logWeeklySaving;
-
-        // Edit/override transfer amount
-        window.editWeeklyTransfer = async (weekKey) => {
+        // Edit/override a transfer amount for a specific pot + period
+        window.editPotTransfer = async (potId, periodKey) => {
             const uid = currentUser.uid;
-            const wk = weekKey || getWeekKey();
-            const snap = await db.ref('portal/savings/' + uid + '/transfers/' + wk).once('value');
-            const existing = snap.val() || {};
+            const [potSnap, txSnap] = await Promise.all([
+                db.ref('portal/savings/' + uid + '/pots/' + potId).once('value'),
+                db.ref('portal/savings/' + uid + '/transfers/' + potId + '/' + periodKey).once('value'),
+            ]);
+            const pot = potSnap.val() || {};
+            const existing = txSnap.val() || {};
+            const sym = currencySymbol();
+            const periodLabel = pot.contributionUnit === 'monthly' ? 'this month' : 'this week';
             const container = document.getElementById('confirmModalContainer');
             if (!container) return;
             container.innerHTML = `
                 <div class="confirm-modal-overlay" onclick="if(event.target===this) document.getElementById('confirmModalContainer').innerHTML='';">
                     <div class="confirm-modal" style="max-width:420px;">
-                        <div class="confirm-modal-title">Override transfer amount</div>
-                        <div class="confirm-modal-message">Different amount this week? Enter what you actually transferred.</div>
+                        <div class="confirm-modal-title">Edit amount for ${periodLabel}</div>
+                        <div class="confirm-modal-message">Different amount than planned? Enter what you actually transferred to <strong>${(pot.label || 'this pot').replace(/</g, '&lt;')}</strong>.</div>
                         <div style="margin-bottom:18px;">
-                            <div class="form-label" style="margin-bottom:6px;">Amount transferred (£)</div>
+                            <div class="form-label" style="margin-bottom:6px;">Amount transferred (${sym})</div>
                             <input type="number" id="editTransferAmount" class="form-input" min="0" step="1" value="${existing.amount || ''}">
                         </div>
                         <div class="confirm-modal-actions">
                             <button class="confirm-btn confirm-btn-cancel" onclick="document.getElementById('confirmModalContainer').innerHTML='';">Cancel</button>
-                            <button class="confirm-btn confirm-btn-confirm" onclick="saveOverriddenTransfer('${wk}')">Save</button>
+                            <button class="confirm-btn confirm-btn-confirm" onclick="savePotTransferOverride('${potId}','${periodKey}')">Save</button>
                         </div>
                     </div>
                 </div>
@@ -7961,16 +8250,13 @@ const renderAdminClientDetail = async (uid) => {
             setTimeout(() => { const a = document.getElementById('editTransferAmount'); if (a) { a.focus(); a.select(); } }, 50);
         };
 
-        window.saveOverriddenTransfer = async (weekKey) => {
+        window.savePotTransferOverride = async (potId, periodKey) => {
             const amount = parseFloat(document.getElementById('editTransferAmount').value);
             if (isNaN(amount) || amount < 0) { toast.error('Enter a valid amount'); return; }
             const uid = currentUser.uid;
             try {
-                const entrySnap = await db.ref('portal/entries/' + uid + '/' + weekKey).once('value');
-                const totals = getWeeklyTotals(entrySnap.val() || {});
-                await db.ref('portal/savings/' + uid + '/transfers/' + weekKey).set({
-                    amount,
-                    weeklyTarget: 0,
+                await db.ref('portal/savings/' + uid + '/transfers/' + potId + '/' + periodKey).set({
+                    amount: Math.round(amount * 100) / 100,
                     transferredAt: new Date().toISOString(),
                     source: 'manual-edit',
                 });
