@@ -1174,11 +1174,26 @@
                .sidebar-nav-item .nav-label (and section headers aren't nav-items). */
             .portal-sidebar .nav-label { display: none; }
             .sidebar-signout .nav-label { display: block !important; font-size: 7px; letter-spacing: 0.05em; text-transform: uppercase; margin-top: 2px; }
-            /* Section headers behave like nav-item icons on mobile */
-            .sidebar-section-header { justify-content: center; padding: 10px; gap: 0; }
-            .sidebar-section-chevron { display: none; }
-            /* Always expand sections on mobile so sub-item icons stay reachable */
-            .sidebar-section .sidebar-section-items { max-height: none !important; overflow: visible !important; }
+            /* Section headers: icon on top, tiny chevron underneath as the dropdown affordance.
+               Sections stay collapsible — they only expand on tap (or auto-expand when the
+               current page lives inside them), so the sidebar isn't a wall of icons. */
+            .sidebar-section-header {
+                flex-direction: column;
+                justify-content: center;
+                padding: 8px 4px 4px;
+                gap: 2px;
+            }
+            .sidebar-section-chevron {
+                margin-left: 0 !important;
+                font-size: 7px;
+                line-height: 1;
+                opacity: 0.4;
+            }
+            .sidebar-section.expanded .sidebar-section-chevron {
+                opacity: 0.85;
+                color: var(--accent);
+            }
+            /* Sub-items inside an expanded section show as icon-only rows, no left-indent */
             .sidebar-nav-item.sub { padding: 9px 10px !important; justify-content: center; gap: 0; }
             .sidebar-nav-item.sub.active { padding-left: 10px !important; }
             .sidebar-signout { justify-content: center; padding: 10px; gap: 0; flex-direction: column; margin-top: 24px; }
