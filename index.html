@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0A0A0A">
     <title>SCALO Client Portal</title>
     <link rel="icon" type="image/png" href="scalo v3.png">
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -44,10 +45,10 @@
             overflow-x: hidden;
         }
 
-        #root { width: 100%; height: 100vh; overflow: hidden; }
+        #root { width: 100%; height: 100vh; height: 100dvh; overflow: hidden; }
 
         /* ── LOGIN ── */
-        .auth-container { width: 100%; height: 100vh; display: flex; }
+        .auth-container { width: 100%; height: 100vh; height: 100dvh; display: flex; }
 
         .auth-left {
             width: 380px;
@@ -99,7 +100,7 @@
         }
 
         /* ── PORTAL LAYOUT ── */
-        .portal-layout { display: flex; height: 100vh; overflow: hidden; }
+        .portal-layout { display: flex; height: 100vh; height: 100dvh; overflow: hidden; }
 
         .portal-sidebar {
             width: 220px;
@@ -530,6 +531,7 @@
            snap-aligns to the viewport top so the page "flips" between sections. */
         .hub-snap-section {
             min-height: calc(100vh - 120px);
+            min-height: calc(100dvh - 120px);
             padding: 28px 0;
             box-sizing: border-box;
             transition: opacity 0.45s ease, filter 0.45s ease;
@@ -615,6 +617,36 @@
                 padding: 16px 0;
             }
             .hub-snap-section.dim { opacity: 1; filter: none; }
+        }
+
+        /* ── MOBILE PERFORMANCE & FRAMING ──
+           backdrop-filter blur is re-sampled every frame while scrolling and is
+           the single biggest cause of jank on phones. The translucent surfaces
+           all sit on a dark background (or over a dark overlay), so dropping the
+           blur on small screens keeps the look while removing the lag. We also
+           turn off scroll-snap + smooth-scroll on the hub (the focus-mode "flip"
+           fights touch scrolling) and pad for the iOS home indicator. */
+        @media (max-width: 768px) {
+            *, *::before, *::after {
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
+            body.hub-active .portal-content-area {
+                scroll-snap-type: none;
+                scroll-behavior: auto;
+            }
+            .hub-snap-section {
+                transition: none;
+                scroll-snap-align: none;
+                scroll-snap-stop: normal;
+            }
+            .portal-content-area {
+                -webkit-overflow-scrolling: touch;
+                padding-bottom: calc(22px + env(safe-area-inset-bottom));
+            }
+            /* The card entrance stagger runs on every hub render — skip it on
+               mobile so returning to the hub feels instant, not animated. */
+            .hub-grid > * { animation: none; }
         }
 
         /* Hub metric tile: a refined version of the inline-styled cards used today */
@@ -1010,7 +1042,7 @@
 
         .textarea:focus { outline: none; border-color: var(--accent); background: var(--bg-input); box-shadow: 0 0 0 3px var(--accent-dim); }
 
-        .loading { display: flex; align-items: center; justify-content: center; height: 100vh; font-size: 15px; color: rgba(255,255,255,0.35); background: #0A0A0A; }
+        .loading { display: flex; align-items: center; justify-content: center; height: 100vh; height: 100dvh; font-size: 15px; color: rgba(255,255,255,0.35); background: #0A0A0A; }
 
         /* ── CONTENT LIBRARY ── */
         .content-card {
